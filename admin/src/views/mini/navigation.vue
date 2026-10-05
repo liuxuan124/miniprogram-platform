@@ -11,9 +11,9 @@
           :on-retry="flushTabDraft"
         >
           <template #actions>
-            <el-button @click="router.push('/mini/brand')">品牌信息</el-button>
-            <el-button @click="router.push('/mini/preview')">预览检查</el-button>
-            <el-button type="primary" @click="router.push('/mini/publish')">去发布与版本</el-button>
+            <el-button @click="router.push('/mini/appearance?tab=brand')">品牌信息</el-button>
+            <el-button @click="router.push('/mini/releases')">预览检查</el-button>
+            <el-button type="primary" @click="router.push('/mini/releases')">去发布与版本</el-button>
           </template>
 
           <template #help>
@@ -245,7 +245,7 @@
               <h2 class="h2">导航与页面的引用关系</h2>
               <div class="sub">被导航占用的页面不能随意删除或归档</div>
             </div>
-            <button type="button" class="btn sm soft" @click="router.push('/mini/page-config')">页面配置 ›</button>
+            <button type="button" class="btn sm soft" @click="router.push('/mini/pages')">页面配置 ›</button>
           </div>
           <div class="ref-table">
             <div class="ref-row ref-head">
@@ -597,7 +597,7 @@ type NavCheck = { level: 'blocking' | 'warning' | 'ok'; text: string; fixTo?: st
 const navChecks = computed<NavCheck[]>(() => {
   const list = tabs.value
   if (!list.length) {
-    return [{ level: 'blocking', text: '还没有任何导航入口，小程序将不显示底部 Tab 栏', fixTo: '/mini/navigation' }]
+    return [{ level: 'blocking', text: '还没有任何导航入口，小程序将不显示底部 Tab 栏', fixTo: '/mini/appearance?tab=nav' }]
   }
 
   const out: NavCheck[] = []
@@ -606,14 +606,14 @@ const navChecks = computed<NavCheck[]>(() => {
     out.push({
       level: 'blocking',
       text: `当前只有 ${list.length} 个入口，小程序要求 ${TABBAR_MIN} ~ ${TABBAR_MAX} 个`,
-      fixTo: '/mini/navigation',
+      fixTo: '/mini/appearance?tab=nav',
     })
   }
   if (list.length > TABBAR_MAX) {
     out.push({
       level: 'warning',
       text: `当前有 ${list.length} 个入口，超过微信上限 ${TABBAR_MAX} 个，多余的不会被显示`,
-      fixTo: '/mini/navigation',
+      fixTo: '/mini/appearance?tab=nav',
     })
   }
 
@@ -622,7 +622,7 @@ const navChecks = computed<NavCheck[]>(() => {
     out.push({
       level: 'blocking',
       text: `${unnamed.length} 个导航没有名称，小程序 Tab 会显示空文字`,
-      fixTo: '/mini/navigation',
+      fixTo: '/mini/appearance?tab=nav',
     })
   }
 
@@ -665,7 +665,7 @@ const navChecks = computed<NavCheck[]>(() => {
         out.push({
           level: 'blocking',
           text: `「${label}」指向的页面不存在（${path || `ID ${pid}`}），请重新绑定`,
-          fixTo: '/mini/navigation',
+          fixTo: '/mini/appearance?tab=nav',
         })
         continue
       }
@@ -675,7 +675,7 @@ const navChecks = computed<NavCheck[]>(() => {
         out.push({
           level: 'blocking',
           text: `「${label}」指向的页面「${hit.name}」已被归档，归档页不能作为导航入口`,
-          fixTo: '/mini/page-config',
+          fixTo: '/mini/pages',
         })
       } else if (st === 'offline') {
         out.push({
@@ -687,7 +687,7 @@ const navChecks = computed<NavCheck[]>(() => {
         out.push({
           level: 'warning',
           text: `「${label}」指向的页面「${hit.name}」还是草稿，发布配置后才会生效`,
-          fixTo: '/mini/publish',
+          fixTo: '/mini/releases',
         })
       } else {
         out.push({ level: 'ok', text: `「${label}」→ ${hit.name}（${hit.path}）已上线` })
@@ -700,7 +700,7 @@ const navChecks = computed<NavCheck[]>(() => {
     out.push({
       level: 'warning',
       text: `${hidden.length} 个入口已设为隐藏，用户在小程序里看不到`,
-      fixTo: '/mini/navigation',
+      fixTo: '/mini/appearance?tab=nav',
     })
   }
 

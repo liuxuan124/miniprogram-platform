@@ -16,7 +16,7 @@
             <button type="button" class="btn soft" @click="runChecks">
               <MiniIcon name="undo" :size="14" />重新检查
             </button>
-            <button type="button" class="btn soft" @click="router.push('/mini/publish')">去发布 ›</button>
+            <button type="button" class="btn soft" @click="router.push('/mini/releases')">去发布 ›</button>
           </div>
         </div>
 
@@ -34,7 +34,7 @@
               v-if="blockingTotal === 0 && pendingCount > 0"
               type="button"
               class="btn primary"
-              @click="router.push('/mini/publish')"
+              @click="router.push('/mini/releases')"
             >
               可以发布
             </button>
@@ -226,7 +226,7 @@
                   上方「检查通过」来自后端 preflight，它不校验导航绑定目标是否存在；
                   两者口径不同，以本项为准。请先到「导航配置」修复。
                 </span>
-                <button type="button" class="btn sm" @click="router.push('/mini/navigation')">
+                <button type="button" class="btn sm" @click="router.push('/mini/appearance?tab=nav')">
                   去修复导航绑定
                 </button>
               </div>

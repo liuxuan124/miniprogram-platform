@@ -70,67 +70,52 @@ export const asyncRoutes: RouteRecordRaw[] = [
     component: Layout,
     name: 'Mini',
     meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-    redirect: '/mini/overview',
+    redirect: '/mini/pages',
     children: [
-      {
-        path: 'overview',
-        name: 'MiniOverview',
-        component: () => import('@/views/mini/overview.vue'),
-        meta: { title: '搭建工作台', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
-      {
-        path: 'brand',
-        name: 'MiniBrand',
-        component: () => import('@/views/mini/brand.vue'),
-        meta: { title: '品牌信息', icon: 'Brush', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
-      {
-        path: 'system',
-        name: 'MiniSystemConfig',
-        component: () => import('@/views/mini/system-config.vue'),
-        meta: { title: '系统配置', icon: 'Setting', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
+      /* ── 三个工作台（侧栏只显示这三个）─────────────────────────────────
+         2026-10-06 从 9 个平铺 / 6 组分组进一步收敛为 3 个工作台：
+         页面管理 / 品牌与导航 / 发版中心。
+         收敛依据是「用户要完成的几件事」而不是「技术模块的划分」——
+         原来「品牌信息」「导航配置」「系统功能」改的都是同一个外壳，
+         「概览」「预览检查」「发布与版本」是同一次发布的三个侧面。          */
       {
         path: 'pages',
         name: 'MiniPages',
-        component: () => import('@/views/mini/pages.vue'),
-        meta: { title: '页面搭建', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        component: () => import('@/views/mini/pages-hub.vue'),
+        meta: { title: '页面管理', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
-        path: 'page-config',
-        name: 'MiniPageConfig',
-        component: () => import('@/views/mini/page-config.vue'),
-        meta: { title: '页面配置', icon: 'Gear', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        path: 'appearance',
+        name: 'MiniAppearanceHub',
+        component: () => import('@/views/mini/appearance-hub.vue'),
+        meta: { title: '品牌与导航', icon: 'Brush', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
-        path: 'navigation',
-        name: 'MiniNavigation',
-        component: () => import('@/views/mini/navigation.vue'),
-        meta: { title: '导航配置', icon: 'Menu', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        path: 'releases',
+        name: 'MiniReleasesHub',
+        component: () => import('@/views/mini/releases-hub.vue'),
+        meta: { title: '发版中心', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
-      {
-        path: 'preview',
-        name: 'MiniPreviewCheck',
-        component: () => import('@/views/mini/preview-check.vue'),
-        meta: { title: '预览检查', icon: 'View', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
-      {
-        path: 'publish',
-        name: 'MiniPublish',
-        component: () => import('@/views/mini/publish.vue'),
-        meta: { title: '发布与版本', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
+
+      /* ── 旧地址兼容 ────────────────────────────────────────────────────
+         🔴 这些 redirect 不是"过时的历史"，是**正在被人使用的深链接**：
+         旧书签、外部文档、我上一轮给用户的链接都指向它们。
+         全部保留并指到对应工作台，尽量带上 query 让上下文延续。
+         用函数式 redirect 而不是字符串，才能把原 query 带过去。          */
+      { path: 'overview', redirect: '/mini/releases', meta: { title: '搭建工作台', hidden: true } },
+      { path: 'brand', redirect: { path: '/mini/appearance', query: { tab: 'brand' } }, meta: { title: '品牌信息', hidden: true } },
+      { path: 'system', redirect: { path: '/mini/appearance', query: { tab: 'flags' } }, meta: { title: '系统配置', hidden: true } },
+      { path: 'page-config', redirect: '/mini/pages', meta: { title: '页面配置', hidden: true } },
+      { path: 'navigation', redirect: { path: '/mini/appearance', query: { tab: 'nav' } }, meta: { title: '导航配置', hidden: true } },
+      { path: 'preview', redirect: '/mini/releases', meta: { title: '预览检查', hidden: true } },
+      { path: 'publish', redirect: '/mini/releases', meta: { title: '发布与版本', hidden: true } },
+
+      /* ── 仍是独立页的（不是配置，是创作流程）───────────────────────── */
       {
         path: 'templates',
         name: 'MiniTemplates',
         component: () => import('@/views/mini/templates.vue'),
-        meta: { title: '模板', icon: 'Shop', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
-      {
-        // 旧路径：品牌信息与导航从「外观」拆出后，这两个地址继续可用，避免旧书签/深链失效
-        path: 'appearance',
-        redirect: '/mini/brand',
-        meta: { title: '外观', hidden: true },
+        meta: { title: '模板库', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'pages/new-ai',
@@ -151,27 +136,27 @@ export const asyncRoutes: RouteRecordRaw[] = [
     component: Layout,
     name: 'PageBuilder',
     meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'], hidden: true },
-    redirect: '/mini/overview',
+    redirect: '/mini/pages',
     children: [
       {
         path: 'overview',
         name: 'PageBuilderOverview',
-        redirect: '/mini/overview',
+        redirect: '/mini/releases',
         meta: { title: '搭建工作台', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'start',
         name: 'PageBuilderStart',
-        redirect: '/mini/overview',
-        meta: { title: '品牌导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        redirect: '/mini/pages',
+        meta: { title: '页面管理', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         // 旧「品牌导航」页：保留深链可达，但侧栏不再展示
         // （它与 /mini/brand + /mini/navigation 是同一批能力的两套实现，已收编到新路由）
         path: 'appearance',
         name: 'PageBuilderAppearance',
-        component: () => import('@/views/page-builder/appearance.vue'),
-        meta: { title: '品牌导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        redirect: '/mini/appearance',
+        meta: { title: '品牌与导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'drafts',
@@ -215,8 +200,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'release',
         name: 'PageBuilderRelease',
-        redirect: '/mini/overview',
-        meta: { title: '发布中心', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
+        redirect: '/mini/releases',
+        meta: { title: '发版中心', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
       },
       {
         // 开发者微信推送深链（侧栏不展示）
@@ -228,8 +213,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'version-management',
         name: 'VersionManagement',
-        redirect: '/mini/overview',
-        meta: { title: '版本记录', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        redirect: '/mini/releases',
+        meta: { title: '发版中心', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'version/:id',
@@ -509,10 +494,18 @@ export const asyncRoutes: RouteRecordRaw[] = [
       // 社区已升级为独立模块 /community
       { path: 'community', redirect: '/community/list' },
       {
+        // 客服 IM 工作台：满屏三栏（会话列表 / 对话流 / 客户全景），SSE 实时收消息。
+        // 老的 support.vue 降级为「工单视图」（一次诉求的记录），路径保留兼容。
         path: 'support',
         name: 'MemberOpsSupport',
+        component: () => import('@/views/member-ops/im-workbench.vue'),
+        meta: { title: '客服工作台', icon: 'ChatDotRound' },
+      },
+      {
+        path: 'support-tickets',
+        name: 'MemberOpsSupportTickets',
         component: () => import('@/views/member-ops/support.vue'),
-        meta: { title: '客服中心', icon: 'ChatDotRound' },
+        meta: { title: '客服工单', icon: 'Tickets' },
       },
       // 旧路径兼容
       { path: 'list', redirect: '/member/plans' },

@@ -1,0 +1,638 @@
+/**
+ * ============================================================================
+ * SaaS 级设计 Token（对齐 Linear / Vercel / Vercel Dashboard 水准）
+ * ============================================================================
+ *
+ * 🔴 为什么要单独一层，而不是直接改 admin-themes.scss 里的 --wb-* 变量？
+ * 因为 --wb-* 变量被 30+ 个页面/组件共用（content / member / commerce 三个
+ * workbench 都在用），直接改它的取值会让本次「小程序模块视觉升级」变成
+ * 全站视觉回归测试 —— 而本次任务书明确只要求升级小程序模块。
+ *
+ * 所以这里的策略是：
+ *   1. **不改动任何既有变量的取值**，只在 :root 上「新增」一组 saas-* 变量；
+ *   2. saas-* 全部由既有变量派生（var(--wb-ink) 等），
+ *      因此切换 classic / warm 主题时会自动跟随，不需要写两套；
+ *   3. 小程序模块的新页面只使用 saas-* 这一层。
+ *
+ * 这样做的收益：改动是纯增量的，出问题一键删掉这个文件就能回滚，
+ * 不会波及 commerce / content / member 三条既有线。
+ *
+ * ── 设计哲学 ──────────────────────────────────────────────────────────────
+ *  · 中性灰打底，极克制语义强调：主色只允许出现在「唯一主操作」「选中态」
+ *    「焦点描边」三处，绝不整块刷背景（这是国内后台最常见的视觉事故）。
+ *  · 立体感来自「细边框 + 极轻投影」，不是大半径模糊重阴影。
+ *  · 圆角分三档：控件 6px / 卡片 12px / 模拟器 40px，各有明确语义。
+ * ============================================================================
+*/
+
+:root {
+  /* ── 表面与背景 ──────────────────────────────────────────────────────── */
+  --saas-app: var(--wb-bg);          /* 页面最底层 */
+  --saas-surface: #ffffff;           /* 卡片 / 抽屉 / 弹层，恒为纯白 */
+  --saas-subtle: var(--wb-soft);      /* 表头 / hover / 激活底 */
+  --saas-sunken: #f8fafc;             /* 凹陷区（代码块、骨架屏底） */
+
+  /* ── 边框 ────────────────────────────────────────────────────────────── */
+  /* 用 rgba 而非实色：叠加在任意主题背景上都不会显得"脏" */
+  --saas-border: rgba(226, 232, 240, 0.9);
+  --saas-border-strong: #cbd5e1;      /* hover / 选中 */
+  --saas-border-accent: var(--wb-acc);
+
+  /* ── 文本四级 ────────────────────────────────────────────────────────── */
+  --saas-ink: #0f172a;                /* 主文本，最高对比 */
+  --saas-ink-2: #475569;              /* 字段标签、次要说明 */
+  --saas-ink-3: #94a3b8;              /* 占位、元数据、图标默认 */
+  --saas-ink-inv: #ffffff;
+
+  /* ── 品牌强调（只给三处用）──────────────────────────────────────────── */
+  --saas-accent: var(--wb-acc);
+  --saas-accent-hover: var(--wb-acc-h);
+  --saas-accent-subtle: var(--wb-accsoft);
+
+  /* ── 语义状态色（莫兰迪低饱和）───────────────────────────────────────
+     每个状态给 3 个值：文字 / 背景 / 边框。
+     用组件类 .saas-pill--success 等统一消费，不要各处硬编码。          */
+  --saas-success: #15803d;
+  --saas-success-bg: #dcfce7;
+  --saas-success-line: #bbf7d0;
+
+  --saas-warn: #b45309;
+  --saas-warn-bg: #fef3c7;
+  --saas-warn-line: #fde68a;
+
+  --saas-danger: #b91c1c;
+  --saas-danger-bg: #fee2e2;
+  --saas-danger-line: #fecaca;
+
+  --saas-neutral: #475569;
+  --saas-neutral-bg: #f1f5f9;
+  --saas-neutral-line: #e2e8f0;
+
+  --saas-info: #1d4ed8;
+  --saas-info-bg: #dbeafe;
+  --saas-info-line: #bfdbfe;
+
+  /* ── 圆角 ────────────────────────────────────────────────────────────── */
+  --saas-r-xs: 4px;
+  --saas-r-sm: 6px;   /* 按钮 / 输入框 / badge */
+  --saas-r-md: 8px;
+  --saas-r-lg: 12px;  /* 卡片 / 弹窗 / 抽屉 */
+  --saas-r-xl: 16px;
+  --saas-r-phone: 40px;
+  --saas-r-full: 999px;
+
+  /* ── 投影（三档，刻意都很轻）──────────────────────────────────────────
+     刻意不用 0 8px 24px 这类大模糊 —— 那是"卡片浮在页面上"的旧式观感，
+     现代 SaaS 靠边框分层，阴影只用来表达"这一层在上一层之上"。          */
+  --saas-shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --saas-shadow-sm: 0 2px 4px -1px rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --saas-shadow-md: 0 4px 8px -2px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --saas-shadow-lg: 0 12px 20px -6px rgba(15, 23, 42, 0.1), 0 4px 8px -4px rgba(15, 23, 42, 0.04);
+  --saas-shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+  --saas-ring: 0 0 0 3px rgba(194, 65, 12, 0.14);
+
+  /* ── 动效 ────────────────────────────────────────────────────────────── */
+  /* 抽屉/弹层用 spring 曲线（cubic-bezier(0.16,1,0.3,1)），末端几乎无减速
+     感但收尾干净，这是 Linear / Vercel 抽屉 手感的来源。 */
+  --saas-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --saas-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --saas-t-fast: 120ms;
+  --saas-t: 150ms;
+  --saas-t-slow: 250ms;
+
+  /* ── 字阶 ────────────────────────────────────────────────────────────── */
+  --saas-font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --saas-mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --saas-fs-title: 18px;   /* 页面主标 */
+  --saas-fs-section: 14px;  /* 卡片/分组标题 */
+  --saas-fs-body: 14px;     /* 正文 / 表单 */
+  --saas-fs-cap: 12px;      /* 辅助说明 */
+  --saas-fs-mono: 11px;     /* 版本号 / 徽标 */
+
+  /* ── 布局 ────────────────────────────────────────────────────────────── */
+  --saas-drawer-w: 480px;
+  --saas-row-h: 48px;       /* 表格行高固定，扫读效率最高的一档 */
+  --saas-toolbar-h: 56px;
+}
+
+/* ==========================================================================
+ * 原子类
+ * ==========================================================================
+ * 放在全局而非 scoped：这几个类要被 3 个新工作台 + 未来的抽屉/表格复用，
+ * scoped 编译后不会带上跨文件的类定义（同 warm-kit.scss 的处理）。
+ * 命名统一 saas- 前缀，避免与既有 .wb-/.ov-/.card 类冲突。
+ * ========================================================================== */
+
+/* ── 布局 ──────────────────────────────────────────────────────────────── */
+.saas-stack { display: flex; flex-direction: column; }
+.saas-row { display: flex; align-items: center; }
+.saas-between { display: flex; align-items: center; justify-content: space-between; }
+.saas-gap-4 { gap: 4px; }
+.saas-gap-6 { gap: 6px; }
+.saas-gap-8 { gap: 8px; }
+.saas-gap-12 { gap: 12px; }
+.saas-gap-16 { gap: 16px; }
+.saas-grow { flex: 1; min-width: 0; }
+.saas-spacer { flex: 1; }
+
+/* ── 面板 ──────────────────────────────────────────────────────────────── */
+.saas-panel {
+  background: var(--saas-surface);
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-lg);
+  box-shadow: var(--saas-shadow-xs);
+}
+.saas-panel__hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--saas-border);
+  min-height: 52px;
+}
+.saas-panel__title {
+  font-size: var(--saas-fs-section);
+  font-weight: 600;
+  color: var(--saas-ink);
+  letter-spacing: -0.01em;
+}
+.saas-panel__hint {
+  font-size: var(--saas-fs-cap);
+  color: var(--saas-ink-3);
+  margin-top: 2px;
+}
+.saas-panel__bd { padding: 16px; }
+
+/* ── 按钮 ──────────────────────────────────────────────────────────────── */
+.saas-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-sm);
+  background: var(--saas-surface);
+  color: var(--saas-ink-2);
+  font-size: var(--saas-fs-body);
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--saas-shadow-xs);
+  transition: background-color var(--saas-t) var(--saas-ease),
+    border-color var(--saas-t) var(--saas-ease),
+    color var(--saas-t) var(--saas-ease),
+    box-shadow var(--saas-t) var(--saas-ease),
+    transform var(--saas-t-fast) var(--saas-ease);
+}
+.saas-btn:hover:not(:disabled) {
+  background: var(--saas-subtle);
+  border-color: var(--saas-border-strong);
+  color: var(--saas-ink);
+}
+.saas-btn:active:not(:disabled) { transform: translateY(0.5px); }
+.saas-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--saas-ring);
+  border-color: var(--saas-border-accent);
+}
+.saas-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Primary：整个界面只允许出现一个 */
+.saas-btn--primary {
+  background: var(--saas-accent);
+  border-color: var(--saas-accent);
+  color: var(--saas-ink-inv);
+}
+.saas-btn--primary:hover:not(:disabled) {
+  background: var(--saas-accent-hover);
+  border-color: var(--saas-accent-hover);
+  color: var(--saas-ink-inv);
+}
+
+.saas-btn--ghost {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.saas-btn--ghost:hover:not(:disabled) { background: var(--saas-subtle); }
+
+.saas-btn--danger { color: var(--saas-danger); border-color: var(--saas-danger-line); }
+.saas-btn--danger:hover:not(:disabled) { background: var(--saas-danger-bg); border-color: var(--saas-danger); }
+
+.saas-btn--sm { height: 26px; padding: 0 9px; font-size: var(--saas-fs-cap); }
+.saas-btn--lg { height: 38px; padding: 0 18px; }
+.saas-btn--icon { width: 32px; padding: 0; }
+.saas-btn--sm.saas-btn--icon { width: 26px; }
+.saas-btn--block { width: 100%; }
+
+/* ── 分段控件（Segmented Control）───────────────────────────────────────── */
+.saas-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--saas-subtle);
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-md);
+}
+.saas-seg__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: var(--saas-r-sm);
+  background: transparent;
+  color: var(--saas-ink-2);
+  font-size: var(--saas-fs-cap);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--saas-t) var(--saas-ease),
+    color var(--saas-t) var(--saas-ease),
+    box-shadow var(--saas-t) var(--saas-ease);
+}
+.saas-seg__item:hover { color: var(--saas-ink); }
+.saas-seg__item[aria-selected='true'] {
+  background: var(--saas-surface);
+  color: var(--saas-ink);
+  box-shadow: var(--saas-shadow-xs);
+}
+.saas-seg__item:focus-visible { outline: none; box-shadow: var(--saas-ring); }
+.saas-seg__n {
+  font-family: var(--saas-mono);
+  font-size: var(--saas-fs-mono);
+  color: var(--saas-ink-3);
+}
+.saas-seg__item[aria-selected='true'] .saas-seg__n { color: var(--saas-accent); }
+
+/* ── 状态徽标（Pill）───────────────────────────────────────────────────── */
+.saas-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--saas-neutral-line);
+  border-radius: var(--saas-r-full);
+  background: var(--saas-neutral-bg);
+  color: var(--saas-neutral);
+  font-size: var(--saas-fs-mono);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.saas-pill--success { color: var(--saas-success); background: var(--saas-success-bg); border-color: var(--saas-success-line); }
+.saas-pill--warn { color: var(--saas-warn); background: var(--saas-warn-bg); border-color: var(--saas-warn-line); }
+.saas-pill--danger { color: var(--saas-danger); background: var(--saas-danger-bg); border-color: var(--saas-danger-line); }
+.saas-pill--info { color: var(--saas-info); background: var(--saas-info-bg); border-color: var(--saas-info-line); }
+.saas-pill--accent { color: var(--saas-accent); background: var(--saas-accent-subtle); border-color: transparent; }
+
+/* 状态圆点：待同步用「微呼吸」提示"这是个会变的态" */
+.saas-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.saas-dot--pulse { animation: saas-pulse 1.8s var(--saas-ease) infinite; }
+@keyframes saas-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.82); }
+}
+
+/* ── 表格（高密度现代表格）──────────────────────────────────────────────── */
+.saas-table { width: 100%; border-collapse: collapse; }
+.saas-table thead th {
+  height: 36px;
+  padding: 0 12px;
+  background: var(--saas-subtle);
+  border-bottom: 1px solid var(--saas-border);
+  color: var(--saas-ink-3);
+  font-size: var(--saas-fs-cap);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+.saas-table tbody tr {
+  height: var(--saas-row-h);
+  border-bottom: 1px solid var(--saas-border);
+  cursor: pointer;
+  transition: background-color var(--saas-t) var(--saas-ease);
+}
+.saas-table tbody tr:hover { background: var(--saas-subtle); }
+.saas-table tbody tr:focus-visible {
+  outline: 2px solid var(--saas-accent);
+  outline-offset: -2px;
+}
+.saas-table td {
+  padding: 0 12px;
+  color: var(--saas-ink-2);
+  font-size: var(--saas-fs-body);
+  white-space: nowrap;
+}
+.saas-table td.is-main { color: var(--saas-ink); font-weight: 500; }
+.saas-table td.is-shrink { width: 1%; }
+
+/* 悬浮才出现的快捷操作：默认不占视觉重量，但保留占位避免布局抖动 */
+.saas-rowact {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--saas-t) var(--saas-ease);
+}
+.saas-table tbody tr:hover .saas-rowact,
+.saas-table tbody tr:focus-within .saas-rowact { opacity: 1; }
+
+/* 长名称截断 + tooltip */
+.saas-trunc {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 输入 ──────────────────────────────────────────────────────────────── */
+.saas-input,
+.saas-select {
+  height: 32px;
+  width: 100%;
+  padding: 0 10px;
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-sm);
+  background: var(--saas-surface);
+  color: var(--saas-ink);
+  font-size: var(--saas-fs-body);
+  font-family: inherit;
+  transition: border-color var(--saas-t) var(--saas-ease), box-shadow var(--saas-t) var(--saas-ease);
+}
+.saas-input::placeholder { color: var(--saas-ink-3); }
+.saas-input:focus,
+.saas-select:focus {
+  outline: none;
+  border-color: var(--saas-border-accent);
+  box-shadow: var(--saas-ring);
+}
+.saas-field { display: flex; flex-direction: column; gap: 5px; }
+.saas-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--saas-fs-cap);
+  font-weight: 500;
+  color: var(--saas-ink-2);
+}
+.saas-hint { font-size: var(--saas-fs-cap); color: var(--saas-ink-3); line-height: 1.5; }
+
+/* ── 抽屉（Slide-over）──────────────────────────────────────────────────── */
+.saas-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.2);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+  animation: saas-fade var(--saas-t) var(--saas-ease);
+}
+@keyframes saas-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.saas-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--saas-drawer-w);
+  max-width: 100vw;
+  background: var(--saas-surface);
+  border-left: 1px solid var(--saas-border);
+  box-shadow: var(--saas-shadow-xl);
+  z-index: 41;
+  display: flex;
+  flex-direction: column;
+  animation: saas-slide-in var(--saas-t-slow) var(--saas-spring);
+}
+@keyframes saas-slide-in {
+  from { transform: translateX(24px); opacity: 0.4; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.saas-drawer__hd {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--saas-border);
+}
+.saas-drawer__bd { flex: 1; overflow-y: auto; padding: 20px; }
+.saas-drawer__ft {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--saas-border);
+  background: var(--saas-surface);
+}
+
+/* ── 页签（Tabs）───────────────────────────────────────────────────────── */
+.saas-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-bottom: 1px solid var(--saas-border);
+}
+.saas-tabs__item {
+  position: relative;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--saas-ink-2);
+  font-size: var(--saas-fs-body);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--saas-t) var(--saas-ease);
+}
+.saas-tabs__item:hover { color: var(--saas-ink); }
+.saas-tabs__item[aria-selected='true'] { color: var(--saas-ink); }
+/* 选中指示器用主色 —— 这是主色允许出现的第二个位置 */
+.saas-tabs__item[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: var(--saas-accent);
+}
+.saas-tabs__item:focus-visible { outline: none; box-shadow: var(--saas-ring); border-radius: var(--saas-r-sm); }
+
+/* ── 骨架屏 ────────────────────────────────────────────────────────────── */
+.saas-skel {
+  border-radius: var(--saas-r-sm);
+  background: linear-gradient(
+    90deg,
+    var(--saas-subtle) 25%,
+    var(--saas-sunken) 37%,
+    var(--saas-subtle) 63%
+  );
+  background-size: 400% 100%;
+  animation: saas-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes saas-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ── 空状态 ────────────────────────────────────────────────────────────── */
+.saas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 56px 24px;
+  text-align: center;
+}
+.saas-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--saas-r-lg);
+  background: var(--saas-subtle);
+  color: var(--saas-ink-3);
+}
+.saas-empty__title { font-size: var(--saas-fs-section); font-weight: 600; color: var(--saas-ink); }
+.saas-empty__desc { font-size: var(--saas-fs-cap); color: var(--saas-ink-3); max-width: 380px; line-height: 1.6; }
+
+/* ── 键盘键帽 ──────────────────────────────────────────────────────────── */
+.saas-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--saas-border);
+  border-bottom-width: 2px;
+  border-radius: var(--saas-r-xs);
+  background: var(--saas-surface);
+  color: var(--saas-ink-3);
+  font-family: var(--saas-mono);
+  font-size: var(--saas-fs-mono);
+  line-height: 1;
+}
+
+/* ── 版本号 / 等宽标识 ──────────────────────────────────────────────────── */
+.saas-mono {
+  font-family: var(--saas-mono);
+  font-size: var(--saas-fs-mono);
+  letter-spacing: 0.02em;
+  color: var(--saas-ink-2);
+}
+
+/* ── 文本工具 ──────────────────────────────────────────────────────────── */
+.saas-title {
+  font-size: var(--saas-fs-title);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--saas-ink);
+  line-height: 1.35;
+}
+.saas-section {
+  font-size: var(--saas-fs-section);
+  font-weight: 600;
+  color: var(--saas-ink);
+  letter-spacing: -0.01em;
+}
+.saas-body { font-size: var(--saas-fs-body); color: var(--saas-ink-2); }
+.saas-cap { font-size: var(--saas-fs-cap); color: var(--saas-ink-3); }
+
+/* 分组标题：小字 + 大间距 + 上分割线，用于把长表单切成可扫读的块 */
+.saas-grouptitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--saas-fs-cap);
+  font-weight: 600;
+  color: var(--saas-ink-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 20px 0 10px;
+}
+.saas-grouptitle:first-child { margin-top: 0; }
+.saas-grouptitle::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--saas-border);
+}
+
+/* 折叠的高级设置 */
+.saas-advanced {
+  margin-top: 16px;
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-md);
+  overflow: hidden;
+}
+.saas-advanced__hd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 0;
+  background: var(--saas-subtle);
+  color: var(--saas-ink-2);
+  font-size: var(--saas-fs-cap);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.saas-advanced__hd:hover { color: var(--saas-ink); }
+.saas-advanced__bd { padding: 14px 12px; background: var(--saas-surface); }
+
+/* ── 提示条（内联弱化，替代大块黄条）───────────────────────────────────── */
+.saas-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-md);
+  background: var(--saas-subtle);
+  color: var(--saas-ink-2);
+  font-size: var(--saas-fs-cap);
+  line-height: 1.55;
+}
+.saas-note--warn { background: var(--saas-warn-bg); border-color: var(--saas-warn-line); color: var(--saas-warn); }
+.saas-note--danger { background: var(--saas-danger-bg); border-color: var(--saas-danger-line); color: var(--saas-danger); }
+.saas-note--success { background: var(--saas-success-bg); border-color: var(--saas-success-line); color: var(--saas-success); }
+.saas-note--info { background: var(--saas-info-bg); border-color: var(--saas-info-line); color: var(--saas-info); }
+
+/* ── 响应式：窄屏统一降级为单列 ──────────────────────────────────────────── */
+@media (max-width: 1180px) {
+  .saas-split { grid-template-columns: 1fr !important; }
+  .saas-split__aside { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saas-drawer,
+  .saas-scrim,
+  .saas-skel,
+  .saas-dot--pulse { animation: none !important; }
+  .saas-btn,
+  .saas-table tbody tr { transition: none; }
+}

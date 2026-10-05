@@ -82,7 +82,7 @@ export const BUILD_STAGES: Array<{
     order: 1,
     title: '品牌信息',
     summary: '小程序名称、Logo、品牌色、默认分享信息',
-    to: '/mini/brand',
+    to: '/mini/appearance?tab=brand',
     entryLabel: '配置品牌信息',
   },
   {
@@ -90,7 +90,7 @@ export const BUILD_STAGES: Array<{
     order: 2,
     title: '系统配置',
     summary: '登录页、我的页、功能开关、客服与协议',
-    to: '/mini/system',
+    to: '/mini/appearance?tab=flags',
     entryLabel: '配置系统功能',
   },
   {
@@ -106,7 +106,7 @@ export const BUILD_STAGES: Array<{
     order: 4,
     title: '页面配置',
     summary: '标题、路径、分享信息、分组、入口到期与上下线',
-    to: '/mini/page-config',
+    to: '/mini/pages',
     entryLabel: '配置页面',
   },
   {
@@ -114,7 +114,7 @@ export const BUILD_STAGES: Array<{
     order: 5,
     title: '导航配置',
     summary: '底部 Tab 名称、图标、排序与页面绑定',
-    to: '/mini/navigation',
+    to: '/mini/appearance?tab=nav',
     entryLabel: '配置导航',
   },
   {
@@ -122,7 +122,7 @@ export const BUILD_STAGES: Array<{
     order: 6,
     title: '预览检查',
     summary: '草稿预览、线上预览与发布前检查',
-    to: '/mini/preview',
+    to: '/mini/releases',
     entryLabel: '预览与检查',
   },
   {
@@ -130,7 +130,7 @@ export const BUILD_STAGES: Array<{
     order: 7,
     title: '发布与版本',
     summary: '保存草稿、发布配置、微信代码包与版本存档',
-    to: '/mini/publish',
+    to: '/mini/releases',
     entryLabel: '去发布',
   },
 ]
@@ -357,7 +357,7 @@ function judgeBrand(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'blocking',
       text: '未设置品牌主色，导航选中态与强调组件会退回默认样式',
-      action: { label: '去设置品牌色', to: '/mini/brand' },
+      action: { label: '去设置品牌色', to: '/mini/appearance?tab=brand' },
     })
   }
 
@@ -368,7 +368,7 @@ function judgeBrand(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'blocking',
       text: '未填写小程序名称',
-      action: { label: '去填写', to: '/mini/brand' },
+      action: { label: '去填写', to: '/mini/appearance?tab=brand' },
     })
   }
 
@@ -379,7 +379,7 @@ function judgeBrand(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: '未上传品牌 Logo，分享卡片与个人中心头部会用占位图',
-      action: { label: '去上传', to: '/mini/brand' },
+      action: { label: '去上传', to: '/mini/appearance?tab=brand' },
     })
   }
 
@@ -391,7 +391,7 @@ function judgeBrand(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: '品牌眉题与登录副标题为空，登录页缺少品牌感',
-      action: { label: '去补充', to: '/mini/brand' },
+      action: { label: '去补充', to: '/mini/appearance?tab=brand' },
     })
   }
 
@@ -401,7 +401,7 @@ function judgeBrand(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: '未设置默认分享标题，转发时将回落到页面标题',
-      action: { label: '去设置', to: '/mini/brand' },
+      action: { label: '去设置', to: '/mini/appearance?tab=brand' },
     })
   }
 
@@ -415,7 +415,7 @@ function judgeBrand(facts: BuildFacts): BuildStage {
       : (issues.length ? 'partial' : 'done'),
     doneItems,
     issues,
-    entry: { label: '配置品牌信息', to: '/mini/brand' },
+    entry: { label: '配置品牌信息', to: '/mini/appearance?tab=brand' },
     evidence: [
       '品牌色来源：站点 theme / 系统配置 miniappThemeConfig',
       '名称与 Logo 来源：站点 brand 配置',
@@ -467,7 +467,7 @@ function judgeSystem(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: '未读取到功能开关配置，无法确认各功能是否按预期开放',
-      action: { label: '查看开关', to: '/mini/system' },
+      action: { label: '查看开关', to: '/mini/appearance?tab=flags' },
     })
   }
 
@@ -500,7 +500,7 @@ function judgeSystem(facts: BuildFacts): BuildStage {
       : 'partial',
     doneItems,
     issues,
-    entry: { label: '配置系统功能', to: '/mini/system' },
+    entry: { label: '配置系统功能', to: '/mini/appearance?tab=flags' },
     evidence: [
       '登录页来源：系统配置 loginPageConfig',
       '我的页来源：系统配置 minePageConfig',
@@ -576,7 +576,7 @@ function judgePages(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'blocking',
       text: '所有页面都还没上线，发布配置后小程序仍无内容可展示',
-      action: { label: '去发布配置', to: '/mini/publish' },
+      action: { label: '去发布配置', to: '/mini/releases' },
     })
   }
 
@@ -618,7 +618,7 @@ function judgePageConfig(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: `${untitled} 个页面缺少名称，会在导航与列表里显示为空白`,
-      action: { label: '去补名称', to: '/mini/page-config' },
+      action: { label: '去补名称', to: '/mini/pages' },
     })
   }
 
@@ -650,7 +650,7 @@ function judgePageConfig(facts: BuildFacts): BuildStage {
       : (issues.length ? 'partial' : (doneItems.length ? 'done' : 'partial')),
     doneItems,
     issues,
-    entry: { label: '配置页面', to: '/mini/page-config' },
+    entry: { label: '配置页面', to: '/mini/pages' },
     evidence: [
       `共 ${pages.length} 个页面参与配置检查`,
       '名称/路径来自 mp_page；测试页标记来自 is_test',
@@ -669,7 +669,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'blocking',
       text: '未配置底部导航，小程序将不显示 Tab 栏',
-      action: { label: '去配置导航', to: '/mini/navigation' },
+      action: { label: '去配置导航', to: '/mini/appearance?tab=nav' },
     })
     return {
       key: 'navigation',
@@ -679,7 +679,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
       status: 'todo',
       doneItems,
       issues,
-      entry: { label: '配置导航', to: '/mini/navigation' },
+      entry: { label: '配置导航', to: '/mini/appearance?tab=nav' },
       evidence: ['导航配置来源：站点 tabBar'],
     }
   }
@@ -692,7 +692,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: `${unnamed.length} 个导航没有名称，小程序 Tab 会显示空文字`,
-      action: { label: '去补名称', to: '/mini/navigation' },
+      action: { label: '去补名称', to: '/mini/appearance?tab=nav' },
     })
   }
 
@@ -702,7 +702,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'blocking',
       text: `${unbound.length} 个导航没有绑定页面，点进去会跳到空页`,
-      action: { label: '去绑定页面', to: '/mini/navigation' },
+      action: { label: '去绑定页面', to: '/mini/appearance?tab=nav' },
     })
   }
 
@@ -739,7 +739,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'blocking',
       text: `${missingTargets.length} 个导航指向的页面不存在：${missingTargets.slice(0, 3).join('、')}`,
-      action: { label: '去修复绑定', to: '/mini/navigation' },
+      action: { label: '去修复绑定', to: '/mini/appearance?tab=nav' },
     })
   } else if (unverifiable) {
     issues.push({
@@ -763,7 +763,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: `${offlineTargets.length} 个导航指向的页面还没上线，发布后 Tab 会打开空页`,
-      action: { label: '去发布页面', to: '/mini/publish' },
+      action: { label: '去发布页面', to: '/mini/releases' },
     })
   }
 
@@ -771,7 +771,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: `当前只有 ${tabs.length} 个导航，小程序要求 2~5 个`,
-      action: { label: '去添加', to: '/mini/navigation' },
+      action: { label: '去添加', to: '/mini/appearance?tab=nav' },
     })
   }
 
@@ -785,7 +785,7 @@ function judgeNavigation(facts: BuildFacts): BuildStage {
       : (issues.length ? 'partial' : 'done'),
     doneItems,
     issues,
-    entry: { label: '配置导航', to: '/mini/navigation' },
+    entry: { label: '配置导航', to: '/mini/appearance?tab=nav' },
     evidence: [
       `导航共 ${tabs.length} 个（微信上限 5，下限 2）`,
       '绑定目标核对方式：拿 pageId 与页面列表逐一对账',
@@ -802,21 +802,21 @@ function judgePreview(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: '发布前检查接口未能返回结果，无法确认当前配置是否可发布',
-      action: { label: '重试检查', to: '/mini/preview' },
+      action: { label: '重试检查', to: '/mini/releases' },
     })
   } else {
     doneItems.push('已通过发布前检查')
     for (const b of pre.blocking || []) {
-      issues.push({ level: 'blocking', text: b, action: { label: '去处理', to: '/mini/preview' } })
+      issues.push({ level: 'blocking', text: b, action: { label: '去处理', to: '/mini/releases' } })
     }
     for (const w of pre.warnings || []) {
-      issues.push({ level: 'warning', text: w, action: { label: '查看', to: '/mini/preview' } })
+      issues.push({ level: 'warning', text: w, action: { label: '查看', to: '/mini/releases' } })
     }
     if (pre.canPublish === false && !(pre.blocking || []).length) {
       issues.push({
         level: 'warning',
         text: '后台判定不能发布但未给出阻断项，通常意味着当前没有待发布的改动',
-        action: { label: '查看待发布改动', to: '/mini/publish' },
+        action: { label: '查看待发布改动', to: '/mini/releases' },
       })
     }
   }
@@ -830,7 +830,7 @@ function judgePreview(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: `${emptyPages.length} 个已上线页面没有名称，用户点击后难以辨识`,
-      action: { label: '去补名称', to: '/mini/page-config' },
+      action: { label: '去补名称', to: '/mini/pages' },
     })
   }
 
@@ -844,7 +844,7 @@ function judgePreview(facts: BuildFacts): BuildStage {
       : (issues.length ? 'partial' : 'done'),
     doneItems,
     issues,
-    entry: { label: '预览与检查', to: '/mini/preview' },
+    entry: { label: '预览与检查', to: '/mini/releases' },
     evidence: [
       pre ? '检查结果来自后端 preflight 接口' : 'preflight 接口本次未返回结果',
       '预览能力：草稿预览 / 线上预览 / 微信扫码真机',
@@ -863,7 +863,7 @@ function judgePublish(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: '尚未查到线上配置发布记录',
-      action: { label: '查看发布记录', to: '/mini/publish' },
+      action: { label: '查看发布记录', to: '/mini/releases' },
     })
   }
 
@@ -871,7 +871,7 @@ function judgePublish(facts: BuildFacts): BuildStage {
     issues.push({
       level: 'warning',
       text: `有 ${facts.pendingCount} 项改动已存草稿但未发布到线上`,
-      action: { label: '去发布配置', to: '/mini/publish' },
+      action: { label: '去发布配置', to: '/mini/releases' },
     })
   } else {
     doneItems.push('没有待发布的草稿改动')
@@ -886,7 +886,7 @@ function judgePublish(facts: BuildFacts): BuildStage {
     status: facts.liveReleaseNo == null ? 'todo' : (issues.length ? 'partial' : 'done'),
     doneItems,
     issues,
-    entry: { label: '去发布', to: '/mini/publish' },
+    entry: { label: '去发布', to: '/mini/releases' },
     evidence: [
       '配置发布与微信代码包是两件事，此处只跟踪配置发布',
       '版本快照由发布时自动捕获，覆盖页面 DSL 与系统配置',

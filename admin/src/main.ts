@@ -10,6 +10,10 @@ import router, { reloadOnceForChunkError } from './router'
 import { setupRouterGuards } from './router/guards'
 import '@/assets/styles/index.scss'
 import '@/styles/tokens.css'
+// SaaS 级设计 Token + 原子类（小程序模块视觉基座）
+// 纯增量：只在 :root 上新增 --saas-* 变量，不改动既有 --wb-* 取值，
+// 因此 commerce / content / member 三条既有 workbench 不受影响
+import '@/styles/saas-tokens.scss'
 import '@/styles/mini-workbench.scss'
 import '@/styles/content-workbench.scss'
 import '@/styles/member-workbench.scss'

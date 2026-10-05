@@ -25,7 +25,7 @@
     </div>
     <div class="header-right">
       <template v-if="isMiniRoute">
-        <button type="button" class="mini-site-pill" @click="router.push('/mini/overview')">
+        <button type="button" class="mini-site-pill" @click="router.push('/mini/releases')">
           <span class="dot" />
           <span class="pill-text">
             {{ siteLabel }}

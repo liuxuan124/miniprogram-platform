@@ -11,7 +11,7 @@
             <div class="sub">把草稿发布到线上配置，并保存一份可回溯的版本快照</div>
           </div>
           <div class="actions">
-            <button type="button" class="btn soft" @click="router.push('/mini/preview')">预览检查 ›</button>
+            <button type="button" class="btn soft" @click="router.push('/mini/releases')">预览检查 ›</button>
           </div>
         </div>
 
@@ -151,10 +151,10 @@
 
           <div v-if="hasBlocking" class="fix-list">
             <span class="fix-head">修复入口</span>
-            <button type="button" class="btn sm" @click="router.push('/mini/navigation')">检查导航绑定</button>
-            <button type="button" class="btn sm" @click="router.push('/mini/brand')">检查品牌配置</button>
+            <button type="button" class="btn sm" @click="router.push('/mini/appearance?tab=nav')">检查导航绑定</button>
+            <button type="button" class="btn sm" @click="router.push('/mini/appearance?tab=brand')">检查品牌配置</button>
             <button type="button" class="btn sm" @click="router.push('/mini/pages')">检查页面状态</button>
-            <button type="button" class="btn sm" @click="router.push('/mini/preview')">打开完整检查</button>
+            <button type="button" class="btn sm" @click="router.push('/mini/releases')">打开完整检查</button>
           </div>
 
           <!-- 变更摘要 -->
@@ -254,7 +254,7 @@
           <p class="archive-note">
             <MiniIcon name="info" :size="12" />
             <span>
-              「版本存档」记录配置发布时的快照（被导航引用的页面 DSL + 系统配置 + 导航 + 品牌），
+              「版本存档」记录配置发布时的快照（被导航引用的页面内容 + 全局配置 + 导航 + 品牌），
               可对比、可还原为草稿。<br>
               「页面归档」只是把不再使用的页面标记起来，不进版本快照，两者互相替代不了。
             </span>
@@ -303,7 +303,7 @@
         <section class="card">
           <h2 class="h2">快照里包含什么</h2>
           <ul class="snap-list">
-            <li><b>导航绑定的页面 DSL</b>：被底部 Tab 或首页配置引用的页面，其已发布版本的组件结构</li>
+            <li><b>导航绑定的页面</b>：被底部 Tab 或首页配置引用的页面，其已发布版本的完整布局</li>
             <li><b>系统配置</b>：品牌、主题、登录页、我的页等全部配置项</li>
             <li><b>导航配置</b>：底部 Tab 的名称、图标、顺序与绑定</li>
           </ul>

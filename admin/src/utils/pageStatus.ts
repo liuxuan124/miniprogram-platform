@@ -191,7 +191,7 @@ export function listableSystemPages(): MiniSystemPage[] {
  *  这里跟着改，否则会跳到被重定向的地址）
  */
 export function systemPageConfigRoute(sp: MiniSystemPage): string {
-  return sp.configRoute || '/mini/brand'
+  return sp.configRoute || '/mini/appearance?tab=brand'
 }
 
 /** 该路径是否是「我的」系统页（唯一带模板库/菜单编排能力的系统页） */

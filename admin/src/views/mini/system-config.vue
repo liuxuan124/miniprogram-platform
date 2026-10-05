@@ -247,9 +247,9 @@ const items = computed<CfgItem[]>(() => {
       title: '客服',
       desc: '小程序内的客服入口',
       state: 'todo',
-      detail: done.find((d) => d.includes('客服')) || '未找到客服配置项',
+      detail: done.find((d) => d.includes('客服')) || '尚未接入',
       actions: [{ label: '去客服中心', to: '/member/support' }],
-      limitNote: '小程序配置中不存在客服配置键（mp_system_config 无对应行），'
+      limitNote: '尚未接入客服通道，'
         + '当前客服能力由「用户管理›客服中心」维护',
     },
     {
@@ -257,9 +257,9 @@ const items = computed<CfgItem[]>(() => {
       title: '用户协议与隐私政策',
       desc: '注册与登录前的协议文本',
       state: 'todo',
-      detail: '未找到协议配置项',
+      detail: '尚未配置',
       actions: [],
-      limitNote: '小程序配置中不存在协议配置键（mp_system_config 无对应行），'
+      limitNote: '尚未配置用户协议，'
         + '需在代码或微信后台维护，当前无可配置入口',
     },
   ]

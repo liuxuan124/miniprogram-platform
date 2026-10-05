@@ -556,16 +556,25 @@ export interface PageConfig {
     status_text_tone: 'dark' | 'light'
     gradient_to: string
   }
-  /** 分享配置（2026-10-06 扩充：新增 desc） */
+  /** 分享配置（2026-10-06 扩充：新增 desc / 朋友圈封面） */
   share_desc?: string
+  /** 朋友圈/网页卡片封面（1:1）；与 share_image（5:4）分开存 —— 共用一个必然有一个被裁坏 */
+  share_square_image?: string
   /** 高级设置（2026-10-06 新增） */
-  access_mode?: 'public' | 'login' | 'vip'
-  vip_level?: number
+  access_mode?: 'public' | 'login' | 'vip' | 'password'
+  /** 仅 access_mode === 'vip' 时有意义：允许的会员身份标识 */
+  vip_tiers?: string[]
+  /** 仅 access_mode === 'password' 时有意义：6 位数字访问密码 */
+  access_password?: string
+  /** 动态防录屏水印（访客 UID + 手机尾号 + 时间） */
+  watermark?: boolean
   schedule?: {
     enabled: boolean
     online_at: number
     offline_at: number
     redirect_path: string
+    /** 下线兜底：home=回首页 / notice=展示公告 / stay=留在原页 */
+    fallback: 'home' | 'notice' | 'stay'
   }
 }
 

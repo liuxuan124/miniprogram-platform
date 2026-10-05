@@ -484,7 +484,43 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
   gap: 14px;
-  align-items: start;
+  /* stretch（默认）而非 start：两栏必须等高。
+     ⚠️ 用 start 会让两卡片各按内容收缩 —— 表单栏内容多、记录栏有 el-empty 占位时
+        右侧明显更矮，视觉上「塌一块」。 */
+  align-items: stretch;
+}
+
+/* grid item 默认 min-height:auto 会被内容撑破；配合下面两行让卡片真正等高 */
+.nt-form-card,
+.nt-records {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nt-records :deep(.el-card__body) {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 空态时右侧不能「塌」下去 —— el-empty 只有 ~160px 高，
+   不给 min-height 会出现「左边 500px、右边 200px」的失衡感。 */
+.nt-records :deep(.el-empty) {
+  margin: auto 0;
+}
+
+.nt-records :deep(.nt-campaign) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.nt-form-card :deep(.el-card__body) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .nt-form :deep(.el-form-item) {

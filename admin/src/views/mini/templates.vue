@@ -822,7 +822,7 @@ async function doActivate() {
     )
     closeSidePanel()
     await load()
-    router.push('/mini/overview')
+    router.push('/mini/releases')
   } catch (e: unknown) {
     const msg = apiErrorMessage(e, '套用失败')
     if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
@@ -905,7 +905,7 @@ async function editStoreSite(item: ReleaseRecord) {
       await activateStoreTemplate(id)
       await load()
     }
-    router.push('/mini/brand')
+    router.push('/mini/appearance?tab=brand')
   } catch (e: unknown) {
     if (e === 'cancel') return
     const msg = apiErrorMessage(e, '打开编辑失败')

@@ -135,6 +135,10 @@ import {
   // 运营中心：审核中心 / 全局资源位（原先菜单已配 icon 名但未注册，导致图标位空白）
   Warning,
   Promotion,
+  // 通知中心 + 客服工作台/工单。⚠️ 菜单项配了 icon 名但没在这里注册
+  // → <component :is="iconMap['Bell']" /> 解析成 undefined，图标位空白且不报错。
+  // ChatDotRound 已在下方单独导入，这里不要重复。
+  Bell,
   // 小程序搭建工作流新增菜单的图标，同样必须在这里注册，否则侧栏图标位空白
   Menu,
   View,
@@ -198,6 +202,7 @@ const iconMap: Record<string, any> = {
   Search,
   Warning,
   Promotion,
+  Bell,
   Menu,
   View,
   Operation,
@@ -273,56 +278,44 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     //   页面管理（页面列表 / 系统页配置 / 模板库）
     //   导航配置 / 预览检查 / 发布与版本
     // 顺序即搭建顺序；任何一项都能独立进入，日常维护不必从头走。
+    // 小程序模块（2026-10-06 第二次 IA 收敛）
+    //
+    // 第一次收敛（当天上午）：9 项平铺 → 6 组，仍保留了二级折叠。
+    // 第二次收敛（当天下午）：6 组 → 3 个工作台，**彻底消灭 3 级目录**。
+    //
+    // 收敛依据不是"技术模块怎么分的"，而是"用户要完成几件事"：
+    //   · 页面管理 —— 所有"页"的操作（列表 / 属性 / 装修 / 模板 / 两个固定页）
+    //   · 品牌与导航 —— 小程序的全局外壳（品牌 / 导航 / 功能开关）
+    //   · 发版中心 —— 一次发布的四个侧面（现状 / 检查 / 发布 / 历史）
+    // 原来把"改品牌色"和"改导航排序"放在两个页面，
+    // 而它们改的是同一个外壳 —— 用户必须来回跳才能看到改完整体长什么样。
+    //
+    // 🔴 模板库与"我的页/登录页"不再占侧栏位：它们都是"某个页面"的操作，
+    //    分别从「页面管理 › 模板库按钮」与「系统原生页标签」进入。
+    //    旧地址（/mini/templates、/page-builder/mine|login）依然可直接访问。
     title: '小程序',
     children: [
       {
-        title: '搭建工作台',
-        path: '/mini/overview',
-        icon: 'Odometer',
-        activePrefix: '/mini/overview',
-        permissions: ['page:list'],
-      },
-      {
-        title: '基础配置',
-        icon: 'Setting',
-        children: [
-          { title: '品牌信息', path: '/mini/brand', icon: 'Brush', activePrefix: '/mini/brand', permissions: ['page:list'] },
-          { title: '系统功能', path: '/mini/system', icon: 'Setting', activePrefix: '/mini/system', permissions: ['page:list'] },
-        ],
-      },
-      {
         title: '页面管理',
+        path: '/mini/pages',
         icon: 'Document',
-        children: [
-          { title: '页面列表', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
-          { title: '页面配置', path: '/mini/page-config', icon: 'Operation', activePrefix: '/mini/page-config', permissions: ['page:list'] },
-          { title: '模板库', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
-          // 固定页（系统页）配置：与「系统功能」是不同层面的东西，放页面管理下更贴近使用场景
-          { title: '我的页', path: '/page-builder/mine', icon: 'User', activePrefix: '/page-builder/mine', permissions: ['page:list'] },
-          { title: '登录页', path: '/page-builder/login', icon: 'Lock', activePrefix: '/page-builder/login', permissions: ['page:list'] },
-        ],
-      },
-      {
-        title: '导航配置',
-        path: '/mini/navigation',
-        icon: 'Menu',
-        activePrefix: '/mini/navigation',
+        activePrefix: '/mini/pages',
         permissions: ['page:list'],
       },
       {
-        title: '预览检查',
-        path: '/mini/preview',
-        icon: 'View',
-        activePrefix: '/mini/preview',
+        title: '品牌与导航',
+        path: '/mini/appearance',
+        icon: 'Brush',
+        activePrefix: '/mini/appearance',
         permissions: ['page:list'],
       },
       {
-        title: '发布与版本',
-        path: '/mini/publish',
+        title: '发版中心',
+        path: '/mini/releases',
         icon: 'Upload',
-        activePrefix: '/mini/publish',
-        // 发布页本身只需登录可见（它内部会按 page:publish 判定能否发布），
-        // 这里仍要求 page:list —— 与工作台同门槛，避免超管之外的角色看到点不动
+        activePrefix: '/mini/releases',
+        // 发版中心内部按 page:publish 判定能否发布，这里只要求 page:list，
+        // 与另两个工作台同门槛，避免超管之外的角色看到却点不动
         permissions: ['page:list'],
       },
     ],
@@ -353,7 +346,8 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       { title: '角色标签', path: '/member/role-tags', icon: 'Collection', activePrefix: '/member/role-tags', permissions: ['user:list'] },
       { title: '会员权益', path: '/member/plans', icon: 'GoldMedal', activePrefix: '/member/plans', permissions: ['member:list'], featureModule: 'member' },
       { title: '成长积分', path: '/member/growth', icon: 'TrendCharts', activePrefix: '/member/growth', permissions: ['member:list'], featureModule: 'member' },
-      { title: '客服中心', path: '/member/support', icon: 'ChatDotRound', activePrefix: '/member/support', permissions: ['user:list'] },
+      { title: '客服工作台', path: '/member/support', icon: 'ChatDotRound', activePrefix: '/member/support', permissions: ['user:list'] },
+      { title: '客服工单', path: '/member/support-tickets', icon: 'Tickets', activePrefix: '/member/support-tickets', permissions: ['user:list'] },
     ],
   },
   {

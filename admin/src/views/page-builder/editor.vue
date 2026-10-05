@@ -1759,6 +1759,10 @@ onBeforeUnmount(() => {
     .editor-right {
       width: auto;
       min-width: 0;
+      /* 🔴 flex 链传递的必需项：不给 min-height:0，
+       * 子项的固有高度会把父容器撑高，内部 .props-panel 的
+       * 「flex:1 + overflow:hidden」就失效 → 退化成双滚动条。 */
+      min-height: 0;
       flex-shrink: 0;
       overflow: hidden;
       display: flex;
@@ -1770,7 +1774,15 @@ onBeforeUnmount(() => {
 }
 
 .right-tabs {
-  height: 100%;
+  /* 🔴 2026-10-06 修双滚动条：原来写 `height:100%`，
+   * 但它的父容器 `.editor-right` 是 `height:auto` 的 flex 列，
+   * 百分比高度解析不到 → 这个 100% 实际是失效值，
+   * 于是内部 .props-panel 的 100dvh 与外层的 auto 高度打架，
+   * 面板里出现两条竖向滚动条。
+   * 正确做法：**不写高度，靠 flex 撑满父容器**，
+   * 并显式 min-height:0 让内部滚动点唯一。 */
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   /* 注意：这里曾有一行 `--el-color-primary: var(--el-color-primary);`（变量自引用）。
@@ -1988,17 +2000,26 @@ onBeforeUnmount(() => {
 .ai-dock__caret {
   font-size: 11px;
 }
+/* ⚠️ 原来这里 hover 会让 caret 图标 translateX(-1px) ——
+ * 虽然只有 1px 且在元素内部，但它是 `transition` 过的，
+ * 会让图标在 hover 边界处轻微抽动。与「四处晃动」同源，一并去掉：，一并去掉：
+ * hover 反馈只留 opacity / background / filter / box-shadow。 */
 .ai-dock__toggle:hover .ai-dock__caret.is-open {
-  transform: translateX(-1px);
+  opacity: 0.75;
 }
 
 /* 收起态贴边仅 34px，hover 时右移一点提示「可展开」，仍不压内容 */
+/* 🔴 2026-10-06 修 hover 抖动：原来这里写 `right: 4px`（元素右移），
+   下面又有 `:hover .ai-dock__main { width: 40px }`（元素自身变宽 6px）。
+   🔴 两者叠加 = 经典抖动死循环：
+   鼠标进入 → 元素右移 + 变宽 → 鼠标右边缘可能脱离命中区 → :hover 失效
+   → 元素复位、变窄 → 鼠标又进入 → 无限来回，用户看到「四处晃动」。
+   修法：**hover 只改配色，不改几何**（位移/尺寸一律不动）。 */
 .ai-dock:not(.is-open):hover {
-  right: 4px;
+  filter: brightness(1.04);
 }
-.ai-dock:not(.is-open):hover .ai-dock__main {
-  width: 40px;
-}
+/* ⚠️ 原来 hover 会把 main 撑到 40px —— 这是抖动的另一半原因，已移除。
+   需要「hover 放大」的话只改 filter/box-shadow，绝不能改 width。 */
 
 /* 未处理建议数角标 */
 .ai-dock__badge {

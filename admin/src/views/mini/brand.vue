@@ -18,8 +18,8 @@
           :on-retry="flushAllDrafts"
         >
           <template #actions>
-            <el-button @click="router.push('/mini/navigation')">导航配置</el-button>
-            <el-button type="primary" @click="router.push('/mini/publish')">去发布与版本</el-button>
+            <el-button @click="router.push('/mini/appearance?tab=nav')">导航配置</el-button>
+            <el-button type="primary" @click="router.push('/mini/releases')">去发布与版本</el-button>
           </template>
 
           <template #help>
