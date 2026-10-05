@@ -3,7 +3,7 @@
   <!-- 内置标题行：showTitle=false 时整行不渲染（不靠空字符串糊过去） -->
   <view
     class="dsl-product-list__section-header dsl-product-list__section-header--{{sectionStyle}} dsl-product-list__section-header--{{sectionAlign}} {{sectionDivider ? 'has-divider' : ''}}"
-    wx:if="{{showTitle && (sectionTitle || sectionSubtitle)}}"
+    wx:if="{{showTitle && (sectionTitle || sectionSubtitle) && !isEmptyHidden}}"
   >
     <view class="dsl-product-list__section-bars" wx:if="{{sectionStyle === 'bar'}}">
       <view class="dsl-product-list__section-bar is-down"></view>
@@ -124,7 +124,18 @@
     </block>
   </view>
 
-  <view class="dsl-product-list__empty" wx:if="{{!displayData.length && !loadingMore}}">
+  <!--
+    空态兜底（2026-10-06，与后台 empty_behavior 同口径）：
+      · hide（默认）→ 整块不渲染（原来无条件显示「暂无商品」，
+        首页位没商品时留个空框比不渲染更难看）
+      · placeholder → 渲染缺省图文占位，保留版式高度避免下方内容塌上来
+    ⚠️ loadingMore 期间不判空 —— 触底加载时数据短暂为空是正常态，
+    闪一下「暂无商品」会被当成加载失败。
+  -->
+  <view
+    class="dsl-product-list__empty"
+    wx:if="{{!displayData.length && !loadingMore && emptyBehavior === 'placeholder'}}"
+  >
     <text class="dsl-product-list__empty-text">暂无商品</text>
   </view>
   <view class="dsl-product-list__footer" wx:elif="{{footerText}}">

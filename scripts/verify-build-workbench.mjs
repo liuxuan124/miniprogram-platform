@@ -38,20 +38,34 @@ function makeJwt() {
  * 现在每个词都取自页面正文，登录页与骨架屏都不含。
  */
 const ROUTES = [
-  // 注意：overview 的引导文案分两种，由 isFirstRun 决定（liveReleaseNo == null）。
-  // mock 里给了 liveReleaseNo=12，所以断言「日常维护」；首次搭建时会是「首次搭建」。
-  { path: '/mini/overview', name: '搭建工作台', expect: ['搭建环节', '日常维护', '判定依据'] },
-  { path: '/mini/brand', name: '品牌信息', expect: ['配置层级与继承', '小程序名称', '默认分享信息'] },
-  { path: '/mini/system', name: '系统配置', expect: ['配置完成度', '小程序配置', '后台系统设置'] },
-  { path: '/mini/pages', name: '页面搭建', expect: ['新建页面', '修改已有页面', '不会新建副本'] },
-  // 「立即生效」在 el-drawer 里，未打开时不进 DOM，只能断言页面主体
-  { path: '/mini/page-config', name: '页面配置', expect: ['系统原生页', '可装修页面', '组件编排'] },
-  { path: '/mini/navigation', name: '导航配置', expect: ['绑定检查', '默认首页', '导航与页面的引用关系'] },
-  { path: '/mini/preview', name: '预览检查', expect: ['阻止发布的问题', '一般提醒', '内容体检'] },
-  { path: '/mini/publish', name: '发布与版本', expect: ['发布配置', '微信代码包', '版本存档'] },
-  { path: '/page-builder/mine', name: '我的页配置', expect: ['我的页配置', '保存草稿', '发布配置'] },
-  { path: '/page-builder/login', name: '登录页配置', expect: ['登录页配置', '保存草稿', '发布配置'] },
-  { path: '/mini/appearance', name: '旧外观路径(应重定向)', expect: ['配置层级与继承'], redirect: true },
+  // ── 三个工作台（2026-10-06 第二次 IA 收敛后的全部可达入口）──────────────
+  // 断言词一律取自**页面正文**，不能取自侧栏菜单文字 ——
+  // 侧栏在登录页 DOM 里也存在，用它断言会得到「全部通过但截图全是登录页」的假结果。
+  { path: '/mini/pages', name: '页面管理', expect: ['页面管理', '装修页', '系统原生页', '草稿候选'] },
+  { path: '/mini/appearance', name: '品牌与导航', expect: ['品牌与导航', '底部导航', '实时预览'] },
+  { path: '/mini/appearance?tab=brand', name: '品牌与导航›品牌资产', expect: ['品牌资产', '小程序名称', '主色调'] },
+  // mock 里给了 plugins 配置 → 渲染的是开关列表而非空态，所以断言词要用
+  // 「有配置时也会出现」的文案。附一条 mustNot：[object Object] ——
+  // 2026-10-06 的 bug 就是按字符串数组解析对象数组导致的，这行是回归护栏。
+  {
+    path: '/mini/appearance?tab=flags',
+    name: '品牌与导航›功能开关',
+    expect: ['功能开关', '控制小程序里各功能的开放与关闭'],
+    mustNot: ['[object Object]'],
+  },
+  { path: '/mini/releases', name: '发版中心', expect: ['发版中心', '当前线上', '准备发布', '本次变更', '发布前检查'] },
+
+  // ── 旧地址必须仍可用（redirect 到新入口）─────────────────────────────
+  // 这是"重构不破坏存量链接"的验收点，不是可选项。
+  { path: '/mini/overview', name: '旧:概览→发版中心', expect: ['发版中心'], redirect: true },
+  { path: '/mini/brand', name: '旧:品牌信息→品牌面板', expect: ['品牌资产'], redirect: true },
+  { path: '/mini/page-config', name: '旧:页面配置→页面管理', expect: ['页面管理'], redirect: true },
+  { path: '/mini/navigation', name: '旧:导航配置→导航面板', expect: ['底部导航'], redirect: true },
+  { path: '/mini/publish', name: '旧:发布与版本→发版中心', expect: ['发版中心'], redirect: true },
+
+  // ── 两个固定页仍是独立页（沉浸式配置面板）────────────────────────────
+  { path: '/page-builder/mine', name: '我的页配置', expect: ['我的页', '保存草稿', '发布配置'] },
+  { path: '/page-builder/login', name: '登录页配置', expect: ['登录页', '保存草稿', '发布配置'] },
 ]
 
 const results = []
@@ -260,6 +274,8 @@ for (const r of ROUTES) {
       } else {
         const miss = r.expect.filter((k) => !full.includes(k))
         if (miss.length) status = `missing:${miss.join('|')}`
+        const bad = (r.mustNot || []).filter((k) => full.includes(k))
+        if (bad.length) status = `must-not-appear:${bad.join('|')}`
         if (/Cannot read|undefined is not|error TS/.test(full)) status = 'runtime-error'
       }
     }
@@ -349,11 +365,12 @@ if (uniqueShots < Math.min(totalShots, 4)) {
 /* ------------------------------------------------------------------ */
 if (ERROR_MODE) {
   console.log('\n================ 专项：读取失败不得伪装成空数据 ================')
+  // 🔴 读取失败必须显式提示，绝不能显示成「共 0 个」或「没有任何页面」。
+  //    2026-10-06 事故的根因就是异常被静默降级成空数组。
   const ERROR_CASES = [
-    { path: '/mini/page-config', must: ['读取失败'], mustNot: ['共 0 个'] },
-    { path: '/mini/navigation', must: ['读取失败'], mustNot: ['个导航指向的页面不存在'] },
-    { path: '/mini/preview', must: ['读取失败', '不可用'], mustNot: [] },
-    { path: '/mini/overview', must: ['无法确认'], mustNot: ['没有任何可用页面'] },
+    { path: '/mini/pages', must: ['读取失败'], mustNot: ['还没有页面'] },
+    { path: '/mini/appearance', must: ['读取失败'], mustNot: ['绑定的页面已不存在'] },
+    { path: '/mini/releases', must: ['无法确认'], mustNot: ['没有阻断项'] },
   ]
   let errCasePass = 0
   for (const c of ERROR_CASES) {
@@ -411,7 +428,7 @@ console.log(widthIssues.length ? `RESULT: FAIL ${widthIssues.length} 处` : 'RES
 /* ------------------------------------------------------------------ */
 console.log('\n================ 专项：侧栏信息架构 ================')
 await page.setViewportSize({ width: 1440, height: 980 })
-await page.goto(`${BASE}/mini/overview`, { waitUntil: 'domcontentloaded' })
+await page.goto(`${BASE}/mini/pages`, { waitUntil: 'domcontentloaded' })
 await page.waitForTimeout(2000)
 
 // 一次进入页面把侧栏结构取全（🔴 必须在 evaluate 内访问 document，
@@ -440,7 +457,7 @@ const ia = await page.evaluate(() => {
 })
 
 const iaProblems = []
-const EXPECT = ['搭建工作台', '基础配置', '页面管理', '导航配置', '预览检查', '发布与版本']
+const EXPECT = ['页面管理', '品牌与导航', '发版中心']
 const miniGroup = ia.groups.find((g) => g.title === '小程序')
 if (!miniGroup) {
   iaProblems.push('侧栏找不到「小程序」分组')
@@ -455,7 +472,7 @@ console.log(`侧栏分组数: ${ia.groups.length}`)
 console.log(`小程序分组下可见项: ${ia.miniTitles.join(' / ')}`)
 console.log(`当前选中项数: ${ia.activeCount}`)
 for (const p of iaProblems) console.log(`❌ ${p}`)
-if (!iaProblems.length) console.log('✅ 小程序分组 6 个环节齐全、选中态唯一')
+if (!iaProblems.length) console.log('✅ 小程序分组为 3 个工作台、无 3 级目录、选中态唯一')
 
 // 折叠稳定性：手动收起「小程序」组后，切路由验证它不会被自动顶开
 if (miniGroup) {

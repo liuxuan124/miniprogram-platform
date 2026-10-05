@@ -18,10 +18,15 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // 🔴 include 是**白名单**：新测试文件不加进来就会被静默跳过（`vitest` 报 0 tests 也不报错）
     include: [
       'src/utils/editorKeyboardGuard.test.ts',
       'src/composables/useEditorPersist.test.ts',
       'src/utils/dsl-*.test.ts',
+      // 文章流「不限篇数」解耦 + 来源标签动态映射表（2026-10-06）
+      'src/components/page-builder/articleFeed/*.test.ts',
+      // 笔记流两层导航样式（2026-10-06）
+      'src/components/page-builder/noteFeed/*.test.ts',
     ],
   },
 })

@@ -331,3 +331,202 @@
 }
 
 .tool--btn::after { border: 0; }
+
+/* ===== 真实 IM 卡片（客服侧发的商品卡 / 物流卡 / 系统事件）=====
+   payload 字段名与后台 ImCardService 一致，两端必须同步 */
+.im-sys {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  padding: 12rpx 0;
+}
+
+.im-sys__title {
+  font-size: 22rpx;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+}
+
+.im-sys__desc {
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.im-card {
+  margin: 0 0 16rpx 64rpx;
+  max-width: 520rpx;
+  border: 1rpx solid #e8ebf2;
+  border-radius: 16rpx;
+  background: #fff;
+  overflow: hidden;
+}
+
+.im-card__cover {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 10rpx;
+  background: #f3f4f6;
+  flex-shrink: 0;
+}
+
+.im-card__cover--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.im-card__body {
+  display: flex;
+  gap: 16rpx;
+  padding: 16rpx;
+}
+
+.im-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.im-card__title {
+  font-size: 26rpx;
+  color: #111827;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.im-card__meta {
+  display: flex;
+  gap: 12rpx;
+  align-items: baseline;
+  margin-top: 8rpx;
+}
+
+.im-card__price {
+  font-size: 30rpx;
+  color: #c2410c;
+  font-weight: 500;
+}
+
+.im-card__stock {
+  font-size: 20rpx;
+  color: #6b7280;
+}
+
+.im-card__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 16rpx 16rpx 8rpx;
+}
+
+.im-card__express {
+  font-size: 26rpx;
+  color: #111827;
+}
+
+.im-card__status {
+  font-size: 20rpx;
+  color: #0f6e56;
+  background: #e1f5ee;
+  padding: 2rpx 12rpx;
+  border-radius: 16rpx;
+}
+
+.im-card__no {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 16rpx;
+  padding: 10rpx 16rpx;
+  background: #f3f4f6;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  font-family: monospace;
+  color: #374151;
+}
+
+.im-card__copy {
+  font-size: 20rpx;
+  color: #c2410c;
+}
+
+.im-card__latest {
+  padding: 12rpx 16rpx 0;
+  font-size: 24rpx;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.im-card__tracks {
+  margin: 12rpx 16rpx 0;
+  padding-left: 16rpx;
+  border-left: 4rpx solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  max-height: 240rpx;
+  overflow-y: auto;
+}
+
+.im-track {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.im-track__time {
+  font-size: 20rpx;
+  color: #9ca3af;
+}
+
+.im-track__text {
+  font-size: 22rpx;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.im-card__cta {
+  padding: 14rpx 16rpx;
+  margin-top: 12rpx;
+  border-top: 1rpx solid #f0f1f5;
+  font-size: 24rpx;
+  color: #c2410c;
+  text-align: center;
+}
+
+.im-card__img {
+  width: 100%;
+  display: block;
+}
+
+.im-card__origin {
+  font-size: 20rpx;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.im-card__orderno {
+  padding: 0 16rpx;
+  font-size: 22rpx;
+  color: #6b7280;
+  font-family: monospace;
+}
+
+.im-card__cta--sub {
+  border-top: 1rpx solid #f0f1f5;
+  color: #6b7280;
+  margin-top: 0;
+}
+
+.im-card__orderno--link {
+  color: #c2410c;
+  margin-top: 6rpx;
+}

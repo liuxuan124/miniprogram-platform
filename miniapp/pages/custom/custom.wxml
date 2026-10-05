@@ -17,6 +17,14 @@
       </view>
       <view wx:if="{{!flowComponents.length && !floatComponents.length}}" class="custom-page__state">页面暂无内容</view>
     </view>
+    <!--
+      动态防录屏水印（2026-06 新增）：访客 ID + 手机尾号 + 时间，60s 刷新。
+      🔴 cover-view + pointer-events:none —— 水印层绝不能吃掉用户点击与滚动；
+         用 cover-image 是因为它是唯一能盖在 native 组件之上的普通层。
+    -->
+    <cover-view wx:if="{{watermarkUrl}}" class="custom-page__wm">
+      <cover-image class="custom-page__wm-img" src="{{watermarkUrl}}" />
+    </cover-view>
     <!-- 底部渐隐融合遮罩：悬浮于内容流上方、悬浮按钮（z-index:999）与 TabBar 之下，pointer-events:none 不阻断点击/滚动 -->
     <view
       wx:if="{{bottomOverlay}}"

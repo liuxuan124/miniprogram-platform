@@ -221,3 +221,19 @@
   font-size: 25rpx;
   flex-shrink: 0;
 }
+
+/* ---------------- 前缀图标变体（2026-10-06） ----------------
+   与后台 HotNewsRenderer 的 .hot-news-star.is-* 保持同口径。 */
+.dsl-hot-news__star.is-dot {
+  font-size: 16rpx;
+  opacity: 0.65;
+}
+.dsl-hot-news__star.is-fire {
+  font-size: 24rpx;
+}
+.dsl-hot-news__num {
+  margin-right: 10rpx;
+  color: #5b6cff;
+  font-size: 26rpx;
+  font-weight: 600;
+}

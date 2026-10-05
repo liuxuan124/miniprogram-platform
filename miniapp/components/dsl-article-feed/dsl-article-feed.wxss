@@ -160,6 +160,23 @@
   font-size: 22rpx;
 }
 
+/* ---------------- 来源标签配色态（2026-10-06） ----------------
+   🔴 未配色（sourceTagColored=false）时保留上面原有的灰字样式；
+   配色态由 wxml 内联 background/color，这里只补**形状**。
+   ⚠️ 圆角与内距不可省：不给的话底色是一块方的色块直接贴在文字后面，
+   像脏点而不是标签。这是「加了配色反而更丑」的典型。 */
+.dsl-article-feed__source[style*="background"] {
+  display: inline-block;
+  padding: 2rpx 10rpx;
+  border-radius: 999rpx;
+  font-size: 20rpx;
+  line-height: 1.5;
+  /* 🔴 标签文字永远不该折行：「小红书」被折成两行会撑高整行，
+   实测 h 从 20px 变 37px，整张卡片排版被一个标签带歪。
+   窄栏下宁可让标签超宽也不折行 —— 标签文案是渠道名，不会长到需要折行。 */
+  white-space: nowrap;
+}
+
 .dsl-article-feed__empty,
 .dsl-article-feed__footer {
   padding: 28rpx 16rpx;

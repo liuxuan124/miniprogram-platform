@@ -3,7 +3,7 @@ const { executeAction } = require('../../utils/render')
 const { get } = require('../../utils/request')
 const { resolveArticleCover } = require('../../utils/article-cover')
 const { isValidContentId } = require('../../utils/content-id')
-const { resolveSourceLabel, filterBySourceKeys } = require('../../utils/dsl-source-tag')
+const { resolveSourceLabel, resolveSourceTag, filterBySourceKeys } = require('../../utils/dsl-source-tag')
 const { filterByContentTags, primaryTagQueryParam } = require('../../utils/dsl-content-tag-filter')
 
 function applyListEnhancements(rows, config) {
@@ -13,10 +13,32 @@ function applyListEnhancements(rows, config) {
     list = filterBySourceKeys(list, cfg.source_filter)
   }
   if (cfg.show_source_tag === true) {
+    list = list.map((item) => {
+      // 🔴 2026-10-06：sourceTagLabel（旧字段，无配色）保留不动，
+      // 新增 sourceTag* 四件套供 wxml 直接用 —— 此前 wxml 渲染的是 item.source，
+      // 导致后台配的文案/配色在真机上完全没生效，且关掉开关也照样显示。
+      const tag = resolveSourceTag(item, cfg)
+      return {
+        ...item,
+        source: item.source || item.categoryName || item.category_name || '',
+        sourceTagLabel: resolveSourceLabel(item, cfg.source_labels),
+        sourceTagText: tag.text,
+        sourceTagKey: tag.key,
+        sourceTagBg: tag.bg,
+        sourceTagFg: tag.fg,
+        sourceTagColored: tag.colored,
+      }
+    })
+  } else {
+    // 开关关闭：把展示字段清空，wxml 用 sourceTagText 判空即可不再渲染
     list = list.map((item) => ({
       ...item,
-      source: item.source || item.categoryName || item.category_name || '',
-      sourceTagLabel: resolveSourceLabel(item, cfg.source_labels),
+      sourceTagLabel: '',
+      sourceTagText: '',
+      sourceTagKey: '',
+      sourceTagBg: '',
+      sourceTagFg: '',
+      sourceTagColored: false,
     }))
   }
   return filterByContentTags(list, cfg)

@@ -1,6 +1,7 @@
 const orderService = require('../../services/order')
 const SystemService = require('../../services/system')
 const supportService = require('../../services/support')
+const imService = require('../../services/im')
 const { StorageUtil } = require('../../utils/storage')
 const { post, upload } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
@@ -163,6 +164,10 @@ Page({
     sessionId: '',
     orderId: '',
     ticketId: '',
+    // 真实 IM 消息（客服侧发的卡片/文本）与 AI 兜底消息分开渲染
+    imMessages: [],
+    imAgentTyping: false,
+    imReady: false,
     deliveryCard: null,
     botAvatar: BOT_AVATAR,
     meAvatar: ME_AVATAR,
@@ -179,6 +184,8 @@ Page({
     if (this._orderId) this._injectOrderDelivery(this._orderId)
     this._prefetchRecentOrder()
     this._loadCustomerServiceConfig()
+    // 真实 IM 通道：已登录才开（未登录只有 AI 兜底）
+    this._bootIm({ source: 'chat', sourceRef: this._orderId ? String(this._orderId) : '' })
   },
 
   _loadCustomerServiceConfig() {
@@ -234,6 +241,112 @@ Page({
 
   onShow() {
     if (!this._restoredOnce) this._restore()
+    // 回到前台：立刻补拉一次再开轮询（切后台期间的消息不能漏）
+    if (this.data.imReady) {
+      imService.pullMessages().then((d) => this._applyIm(d, true)).catch(() => {})
+      imService.startPolling((rows, typing) => this._applyIm({ messages: rows, agentTyping: typing }, false))
+    }
+  },
+
+  onHide() {
+    // 切后台停轮询：后台定时器会被系统节流到分钟级，反而浪费请求
+    imService.stopPolling()
+  },
+
+  onUnload() {
+    imService.stopPolling()
+  },
+
+  // ---------- 真实 IM（人工客服通道）----------
+  _bootIm(options) {
+    const opts = options || {}
+    if (!AuthUtil.isLoggedIn()) {
+      // 未登录：AI 兜底照常工作，只是没有人工客服通道
+      this.setData({ imReady: false })
+      return
+    }
+    imService
+      .openConversation({ source: opts.source || 'chat', sourceRef: opts.sourceRef || '' })
+      .then((d) => {
+        const rows = (d && d.messages) || []
+        this.setData({ imReady: true, imMessages: rows, imAgentTyping: false })
+        imService.startPolling((incoming, typing) =>
+          this._applyIm({ messages: incoming, agentTyping: typing }, false),
+        )
+      })
+      .catch(() => {
+        // IM 不可用不影响 AI 兜底对话
+        this.setData({ imReady: false })
+      })
+  },
+
+  _applyIm(payload, immediate) {
+    const rows = (payload && payload.messages) || []
+    const typing = !!(payload && payload.agentTyping)
+    const patch = { imAgentTyping: typing }
+    if (rows.length) {
+      const known = {}
+      this.data.imMessages.forEach((m) => {
+        known[m.id] = true
+      })
+      const fresh = rows.filter((m) => !known[m.id])
+      if (fresh.length) {
+        patch.imMessages = this.data.imMessages.concat(fresh)
+      }
+    }
+    this.setData(patch)
+    if (immediate || rows.length) this._scrollImToBottom()
+  },
+
+  _scrollImToBottom() {
+    setTimeout(() => this.setData({ scrollInto: 'mbot' }), 60)
+  },
+
+  onOpenLink(e) {
+    const link = String((e.currentTarget.dataset && e.currentTarget.dataset.link) || '').trim()
+    if (!link) {
+      wx.showToast({ title: '该卡片未配置跳转', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: link,
+      fail: () => wx.showToast({ title: '页面暂不可用', icon: 'none' }),
+    })
+  },
+
+  onCopyTracking(e) {
+    const no = String((e.currentTarget.dataset && e.currentTarget.dataset.no) || '').trim()
+    if (!no) return
+    wx.setClipboardData({
+      data: no,
+      success: () => wx.showToast({ title: '运单号已复制', icon: 'none' }),
+    })
+  },
+
+  onPreviewImage(e) {
+    const url = String((e.currentTarget.dataset && e.currentTarget.dataset.url) || '').trim()
+    if (!url) return
+    wx.previewImage({ urls: [url], current: url })
+  },
+
+  /** 商品卡「咨询同款」：直接跳该商品详情页，让买家问得更具体。 */
+  onAskSame(e) {
+    const pid = String((e.currentTarget.dataset && e.currentTarget.dataset.pid) || '').trim()
+    if (!pid) return
+    wx.navigateTo({
+      url: `/pkg-content/product-detail/product-detail?id=${pid}`,
+      fail: () => wx.showToast({ title: '商品页暂不可用', icon: 'none' }),
+    })
+  },
+
+  /** 物流卡 → 订单详情：买家最想看的就是订单进度。 */
+  onOpenOrder(e) {
+    const oid = String((e.currentTarget.dataset && e.currentTarget.dataset.oid) || '').trim()
+    if (!oid) return
+    wx.navigateTo({
+      url: `/pkg-trade/order-detail/order-detail?id=${oid}`,
+      fail: () => wx.showToast({ title: '订单页暂不可用', icon: 'none' }),
+    })
   },
 
   _restore() {
@@ -357,6 +470,13 @@ Page({
     if (!q || this.data.sending) return
     this.setData({ inputText: '', showQuick: false, showEmoji: false })
     this._ask(q)
+    // 同步发到真实 IM：AI 答得再好，人工客服也要能看到买家诉求
+    if (this.data.imReady) {
+      imService
+        .sendText(q)
+        .then(() => imService.pullMessages().then((d) => this._applyIm(d, true)))
+        .catch(() => {})
+    }
   },
 
   _runFlow(steps) {

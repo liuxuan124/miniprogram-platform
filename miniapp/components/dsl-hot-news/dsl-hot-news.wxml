@@ -27,7 +27,8 @@
           data-index="{{index}}"
           bindtap="onTapItem"
         >
-          <text class="dsl-hot-news__star">★</text>
+          <text wx:if="{{prefixMode === 'number'}}" class="dsl-hot-news__num">{{index + 1}}</text>
+          <text wx:elif="{{prefixMode !== 'none'}}" class="dsl-hot-news__star {{prefixClass}}">{{prefixText}}</text>
           <text class="dsl-hot-news__row-title">{{item.title}}</text>
         </view>
       </block>
@@ -65,7 +66,8 @@
             data-index="{{index}}"
             bindtap="onTapItem"
           >
-            <text class="dsl-hot-news__star">★</text>
+            <text wx:if="{{prefixMode === 'number'}}" class="dsl-hot-news__num">{{index + 1}}</text>
+          <text wx:elif="{{prefixMode !== 'none'}}" class="dsl-hot-news__star {{prefixClass}}">{{prefixText}}</text>
             <text class="dsl-hot-news__row-title">{{item.title}}</text>
           </view>
         </block>

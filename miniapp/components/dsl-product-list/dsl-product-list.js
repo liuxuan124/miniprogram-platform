@@ -75,6 +75,9 @@ Component({
     loadingMore: false,
     footerText: '',
     page: 0,
+    // 空态兜底（2026-10-06 新增，与后台 empty_behavior 同口径）
+    emptyBehavior: 'hide',
+    isEmptyResult: false,
   },
 
   observers: {
@@ -344,7 +347,25 @@ Component({
         itemImageStyle,
         gridGapStyle,
         showRating,
+        // 空态兜底（2026-10-06）：与后台 normalizeEmptyBehavior 同规则
+        emptyBehavior: cfg.emptyBehavior === 'placeholder' ? 'placeholder' : 'hide',
+        isEmptyHidden: false,
       })
+    },
+
+    /**
+     * 空态裁决（2026-10-06）。
+     * 🔴 必须**渲染后**按真实 displayData 长度回填，不能只看配置 ——
+     * 配了 placeholder 但实际有商品时不该占位；配了 hide 但实际 0 商品时该藏。
+     * `isEmptyHidden` 会让标题行与列表体一起隐藏 —— 只藏列表留个标题在，
+     * 页面反而更怪（运营会问「为什么有个标题没内容」）。
+     */
+    _applyEmptyGuard() {
+      const n = Array.isArray(this.data.displayData) ? this.data.displayData.length : 0
+      const loading = this.data.loadingMore === true
+      const isEmpty = n === 0 && !loading
+      const hidden = isEmpty && this.data.emptyBehavior !== 'placeholder'
+      if (this.data.isEmptyHidden !== hidden) this.setData({ isEmptyHidden: hidden })
     },
 
     _bootstrapStream() {
@@ -364,6 +385,7 @@ Component({
           page: mapped.length ? 1 : 0,
           footerText: mapped.length ? '没有更多了' : '',
         })
+        this._applyEmptyGuard()
         this._streamBootstrapped = true
         return
       }
@@ -379,6 +401,7 @@ Component({
         loadingMore: false,
         footerText: slice.length >= pageSize ? '' : (mapped.length ? '没有更多了' : ''),
       })
+      this._applyEmptyGuard()
       this._localPool = filtered
       this._streamBootstrapped = true
     },
@@ -409,6 +432,7 @@ Component({
             loadingMore: false,
             footerText: stillHasMore ? '' : (merged.length ? '没有更多了' : ''),
           })
+          this._applyEmptyGuard()
         })
         .catch(() => {
           this._sliceLocalPool(reset, nextPage, pageSize, config)
@@ -430,6 +454,7 @@ Component({
         loadingMore: false,
         footerText: hasMore ? '' : (merged.length ? '没有更多了' : ''),
       })
+      this._applyEmptyGuard()
     },
 
     _refreshDisplayDataFixed() {

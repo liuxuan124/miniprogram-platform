@@ -58,10 +58,64 @@ function resolveLayout(cfg) {
   return 'star'
 }
 
+/* ============ 2026-10-06：与后台 hotNewsSchema.ts 对齐 ============
+   🔴 三处（面板 / 画布渲染器 / 端上）必须同规则，否则「面板配了真机没生效」。
+   规则与默认值见 admin/src/components/page-builder/hotNews/hotNewsSchema.ts 顶部说明。 */
+
+const HOT_NEWS_LIMIT_MIN = 3
+const HOT_NEWS_LIMIT_MAX = 20
+const PREFIX_GLYPHS = { star: '★', number: '', dot: '●', fire: '🔥', none: '' }
+
+function normalizeLimit(v) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return 3
+  return Math.min(HOT_NEWS_LIMIT_MAX, Math.max(HOT_NEWS_LIMIT_MIN, Math.round(n)))
+}
+
+function normalizeIdList(v) {
+  if (!Array.isArray(v)) return []
+  const seen = {}
+  const out = []
+  v.forEach((x) => {
+    const id = String(x == null ? '' : x)
+    if (id && !seen[id]) {
+      seen[id] = 1
+      out.push(id)
+    }
+  })
+  return out
+}
+
+/**
+ * 运营干预：排除 → 置顶。
+ * 🔴 顺序不能反 —— 先排除再置顶，否则被排除的 ID 仍会占置顶位。
+ * @param {string[]} pinned 置顶 ID（按数组顺序）
+ * @param {string[]} excluded 排除 ID
+ */
+function applyOverrides(list, pinned, excluded) {
+  const rows = Array.isArray(list) ? list.slice() : []
+  if (!pinned.length && !excluded.length) return rows
+
+  const ex = {}
+  excluded.forEach((id) => { ex[id] = 1 })
+  const kept = rows.filter((it) => !ex[String(it.id || '')])
+  if (!pinned.length) return kept
+
+  const head = []
+  const taken = {}
+  pinned.forEach((id) => {
+    const idx = kept.findIndex((it) => String(it.id || '') === id)
+    if (idx >= 0) {
+      head.push(kept[idx])
+      taken[idx] = 1
+    }
+  })
+  return head.concat(kept.filter((_, i) => !taken[i]))
+}
+
 function prepareList(runtimeData, config) {
   const cfg = config || {}
-  const limitRaw = Number(cfg.limit)
-  const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(limitRaw, 20)) : 3
+  const limit = normalizeLimit(cfg.limit)
   const ds = cfg.data_source || {}
   const q = { ...(ds.query || {}), ...(ds.params || {}) }
   let rows = Array.isArray(runtimeData) ? runtimeData.map(normalizeItem) : []
@@ -85,7 +139,14 @@ function prepareList(runtimeData, config) {
     })
   }
 
-  return rows.filter((item) => item.navigable).slice(0, limit)
+  // 干预在截断**之前**：先排除/置顶，再按 limit 截断，
+  // 否则被隐藏的条目会占掉名额导致实际展示条数少于 limit。
+  const governed = applyOverrides(
+    rows.filter((item) => item.navigable),
+    normalizeIdList(cfg.pinned_ids),
+    normalizeIdList(cfg.excluded_ids),
+  )
+  return governed.slice(0, limit)
 }
 
 Component({
@@ -155,6 +216,10 @@ Component({
       const contentStyle = useUnifiedCard
         ? `border-radius:${cardRadius}rpx;background:#fffdf9;border:1px solid #efe7da;padding:24rpx;box-sizing:border-box;`
         : `border-radius:${cardRadius}rpx;`
+      // 前缀图标归一（与后台 hotNewsSchema.ts 的 HOT_NEWS_PREFIX_ICONS 同白名单）
+      const rawPrefix = String(cfg.prefix_icon || 'star')
+      const prefixMode = ['star', 'number', 'dot', 'fire', 'none'].indexOf(rawPrefix) >= 0 ? rawPrefix : 'star'
+
       this.setData({
         titleText: String(cfg.title || '今日精选').trim() || '今日精选',
         showMore: cfg.show_more !== false,
@@ -169,6 +234,10 @@ Component({
         useUnifiedCard,
         showCover: cfg.show_cover !== false,
         displayData: prepareList(runtimeData, cfg),
+        // 前缀图标（2026-10-06）：number 由下标渲染（wxml 里 index+1），其余给字形
+        prefixMode: prefixMode,
+        prefixText: prefixMode === 'number' || prefixMode === 'none' ? '' : (PREFIX_GLYPHS[prefixMode] || '★'),
+        prefixClass: prefixMode === 'none' ? 'is-none' : `is-${prefixMode}`,
         ...dateParts,
       })
     },

@@ -4,6 +4,8 @@ const { getNavLayout } = require('../../utils/nav-layout')
 const { collectHeroImageUrls, preloadImages, annotateHeroImageSize } = require('../../utils/image-preload')
 const { resolveTabRouteForBoundCustomPath } = require('../../utils/tab-bar-route')
 const { getAppThemeConfig, resolvePageBackground } = require('../../utils/theme')
+const { checkPageAccess, promptAccessPassword, resolveOfflineAction } = require('../../utils/page-guard')
+const { mountWatermark } = require('../../utils/page-watermark')
 
 const GOLDEN_PARITY_PATH = 'pages/custom/golden-render-parity'
 
@@ -37,6 +39,16 @@ Page({
     pageBackgroundCss: '',
     /** 底部渐隐融合遮罩：null 表示不渲染 */
     bottomOverlay: null,
+    /** 动态防录屏水印的 dataURL；'' = 不渲染（默认关闭，老页面零变化） */
+    watermarkUrl: '',
+  },
+
+  onUnload() {
+    // 🔴 必须在这里销毁：定时器不清会一直跑到页面栈回收，泄漏内存
+    if (this._wm) {
+      this._wm.destroy()
+      this._wm = null
+    }
   },
 
   onLoad(options) {
@@ -57,6 +69,66 @@ Page({
     }
   },
 
+  /**
+   * 访问拦截的统一出口（2026-06 新增）。
+   * @returns {Promise<boolean>} true=放行
+   */
+  async _ensureAccess(guard) {
+    // 定时上下线：不弹任何框，按配置兜底（首页 / 公告 / 停留）
+    if (guard.action === 'offline') {
+      const act = resolveOfflineAction(guard.payload)
+      if (act.type === 'stay') {
+        this.setData({ loading: false, error: '该页面已下线', flowComponents: [], floatComponents: [] })
+        return false
+      }
+      if (act.type === 'notice') {
+        this.setData({
+          loading: false,
+          error: '该页面已下线',
+          flowComponents: [],
+          floatComponents: [],
+        })
+        return false
+      }
+      wx.redirectTo({ url: act.url, fail() {} })
+      return false
+    }
+
+    if (guard.action === 'password') {
+      const pass = await promptAccessPassword((guard.payload || {}).expect, 3)
+      if (pass) return true
+      this.setData({ loading: false, error: '访问验证未通过', flowComponents: [], floatComponents: [] })
+      return false
+    }
+
+    if (guard.action === 'login') {
+      // 🔴 带上回跳参数：登录后能回到本页，否则用户登录完发现「找不到刚才的页面」
+      wx.navigateTo({
+        url: '/pages/login/login?redirect=' + encodeURIComponent('/pages/custom/custom?path=' + encodeURIComponent(this._curPath || '')),
+        fail() {
+          wx.showToast({ title: guard.reason || '需要登录', icon: 'none' })
+        },
+      })
+      return false
+    }
+
+    // vip 及其它：提示后停在空态
+    wx.showToast({ title: guard.reason || '无访问权限', icon: 'none' })
+    this.setData({ loading: false, error: guard.reason || '无访问权限', flowComponents: [], floatComponents: [] })
+    return false
+  },
+
+  /** 挂载动态水印层（渲染完成后调，避免抢首屏） */
+  _mountWatermark() {
+    if (this._wm) this._wm.destroy()
+    const self = this
+    this._wm = mountWatermark(null, {
+      onUpdate(url) {
+        self.setData({ watermarkUrl: url || '' })
+      },
+    })
+  },
+
   onReachBottom() {
     const renderers = this.selectAllComponents('dsl-renderer') || []
     renderers.forEach((renderer) => {
@@ -74,6 +146,8 @@ Page({
       this.setData({ loading: false, error: '缺少页面路径' })
       return
     }
+    // 存一份供登录回跳拼接（_ensureAccess 里要用）
+    this._curPath = path
     try {
       const norm = String(path || '').replace(/^\/+/, '')
       let dsl = null
@@ -149,6 +223,13 @@ Page({
         // 旧基础库无此 API，忽略
       }
 
+      // 访问守卫：先判权限，拦住就不渲染内容（避免「闪一下再消失」）
+      const guard = checkPageAccess(parsed.page)
+      if (guard.ok === false) {
+        const passed = await this._ensureAccess(guard)
+        if (!passed) return
+      }
+
       this.setData({
         loading: false,
         error: '',
@@ -160,6 +241,11 @@ Page({
         pageBackgroundCss: pageBg.gradientCss,
         bottomOverlay,
       })
+
+      // 动态水印：渲染完成后再挂，避免抢首屏
+      if (parsed.page && parsed.page.watermark === true) {
+        this._mountWatermark()
+      }
     } catch (e) {
       this.setData({
         loading: false,

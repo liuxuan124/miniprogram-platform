@@ -95,7 +95,82 @@
       </view>
     </block>
 
-    <view class="typing" wx:if="{{typing}}">对方正在输入…</view>
+    <!-- ===== 真实 IM 消息区（客服发的商品卡 / 物流卡 / 系统事件）=====
+         ⚠️ payload 字段名与后台 ImCardService 完全一致，两端任一处改都会导致
+            另一端渲染空白卡片。改字段必须同步两端。 -->
+    <block wx:for="{{imMessages}}" wx:key="id">
+      <!-- 系统事件胶囊 -->
+      <view wx:if="{{item.msgType === 'system_event'}}" class="im-sys">
+        <text class="im-sys__title">{{item.payload.title}}</text>
+        <text wx:if="{{item.payload.desc}}" class="im-sys__desc">{{item.payload.desc}}</text>
+      </view>
+
+      <!-- 商品卡 -->
+      <view wx:elif="{{item.msgType === 'product_card'}}" class="im-card">
+        <view class="im-card__body">
+          <image wx:if="{{item.payload.coverUrl}}" class="im-card__cover" src="{{item.payload.coverUrl}}" mode="aspectFill" />
+          <view wx:else class="im-card__cover im-card__cover--empty">无图</view>
+          <view class="im-card__info">
+            <view class="im-card__title">{{item.payload.title}}</view>
+            <view class="im-card__meta">
+              <text class="im-card__price">¥{{item.payload.price}}</text>
+              <text wx:if="{{item.payload.originalPrice}}" class="im-card__origin">¥{{item.payload.originalPrice}}</text>
+              <text class="im-card__stock">库存 {{item.payload.stock}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="im-card__cta" bindtap="onOpenLink" data-link="{{item.payload.linkPath}}">
+          查看商品详情 ›
+        </view>
+        <view wx:if="{{item.payload.id}}" class="im-card__cta im-card__cta--sub" bindtap="onAskSame" data-pid="{{item.payload.id}}">
+          咨询同款
+        </view>
+      </view>
+
+      <!-- 物流卡 -->
+      <view wx:elif="{{item.msgType === 'logistics_card'}}" class="im-card">
+        <view class="im-card__row">
+          <text class="im-card__express">{{item.payload.expressName}}</text>
+          <text class="im-card__status">{{item.payload.status}}</text>
+        </view>
+        <view wx:if="{{item.payload.orderNo}}" class="im-card__orderno">订单 {{item.payload.orderNo}}</view>
+        <view
+          wx:if="{{item.payload.orderId}}"
+          class="im-card__orderno im-card__orderno--link"
+          bindtap="onOpenOrder"
+          data-oid="{{item.payload.orderId}}"
+        >查看订单进度 ›</view>
+        <view wx:if="{{item.payload.trackingNo}}" class="im-card__no" bindtap="onCopyTracking" data-no="{{item.payload.trackingNo}}">
+          {{item.payload.trackingNo}}
+          <text class="im-card__copy">复制</text>
+        </view>
+        <view wx:if="{{item.payload.latestTrack}}" class="im-card__latest">{{item.payload.latestTrack}}</view>
+        <view wx:if="{{item.payload.tracks && item.payload.tracks.length > 1}}" class="im-card__tracks">
+          <view wx:for="{{item.payload.tracks}}" wx:for-item="t" wx:key="time" class="im-track">
+            <text class="im-track__time">{{t.time}}</text>
+            <text class="im-track__text">{{t.context}}</text>
+          </view>
+        </view>
+        <view class="im-card__cta" bindtap="onOpenLink" data-link="{{item.payload.linkPath}}">
+          查看订单详情 ›
+        </view>
+      </view>
+
+      <!-- 图片 -->
+      <view wx:elif="{{item.msgType === 'image'}}" class="im-card">
+        <image class="im-card__img" src="{{item.payload.url}}" mode="widthFix" bindtap="onPreviewImage" data-url="{{item.payload.url}}" />
+      </view>
+
+      <!-- 文本 -->
+      <view wx:else class="msg">
+        <view class="av av--ghost"></view>
+        <view class="bb-wrap">
+          <view class="bb">{{item.text}}</view>
+        </view>
+      </view>
+    </block>
+
+    <view class="typing" wx:if="{{typing || imAgentTyping}}">对方正在输入…</view>
     <view id="mbot" style="height:24rpx"></view>
   </scroll-view>
 

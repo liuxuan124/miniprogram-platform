@@ -35,7 +35,11 @@
         <text class="dsl-article-feed__title dsl-article-feed__title--compact" style="{{titleStyle}}">{{item.title || item.name}}</text>
         <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
           <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
-          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">{{item.source}}</text>
+          <text
+          class="dsl-article-feed__source"
+          style="{{item.sourceTagColored ? ('background:' + item.sourceTagBg + ';color:' + item.sourceTagFg) : metaStyle}}"
+          wx:if="{{item.sourceTagText}}"
+        >{{item.sourceTagText}}</text>
         </view>
       </view>
     </view>
@@ -59,7 +63,7 @@
       />
       <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__overlay-cover"></view>
       <view class="dsl-article-feed__overlay-mask">
-        <text class="dsl-article-feed__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
+        <text class="dsl-article-feed__overlay-kicker" wx:if="{{item.sourceTagText}}">{{item.sourceTagText}}</text>
         <text class="dsl-article-feed__overlay-title">{{item.title || item.name}}</text>
         <text class="dsl-article-feed__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
       </view>
@@ -84,7 +88,7 @@
         />
         <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__overlay-cover dsl-article-feed__overlay-cover--hero"></view>
         <view class="dsl-article-feed__overlay-mask">
-          <text class="dsl-article-feed__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
+          <text class="dsl-article-feed__overlay-kicker" wx:if="{{item.sourceTagText}}">{{item.sourceTagText}}</text>
           <text class="dsl-article-feed__overlay-title">{{item.title || item.name}}</text>
           <text class="dsl-article-feed__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
         </view>
@@ -107,7 +111,7 @@
           <text class="dsl-article-feed__editorial-excerpt" wx:if="{{item.summary}}">{{item.summary}}</text>
           <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
             <text class="dsl-article-feed__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
-            <text class="dsl-article-feed__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+            <text class="dsl-article-feed__editorial-meta" wx:if="{{item.sourceTagText}}">{{item.sourceTagText}}</text>
           </view>
         </view>
       </view>
@@ -158,7 +162,7 @@
         <text class="dsl-article-feed__editorial-excerpt" wx:if="{{item.summary}}">{{item.summary}}</text>
         <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
           <text class="dsl-article-feed__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
-          <text class="dsl-article-feed__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+          <text class="dsl-article-feed__editorial-meta" wx:if="{{item.sourceTagText}}">{{item.sourceTagText}}</text>
         </view>
       </view>
     </view>
@@ -195,7 +199,11 @@
           </text>
           <!-- 🔴 此前硬编码了「时间 」「来源 」前缀，运营看到的是「时间 2026-01-01」这种怪字符串 -->
           <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
-          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">{{item.source}}</text>
+          <text
+          class="dsl-article-feed__source"
+          style="{{item.sourceTagColored ? ('background:' + item.sourceTagBg + ';color:' + item.sourceTagFg) : metaStyle}}"
+          wx:if="{{item.sourceTagText}}"
+        >{{item.sourceTagText}}</text>
           <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('views') >= 0 && item.viewCount}}">◉ {{item.viewCount}}</text>
           <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('likes') >= 0 && item.likeCount}}">♥ {{item.likeCount}}</text>
           <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('reading') >= 0 && item.readingMinutes}}">⏱ 阅读 {{item.readingMinutes}} 分钟</text>

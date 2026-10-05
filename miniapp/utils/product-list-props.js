@@ -153,10 +153,15 @@ function normalizeProductListProps(raw) {
   }
 
   var pickMode = (p.pick_mode === 'manual' || p.source_mode === 'manual') ? 'manual' : 'rule'
+  // 空态兜底（2026-10-06，与后台 normalizeEmptyBehavior 同规则）：
+  // ⚠️ 缺省回落 'hide' —— 改前 wxml 无条件显示「暂无商品」，
+  // 但首页位没商品时那个空框本身就是要消除的问题，故默认改成不渲染。
+  var emptyBehavior = p.empty_behavior === 'placeholder' ? 'placeholder' : 'hide'
   var pageStrategy = (p.page_strategy === 'stream' || p.display_mode === 'stream') ? 'stream' : 'fixed'
 
   return {
     // 旧页面没有 show_title 字段 → true；但 title 为空时渲染层不输出标题行
+    emptyBehavior: emptyBehavior,
     showTitle: p.show_title === undefined ? true : !!p.show_title,
     title: toStr(p.title, DEFAULT_PROPS.title),
     subtitle: toStr(p.subtitle, ''),
