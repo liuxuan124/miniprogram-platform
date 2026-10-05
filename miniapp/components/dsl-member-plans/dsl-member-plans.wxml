@@ -10,6 +10,7 @@
   <scroll-view wx:else scroll-x="{{scrollDirection === 'horizontal'}}" class="dsl-member-plans__cards dsl-member-plans__cards--{{scrollDirection}}">
     <view wx:for="{{plans}}" wx:key="id" class="dsl-member-plans__card {{item.recommend ? 'is-rec' : ''}}">
       <view wx:if="{{item.recommend}}" class="dsl-member-plans__badge">{{badgeText}}</view>
+      <view wx:if="{{item.ticketTag}}" class="dsl-member-plans__ticket">{{item.ticketTag}}</view>
       <view class="dsl-member-plans__name">{{item.name}}</view>
       <view class="dsl-member-plans__price">{{item.priceText}}</view>
       <view wx:for="{{item.rights}}" wx:for-item="r" wx:key="*this" class="dsl-member-plans__right">· {{r}}</view>

@@ -19,6 +19,10 @@ public class MemberTag implements Serializable {
     private Long id;
     private String name;
     private String color;
+    /** V114：1=角色身份标签（作者/主理人等，可在后台增删改）；0=普通标签 */
+    private Integer isRole;
+    /** V114：角色稳定代码（author/host/editor/contributor/operator），普通标签为 null */
+    private String roleCode;
     private String description;
     private Integer useCount;
     private Integer status;

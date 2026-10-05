@@ -9,6 +9,31 @@ export const PLANET_DEFAULT_SEGS = [
   { key: 'resources', label: '资料库 128' },
 ]
 
+/**
+ * 分段 key 白名单 —— 运营在后台只能从这里选。
+ * key 决定小程序端 `_applySeg` 的筛选行为：填白名单外的 key，栏目能显示能点，
+ * 但点了不过滤（仍返回全量列表），且后台无法察觉，属于静默失效，故在此收口。
+ * resources 是特例：不筛选，点击直接跳转 resources_url。
+ */
+export const PLANET_SEG_KEYS = [
+  { value: 'all', label: '全部', desc: '不过滤，显示所有动态' },
+  { value: 'official', label: '官方更新', desc: '官方或星主发布的动态' },
+  { value: 'essence', label: '精华', desc: '被标记为精华的动态' },
+  { value: 'host', label: '只看星主', desc: '只看星主/主理人发布的内容' },
+  { value: 'ask', label: '问答', desc: '球友提问及星主回答' },
+  { value: 'checkin', label: '打卡', desc: '打卡类动态' },
+  { value: 'homework', label: '作业', desc: '作业/交作业类内容' },
+  { value: 'resources', label: '资料', desc: '不筛选，点击跳转资料库页' },
+] as const
+
+export type PlanetSegKey = (typeof PLANET_SEG_KEYS)[number]['value']
+
+/** 白名单外的 key：保留原值展示，但显式标记为「不生效」，供属性面板给出修复入口。 */
+export function isKnownPlanetSegKey(key: unknown): boolean {
+  const k = String(key == null ? '' : key)
+  return PLANET_SEG_KEYS.some((item) => item.value === k)
+}
+
 export const PLANET_DEFAULT_KPIS = [
   { value: '3,241', label: '球友' },
   { value: '1.2万', label: '沉淀内容' },
@@ -88,6 +113,9 @@ export function mapPlanetFeedItem(item: Record<string, any>, index = 0) {
     fileId: firstAttachment.fileId || '',
   } : null)
   const id = item.id || item.uid || ''
+  // 与小程序 mapFeedItem 同口径的 roleText：要带上 item.tag，
+  // 星主/打卡常只打在 tag 单值上，只看 tags 数组会漏判。
+  const roleText = `${tagText} ${String(item.tag || '')}`
   return {
     uid: String(item.uid || id || `planet-${index}`),
     id,
@@ -96,6 +124,14 @@ export function mapPlanetFeedItem(item: Record<string, any>, index = 0) {
     hot: item.hot != null ? !!item.hot : (/热议|热/.test(tagText) || Number(item.likeCount) > 200),
     author,
     authorInitial: item.authorInitial || String(author).slice(0, 1),
+    // 与小程序 mapFeedItem 同口径：「只看星主」/「作业」两个分段的判定依据。
+    // 预览若缺这两个字段，点了这两个分段会看起来「点了没反应」。
+    isHost: item.isHost != null
+      ? !!item.isHost
+      : (String(item.authorRole || item.author_role || '').includes('星主')
+        || /星主|官方/.test(roleText)
+        || /星主|主理|owner/i.test(String(author))),
+    isHomework: item.isHomework != null ? !!item.isHomework : (/作业|打卡|交作业/.test(roleText)),
     tagGold: item.tagGold || (top ? '置顶' : (/精华/.test(tagText) ? '精华' : '')),
     tag: item.tag || tags.find((tag) => /星主|提问|打卡|官方|特约/.test(tag)) || '',
     avatar: item.authorAvatar || item.avatar || DEFAULT_AVATARS[author] || '',
@@ -114,4 +150,45 @@ export function mapPlanetFeedItem(item: Record<string, any>, index = 0) {
     file,
     type: item.type || '',
   }
+}
+
+/**
+ * 按分段 key 过滤动态 —— 与小程序 `dsl-planet-feed.js` 的 `_applySeg` 逐条对齐。
+ * 后台预览与真机共用同一套判定，避免「预览能筛、真机不能筛」这类保真度偏差。
+ * 白名单外的 key 与小程序一致：不过滤（返回全量），不会报错也不会空列表。
+ */
+export function filterPlanetFeedBySeg<T extends Record<string, any>>(list: T[], key: string): T[] {
+  switch (key) {
+    case 'official':
+      return list.filter((i) => i.type === 'official' || /官方|星主/.test(String(i.tag || '')))
+    case 'essence':
+      return list.filter((i) => i.type === 'essence' || i.tagGold === '精华')
+    case 'ask':
+      return list.filter((i) => i.type === 'ask' || /提问/.test(String(i.tag || '')))
+    case 'checkin':
+      return list.filter((i) => i.type === 'checkin' || /打卡/.test(String(i.tag || '')))
+    case 'host':
+      return list.filter((i) => i.isHost)
+    case 'homework':
+      return list.filter((i) => i.isHomework)
+    // all / resources / 白名单外的 key：不过滤
+    default:
+      return list
+  }
+}
+
+/** 归一化 segs：过滤非法项、丢弃空 label / 空 key、去重 key，保证顺序即渲染顺序。 */
+export function normalizePlanetSegs(raw: unknown): Array<{ key: string; label: string }> {
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  const out: Array<{ key: string; label: string }> = []
+  raw.forEach((it: any) => {
+    const key = String(it?.key == null ? '' : it.key).trim()
+    const label = String(it?.label == null ? '' : it.label).trim()
+    if (!key || !label) return
+    if (seen.has(key)) return
+    seen.add(key)
+    out.push({ key, label })
+  })
+  return out
 }

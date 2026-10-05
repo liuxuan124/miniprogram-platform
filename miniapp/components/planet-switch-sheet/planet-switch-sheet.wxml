@@ -1,0 +1,61 @@
+<!-- 切换主星球半屏：已加入的在上、未加入的在下 -->
+<view class="pss-root" wx:if="{{show}}">
+  <view class="pss-mask" catchtouchmove="noop" bindtap="close"></view>
+  <view class="pss-sheet" catchtouchmove="noop">
+    <view class="pss-grab"></view>
+    <view class="pss-hd">
+      <text class="pss-hd__t">切换主星球</text>
+      <text class="pss-hd__s">主星球决定首页和星球页展示哪一颗，随时可改</text>
+    </view>
+
+    <scroll-view scroll-y class="pss-body">
+      <view wx:if="{{loading && !joinedList.length && !otherList.length}}" class="pss-state">加载中…</view>
+      <view wx:elif="{{loadError && !joinedList.length && !otherList.length}}" class="pss-state" bindtap="onRetry">加载失败，点此重试</view>
+      <view wx:elif="{{!joinedList.length && !otherList.length}}" class="pss-state">暂无可切换的星球</view>
+
+      <block wx:if="{{joinedList.length}}">
+        <text class="pss-lab">已加入 {{joinedList.length}}</text>
+        <view
+          wx:for="{{joinedList}}"
+          wx:key="id"
+          class="pss-li {{item.isCurrent ? 'pss-li--on' : ''}}"
+          data-id="{{item.id}}"
+          data-joined="{{true}}"
+          bindtap="onPick"
+        >
+          <text class="pss-li__ic">{{item.emoji || '🪐'}}</text>
+          <view class="pss-li__m">
+            <text class="pss-li__t">{{item.title}}</text>
+            <text class="pss-li__d">{{item.membersLabel || item.subtitle}}</text>
+          </view>
+          <text class="pss-li__go {{item.isCurrent ? 'pss-li__go--on' : ''}}">{{item.isCurrent ? '当前' : '切过去'}}</text>
+        </view>
+      </block>
+
+      <block wx:if="{{otherList.length}}">
+        <text class="pss-lab">还可以加入 {{otherList.length}}</text>
+        <view
+          wx:for="{{otherList}}"
+          wx:key="id"
+          class="pss-li pss-li--dim"
+          data-id="{{item.id}}"
+          data-joined="{{false}}"
+          bindtap="onPick"
+        >
+          <text class="pss-li__ic">{{item.emoji || '🪐'}}</text>
+          <view class="pss-li__m">
+            <text class="pss-li__t">{{item.title}}</text>
+            <text class="pss-li__d">{{item.subtitle}}</text>
+          </view>
+          <text class="pss-li__go pss-li__go--ghost">去加入</text>
+        </view>
+      </block>
+
+      <view class="pss-tip">点已加入的即时切换；点未加入的会进入介绍页</view>
+    </scroll-view>
+
+    <view class="pss-ft">
+      <view class="pss-ft__btn" bindtap="close">取消</view>
+    </view>
+  </view>
+</view>

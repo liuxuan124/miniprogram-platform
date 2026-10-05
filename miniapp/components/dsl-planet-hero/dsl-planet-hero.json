@@ -1,4 +1,6 @@
 {
   "component": true,
-  "usingComponents": {}
+  "usingComponents": {
+    "planet-switch-sheet": "/components/planet-switch-sheet/planet-switch-sheet"
+  }
 }

@@ -36,10 +36,19 @@ public class MemberOpsService {
     private final SupportMessageMapper supportMessageMapper;
     private final UserFeedbackMapper userFeedbackMapper;
     private final CommunityPostMapper communityPostMapper;
+    /**
+     * 社区发帖正文与附件统一落在 mp_content（V103/V104），
+     * community_post 退化为「社区运营元数据表」桥接 content_id。
+     */
+    private final ContentMapper contentMapper;
+    /** 社区发帖挂资料时按 fileId 取文件元信息（只存引用，不复制文件） */
+    private final FileItemMapper fileItemMapper;
     private final CommunityCheckinMapper communityCheckinMapper;
     private final ReaderGroupMapper readerGroupMapper;
     private final MembershipAccessService membershipAccessService;
     private final UserNoticeService userNoticeService;
+    /** V120：删除/封禁账号时吊销其已签发 token（否则软删期内旧 token 仍可用） */
+    private final com.miniprogram.security.JwtBlacklistService jwtBlacklistService;
     private final ObjectMapper objectMapper;
 
     public Map<String, Object> overview() {
@@ -416,6 +425,63 @@ public class MemberOpsService {
         userMapper.updateById(u);
     }
 
+    // ==================== V120：账号封禁 / 删除 ====================
+
+    /**
+     * 软删除用户账号（mp_user.deleted=1）。
+     *
+     * <p><b>为什么是软删</b>：mp_user 被 30+ 张业务表当外键引用（订单/会员/内容/动态…），
+     * 物理删会让这些历史数据变成孤儿。{@code BaseEntity} 上有 {@code @TableLogic}，
+     * MyBatis-Plus 的 deleteById 会自动翻成 {@code UPDATE ... SET deleted=1}。
+     *
+     * <p><b>删前必须吊销 token</b>：JWT 无状态，只软删 DB 的话用户手上的 token 在有效期内
+     * 仍能调通接口，等于没删。复用 {@link JwtBlacklistService#revokeAllForUser}。
+     *
+     * <p><b>保护规则</b>：付费会员（未到期）与 system/test 类型账号一律拒删 ——
+     * 前者涉及退款/财务口径，后者是运营自己在用的账号，误删代价远大于收益。
+     */
+    @Transactional
+    public Map<String, Object> deleteUser(Long userId, String reason) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户不存在");
+        }
+        User u = userMapper.selectById(userId);
+        if (u == null) {
+            throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "用户不存在或已删除");
+        }
+        if (membershipAccessService.hasPlatformMembership(userId)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    "该用户仍是付费会员，请先让其会员到期或走退款流程，再删除账号");
+        }
+        String at = u.getAccountType();
+        if ("system".equals(at) || "test".equals(at)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR,
+                    "后台配置/联调测试账号不可删除（accountType=" + at + "）");
+        }
+        String r = reason == null ? "" : reason.trim();
+        if (r.length() > 200) {
+            r = r.substring(0, 200);
+        }
+
+        // 标签关联一并清掉，避免删完账号后角色统计里还挂着幽灵计数
+        userMemberTagMapper.delete(new LambdaQueryWrapper<UserMemberTag>()
+                .eq(UserMemberTag::getUserId, userId));
+
+        // 吊销该用户已签发的全部 token（含未过期的），让删除即时生效
+        jwtBlacklistService.revokeAllForUser(userId);
+
+        userMapper.deleteById(userId);
+        log.warn("[用户运营] 已删除用户 userId={} nickname={} phone={} 操作人={} 原因={}",
+                userId, u.getNickname(), u.getPhone(), SecurityUtils.getCurrentUserId(), r);
+
+        Map<String, Object> out = new LinkedHashMap<>();
+        out.put("deleted", true);
+        out.put("userId", userId);
+        out.put("nickname", u.getNickname());
+        out.put("bannedFirst", "banned".equals(u.getStatus()));
+        return out;
+    }
+
     public List<Map<String, Object>> listTickets(String status) {
         LambdaQueryWrapper<SupportTicket> w = new LambdaQueryWrapper<SupportTicket>()
                 .orderByDesc(SupportTicket::getUpdateTime);
@@ -525,17 +591,91 @@ public class MemberOpsService {
                 .orderByDesc(CommunityPost::getPinned)
                 .orderByDesc(CommunityPost::getId);
         if (StringUtils.hasText(communityId)) w.eq(CommunityPost::getCommunityId, communityId);
-        return communityPostMapper.selectList(w);
+        List<CommunityPost> list = communityPostMapper.selectList(w);
+        // 回填正文与附件：正文/附件以 mp_content 为准（community_post 仅作运营元数据桥接）
+        for (CommunityPost p : list) {
+            if (p.getContentId() == null) continue;
+            Content c = contentMapper.selectById(p.getContentId());
+            if (c == null) continue;
+            if (!StringUtils.hasText(p.getTextContent()) && StringUtils.hasText(c.getContent())) {
+                p.setTextContent(stripHtml(c.getContent()));
+            }
+            p.setAttachments(c.getAttachments());
+            p.setAttachmentCount(c.getAttachmentCount());
+            // V111：动态并入社区管理后，管理台需要同时看到内容库字段（状态/标题/图片/互动）
+            p.setTitle(c.getTitle());
+            p.setStatus(c.getStatus());
+            p.setImages(c.getImages());
+            p.setSummary(c.getSummary());
+            p.setViewCount(c.getViewCount());
+            p.setLikeCount(c.getLikeCount());
+        }
+        return list;
     }
 
+    private static String stripHtml(String html) {
+        return StringUtils.hasText(html) ? html.replaceAll("<[^>]+>", "").trim() : html;
+    }
+
+    /**
+     * 社区发帖：正文/图片/附件写入 mp_content，community_post 记录社区运营元数据并桥接 content_id。
+     *
+     * <p>产品定义（V103）：社区管理是该社区内容的真正管理台，内容管理/动态是一种展示样式。
+     * 两者共用 mp_content 与素材库/文件库，因此社区内容不再另建内容池——
+     * 否则挂不上文件库附件，小程序 /api/v1/mp/planet/feed（写死 contentType=moment + planetExclusive=1）
+     * 也读不到，发了等于没发。
+     *
+     * <p>附件入参 fileIds：来自后台「从文件库选择」，只存 fileId 不存文件副本，
+     * 资料库换新版内容自动跟随。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public CommunityPost createPost(Map<String, Object> body) {
+        String text = str(body, "textContent");
+        List<Integer> fileIds = intList(body, "fileIds");
+        List<String> images = strList(body, "images");
+        if (!StringUtils.hasText(text) && fileIds.isEmpty() && images.isEmpty()) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "内容、图片或资料附件至少填一项");
+        }
+        String communityId = Optional.ofNullable(str(body, "communityId")).orElse("main");
+        String authorName = Optional.ofNullable(str(body, "authorName")).orElse("星主");
+
+        Content c = new Content();
+        c.setTenantId(1L);
+        c.setContentType("moment");
+        c.setCommunityId(communityId);
+        c.setPlanetExclusive(1);
+        c.setTitle(Optional.ofNullable(str(body, "title")).orElse(authorName + "的动态"));
+        c.setContent(text);
+        c.setSummary(StringUtils.hasText(text) ? text.substring(0, Math.min(120, text.length())) : null);
+        c.setAuthor(authorName);
+        c.setAuthorRole("星主");
+        c.setImages(images.isEmpty() ? null : objectMapper.convertValue(images, String.class));
+        c.setAttachments(attachmentsJson(fileIds));
+        c.setAttachmentCount(fileIds.size());
+        if (!images.isEmpty()) {
+            c.setCoverImage(images.get(0));
+        }
+        c.setViewCount(0);
+        c.setLikeCount(0);
+        c.setFavoriteCount(0);
+        c.setIsPinned(0);
+        c.setIsEssence(0);
+        c.setStatus("published");
+        c.setVisibility("planet");
+        c.setAuditStatus("approved");
+        c.setDeleted(0);
+        c.setCreateTime(LocalDateTime.now());
+        c.setUpdateTime(LocalDateTime.now());
+        contentMapper.insert(c);
+
         CommunityPost p = new CommunityPost();
-        p.setCommunityId(Optional.ofNullable(str(body, "communityId")).orElse("main"));
-        p.setAuthorName(Optional.ofNullable(str(body, "authorName")).orElse("运营"));
+        p.setContentId(c.getId());
+        p.setCommunityId(communityId);
+        p.setAuthorName(authorName);
         p.setUserId(longOr(body, "userId", null));
         p.setKind(Optional.ofNullable(str(body, "kind")).orElse("feed"));
-        p.setTextContent(str(body, "textContent"));
-        if (!StringUtils.hasText(p.getTextContent())) throw new BusinessException(ErrorCode.PARAM_ERROR, "内容必填");
+        // 正文以 mp_content 为准，这里只作老数据/降级兜底
+        p.setTextContent(text);
         p.setTopic(str(body, "topic"));
         p.setPinned(0);
         p.setEssence(0);
@@ -548,6 +688,44 @@ public class MemberOpsService {
         return p;
     }
 
+    /** 按 fileIds 生成 attachments JSON（只存 fileId/url/名称等元信息，不复制文件） */
+    private String attachmentsJson(List<Integer> fileIds) {
+        if (fileIds.isEmpty()) {
+            return null;
+        }
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (Integer fid : fileIds) {
+            if (fid == null) {
+                continue;
+            }
+            FileItem fi = fileItemMapper.selectById(fid.longValue());
+            if (fi == null) {
+                continue;
+            }
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("fileId", fi.getId());
+            item.put("name", fi.getName());
+            item.put("size", fi.getSize());
+            item.put("mimeType", fi.getMimeType());
+            item.put("fileType", fi.getFileType());
+            list.add(item);
+        }
+        if (list.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(list);
+        } catch (Exception e) {
+            log.warn("社区发帖附件序列化失败", e);
+            return null;
+        }
+    }
+
+    /**
+     * 社区帖更新：运营元数据写 community_post，并同步到 mp_content
+     * （置顶/加精/隐藏/星主回复必须在 mp_content 也生效，否则小程序端看不到变化）。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public CommunityPost updatePost(Long id, Map<String, Object> body) {
         CommunityPost p = communityPostMapper.selectById(id);
         if (p == null) throw new BusinessException(ErrorCode.DATA_NOT_FOUND, "动态不存在");
@@ -556,8 +734,36 @@ public class MemberOpsService {
         if (body.containsKey("hidden")) p.setHidden(boolInt(body.get("hidden")));
         if (body.containsKey("replyText")) p.setReplyText(str(body, "replyText"));
         if (body.containsKey("textContent")) p.setTextContent(str(body, "textContent"));
+        // V111：合并后可在社区管理台直接调整动态归属社区
+        if (body.containsKey("communityId") && StringUtils.hasText(str(body, "communityId"))) {
+            p.setCommunityId(str(body, "communityId"));
+        }
         p.setUpdateTime(LocalDateTime.now());
         communityPostMapper.updateById(p);
+
+        if (p.getContentId() != null) {
+            Content c = contentMapper.selectById(p.getContentId());
+            if (c != null) {
+                if (body.containsKey("pinned")) c.setIsPinned(p.getPinned());
+                if (body.containsKey("essence")) c.setIsEssence(p.getEssence());
+                if (body.containsKey("hidden")) {
+                    // 社区「隐藏」语义对齐内容下架：用 status 控制，避免 deleted 触发逻辑删除
+                    c.setStatus(p.getHidden() != null && p.getHidden() == 1 ? "unpublished" : "published");
+                }
+                if (body.containsKey("replyText")) c.setReplyText(p.getReplyText());
+                if (body.containsKey("textContent")) c.setContent(p.getTextContent());
+                // V111：内容库状态与社区归属合并管理，隐藏开关不再覆盖显式传入的 status
+                if (body.containsKey("status") && StringUtils.hasText(str(body, "status"))) {
+                    String st = str(body, "status");
+                    if (!"deleted".equals(st)) c.setStatus(st);
+                }
+                if (body.containsKey("communityId") && StringUtils.hasText(str(body, "communityId"))) {
+                    c.setCommunityId(p.getCommunityId());
+                }
+                c.setUpdateTime(LocalDateTime.now());
+                contentMapper.updateById(c);
+            }
+        }
         return p;
     }
 
@@ -788,6 +994,60 @@ public class MemberOpsService {
         if (v instanceof Boolean b) return b ? 1 : 0;
         String s = String.valueOf(v);
         return "1".equals(s) || "true".equalsIgnoreCase(s) ? 1 : 0;
+    }
+
+    /** 读整数列表（fileIds）：兼容 JSON 数组与逗号分隔字符串 */
+    @SuppressWarnings("unchecked")
+    private static List<Integer> intList(Map<String, Object> body, String key) {
+        List<Integer> out = new ArrayList<>();
+        if (body == null) return out;
+        Object raw = body.get(key);
+        if (raw == null) return out;
+        Collection<?> items;
+        if (raw instanceof Collection) {
+            items = (Collection<?>) raw;
+        } else if (raw instanceof String s) {
+            List<String> parts = new ArrayList<>();
+            for (String p : s.split(",")) {
+                if (!p.trim().isEmpty()) parts.add(p.trim());
+            }
+            items = parts;
+        } else {
+            return out;
+        }
+        for (Object it : items) {
+            try {
+                out.add(Integer.valueOf(String.valueOf(it).trim()));
+            } catch (Exception ignore) {
+                // 单个脏值跳过，不阻断整单
+            }
+        }
+        return out;
+    }
+
+    /** 读字符串列表（images）：兼容 JSON 数组与逗号分隔字符串 */
+    private static List<String> strList(Map<String, Object> body, String key) {
+        List<String> out = new ArrayList<>();
+        if (body == null) return out;
+        Object raw = body.get(key);
+        if (raw == null) return out;
+        Collection<?> items;
+        if (raw instanceof Collection) {
+            items = (Collection<?>) raw;
+        } else if (raw instanceof String s) {
+            List<String> parts = new ArrayList<>();
+            for (String p : s.split(",")) {
+                if (!p.trim().isEmpty()) parts.add(p.trim());
+            }
+            items = parts;
+        } else {
+            return out;
+        }
+        for (Object it : items) {
+            String v = String.valueOf(it).trim();
+            if (!v.isEmpty() && !"null".equals(v)) out.add(v);
+        }
+        return out;
     }
 
     private static String defaultReachTitle(String action) {

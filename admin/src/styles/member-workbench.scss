@@ -139,6 +139,14 @@
 }
 .member-wb .hint span { flex: 1; min-width: 200px; color: var(--ink); }
 .member-wb .hint.warn { background: var(--rs); color: var(--r); }
+/* V119 重复账号排查模式激活态：与 warn 提示条区分，用主色填充表示「当前处于该模式」 */
+.member-wb .hint.dup-on {
+  background: var(--acc); color: #fff; border: 1px solid var(--acc);
+}
+.member-wb .hint.dup-on span { color: #fff; }
+/* 重复模式下互斥筛选不可点，视觉上要能看出来 */
+.member-wb .chip:disabled { opacity: 0.45; cursor: not-allowed; }
+.member-wb .filters .search input:disabled { background: var(--soft); cursor: not-allowed; }
 .member-wb .bulk {
   display: flex; gap: 8px; align-items: center; padding: 10px 14px; border-radius: 12px;
   background: var(--ink); color: #fff; flex-wrap: wrap; position: sticky; top: 72px; z-index: 10;
@@ -175,7 +183,8 @@
   font-family: var(--serif); font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
 .member-wb .ov2 {
-  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start;
+  /* stretch：左右两张卡等高（原来 align-items:start 会一高一矮） */
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: stretch;
 }
 .member-wb .funnel { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
 .member-wb .f-row {
@@ -185,6 +194,32 @@
 .member-wb .f-fill { height: 100%; border-radius: 6px; background: var(--acc); }
 .member-wb .f-row b { text-align: right; font-variant-numeric: tabular-nums; }
 .member-wb .pdot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line); flex-shrink: 0; }
+/* ov2 内两张卡等高后，让右侧卡的底部链接贴底，避免下方留白 */
+.member-wb .ov2 > .card { display: flex; flex-direction: column; }
+.member-wb .ov2 > .card > .ov2-link { margin-top: auto; align-self: flex-start; padding-top: 12px; }
+
+/* overview · 运营模式保存状态 */
+.member-wb .mode-card { transition: border-color 0.15s, box-shadow 0.15s; }
+.member-wb .mode-card.dirty { border-color: var(--acc); box-shadow: 0 0 0 3px var(--accsoft); }
+.member-wb .mode-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.member-wb .mode-state {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--line); color: var(--mute); background: var(--soft);
+  white-space: nowrap;
+}
+.member-wb .mode-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.member-wb .mode-state.ok { color: var(--g); background: var(--gs); border-color: transparent; }
+.member-wb .mode-state.dirty { color: var(--a); background: var(--as); border-color: transparent; }
+.member-wb .mode-state.saving { color: var(--b); background: var(--bs); border-color: transparent; }
+.member-wb .mode-state.saving .mode-dot { animation: mode-pulse 0.9s ease-in-out infinite; }
+@keyframes mode-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.member-wb .mode-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.member-wb .mode-tip { color: var(--a); }
+.member-wb .btn.saved {
+  background: var(--gs); border-color: var(--gs); color: var(--g);
+  opacity: 1; cursor: default;
+}
 
 /* users table */
 .member-wb .group { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
@@ -247,14 +282,19 @@
 .member-wb .plans-layout {
   display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start;
 }
-.member-wb .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: start; }
-.member-wb .plan { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.member-wb .plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.member-wb .plan {
+  background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden;
+  /* 等高：卡转列布局，权益少的那张卡把「编辑/删除」按钮行推到卡底 */
+  display: flex; flex-direction: column;
+}
 .member-wb .plan.off { opacity: 0.72; }
 .member-wb .plan-top { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
 .member-wb .price {
   display: flex; align-items: baseline; gap: 4px; font-family: var(--serif); font-size: 28px; font-weight: 700;
 }
-.member-wb .plan-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.member-wb .plan-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.member-wb .plan-body > .plan-actions { margin-top: auto; padding-top: 8px; }
 .member-wb .perk { display: flex; gap: 8px; align-items: center; font-size: 13px; }
 .member-wb .preview {
   position: sticky; top: 84px; background: var(--card); border: 1px solid var(--line);
@@ -278,7 +318,7 @@
 .member-wb .blk span { display: block; font-size: 10.5px; opacity: 0.78; margin-top: 3px; line-height: 1.5; }
 
 /* growth */
-.member-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.member-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .member-wb .lvstep { display: flex; gap: 10px; align-items: center; }
 .member-wb .ptsin { display: inline-flex; align-items: center; gap: 2px; font-weight: 600; color: var(--acc); }
 .member-wb .ptsin input {

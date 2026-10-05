@@ -1,6 +1,6 @@
 <template>
   <div class="planet-props">
-    <el-form label-width="84px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="数据来源">
         <el-radio-group :model-value="data.source_mode || 'auto'" @change="(v: string) => emit('update', { source_mode: v })">
           <el-radio-button value="auto">接口自动</el-radio-button>

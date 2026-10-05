@@ -108,4 +108,23 @@ public interface MembershipAccessService {
     String unpaidViewMode();
 
     int previewCount();
+
+    /** 运营模式 platform_primary|dual|planet_only */
+    String getOperatingMode();
+
+    /** C 模式（planet_only）下平台档位前台不可见 */
+    boolean isPlatformPlanVisible();
+
+    /**
+     * 内容可见性三态门禁（V107 收敛后统一入口）。
+     * @param visibility public|platform_member|planet_member|removed（兼容旧 member_only=platform_member）
+     * @param planetId 内容所属星球；visibility=planet_member 且 planetId 空时降级校验平台会员
+     */
+    boolean hasContentAccess(Long userId, String visibility, String planetId);
+
+    /**
+     * 跨星球身份校验（V109 planet_cross_identity）：
+     * isolated 仅本星球 / mutual_recognition 任一星球会员 / ticket_only 仅通票覆盖
+     */
+    boolean hasPlanetMembershipAcross(Long userId, String planetId);
 }

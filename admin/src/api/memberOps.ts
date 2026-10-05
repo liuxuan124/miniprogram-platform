@@ -71,6 +71,8 @@ export interface FeedbackItem {
 export interface CommunityPost {
   id: number
   communityId?: string
+  /** 桥接 mp_content.id（V104 起）；正文/附件以该内容为准 */
+  contentId?: number | null
   authorName?: string
   userId?: number
   kind?: string
@@ -82,6 +84,17 @@ export interface CommunityPost {
   likes?: number
   comments?: number
   replyText?: string
+  /** 非表字段：服务端从 mp_content 回填的附件 JSON（只存 fileId 等元信息） */
+  attachments?: string | Array<Record<string, unknown>> | null
+  attachmentCount?: number | null
+  /** 以下为 V111 起从 mp_content 回填：内容库字段，社区管理台与动态管理合并后同屏可见/可改 */
+  title?: string | null
+  /** draft 草稿 / published 已上架 / unpublished 已下架 */
+  status?: string | null
+  images?: string | null
+  summary?: string | null
+  viewCount?: number | null
+  likeCount?: number | null
   createTime?: string
 }
 
@@ -170,6 +183,19 @@ export function putUserNote(userId: number, note: string) {
   return put<void>(`${BASE}/users/${userId}/note`, { note } as unknown as Record<string, unknown>)
 }
 
+/**
+ * V120：软删除用户账号（mp_user.deleted=1）
+ *
+ * - 需要 `member:update` 权限，service_staff 只有 member:list 会 403
+ * - reason 走 query：后端是 @RequestParam 绑定
+ * - 后端会先吊销该用户已签发的 token；付费会员 / system / test 账号一律拒删
+ */
+export function deleteUser(userId: number, reason?: string) {
+  return del<{ deleted: boolean; userId: number; nickname?: string }>(`${BASE}/users/${userId}`, {
+    reason,
+  })
+}
+
 /** 客服 */
 export function listSupportTickets(params?: { status?: string }) {
   return get<SupportTicket[]>(`${BASE}/support/tickets`, params as Record<string, unknown>)
@@ -197,8 +223,23 @@ export function listCommunityPosts(params?: { communityId?: string }) {
   return get<CommunityPost[]>(`${BASE}/community/posts`, params as Record<string, unknown>)
 }
 
-export function createCommunityPost(data: Partial<CommunityPost>) {
-  return post<CommunityPost>(`${BASE}/community/posts`, data as Record<string, unknown>)
+/** 社区发帖入参：fileIds 来自后台「从文件库选择」，只存 fileId 不复制文件 */
+export interface CommunityPostCreate {
+  communityId?: string
+  authorName?: string
+  kind?: string
+  textContent?: string
+  topic?: string
+  userId?: number
+  /** 挂资料库文件（最多 5 份），服务端写入 mp_content.attachments */
+  fileIds?: number[]
+  /** 图片 URL 列表（可选） */
+  images?: string[]
+  title?: string
+}
+
+export function createCommunityPost(data: CommunityPostCreate) {
+  return post<CommunityPost>(`${BASE}/community/posts`, data as unknown as Record<string, unknown>)
 }
 
 export function updateCommunityPost(id: number, data: Partial<CommunityPost>) {

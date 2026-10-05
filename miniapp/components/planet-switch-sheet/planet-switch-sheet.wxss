@@ -1,0 +1,87 @@
+/* components/planet-switch-sheet/planet-switch-sheet.wxss */
+.pss-root { position: fixed; inset: 0; z-index: 300; }
+.pss-mask {
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  background: rgba(42, 28, 18, 0.45);
+}
+.pss-sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  max-height: 78vh; display: flex; flex-direction: column;
+  background: #fdf6ec;
+  border-radius: 36rpx 36rpx 0 0;
+  box-shadow: 0 -18rpx 44rpx rgba(60, 30, 10, 0.28);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pss-grab {
+  width: 72rpx; height: 8rpx; border-radius: 999rpx;
+  background: #ddcdba; margin: 12rpx auto 0;
+}
+.pss-hd { padding: 20rpx 32rpx 8rpx; }
+.pss-hd__t {
+  display: block; font-size: 34rpx; font-weight: 800; color: #2a1c12;
+}
+.pss-hd__s {
+  display: block; margin-top: 6rpx; font-size: 22rpx; color: #a1897a; line-height: 1.6;
+}
+.pss-body {
+  flex: 1; max-height: 58vh; padding: 8rpx 32rpx 0;
+  box-sizing: border-box;
+}
+.pss-state {
+  padding: 90rpx 0; text-align: center; color: #a1897a; font-size: 26rpx;
+}
+.pss-lab {
+  display: block; margin: 18rpx 0 10rpx;
+  font-size: 20rpx; font-weight: 800; color: #8a5a24; letter-spacing: 0.06em;
+}
+.pss-li {
+  display: flex; align-items: center; gap: 20rpx;
+  padding: 22rpx 24rpx; margin-bottom: 14rpx;
+  border-radius: 24rpx;
+  background: #fffaf3;
+  border: 1rpx solid rgba(120, 72, 40, 0.13);
+}
+.pss-li--on {
+  border-color: #f0d3ad;
+  background: linear-gradient(150deg, #fff7ec, #fffaf3);
+}
+.pss-li--dim { opacity: 0.82; }
+.pss-li__ic {
+  flex-shrink: 0; width: 72rpx; height: 72rpx; border-radius: 24rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34rpx;
+  background: linear-gradient(135deg, #fdeedb, #f6ddbf);
+}
+.pss-li__m { flex: 1; min-width: 0; }
+.pss-li__t {
+  display: block; font-size: 28rpx; font-weight: 750; color: #2a1c12;
+  /* flex 子项装长文案必须 min-width:0 + nowrap，否则 flex:1 挡不住折行把底栏撑破 */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pss-li__d {
+  display: block; margin-top: 6rpx; font-size: 21rpx; color: #a1897a; line-height: 1.5;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pss-li__go {
+  flex-shrink: 0; font-size: 23rpx; font-weight: 750; color: #c2410c;
+  padding: 10rpx 20rpx; border-radius: 999rpx; background: #fbe6d4;
+}
+.pss-li__go--on { background: #c2410c; color: #fff; }
+.pss-li__go--ghost {
+  background: transparent; border: 1rpx solid #e3c9a8;
+}
+.pss-tip {
+  padding: 14rpx 0 20rpx; text-align: center;
+  font-size: 21rpx; color: #a1897a; line-height: 1.6;
+}
+.pss-ft {
+  padding: 16rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
+  border-top: 1rpx solid rgba(120, 72, 40, 0.12);
+  background: rgba(253, 246, 236, 0.96);
+}
+.pss-ft__btn {
+  height: 88rpx; border-radius: 999rpx;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28rpx; font-weight: 700;
+  color: #c2410c; background: #fbe6d4;
+}

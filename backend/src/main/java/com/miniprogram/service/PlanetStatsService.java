@@ -24,6 +24,17 @@ public interface PlanetStatsService {
     List<Map<String, Object>> pickHomeTopicItems();
 
     /**
+     * 按星球取首页三条热点。多星球推荐卡片要「各星球各自的热点」时用这个。
+     *
+     * @param planetId        目标星球 communities.id；为空时退化为全星球池
+     * @param defaultPlanetId 配置 primary（历史无 planet_id 的内容归入此池）
+     */
+    List<Map<String, Object>> pickHomeTopicItems(String planetId, String defaultPlanetId);
+
+    /** 指定星球今日新增动态数（多星球卡片用，避免每张卡都显示全站数字） */
+    long countTodayPlanetPosts(String planetId, String defaultPlanetId);
+
+    /**
      * 本周热门话题 TopN（按标签聚合本周互动热度，对比上周涨跌）
      * 每项含 name / width / pct / down；无数据返回空列表
      *
