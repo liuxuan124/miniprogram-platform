@@ -126,6 +126,11 @@ export function normalizeTabBarItems(tabs: NavTab[]): NavTab[] {
       icon: tab.icon || '/images/nav-icons/g-bag.png',
       pageId: tab.pageId ?? '',
       pageName: tab.pageName || '',
+      // 🔴 白名单式重建：不显式带上的字段会在这里被丢掉。
+      // 2026-10-05 加 enabled（可见性开关）时踩过：类型加了、UI 也能改，
+      // 这里漏了 → 保存后 enabled 消失，「隐藏」功能静默失效。
+      // 缺省 undefined 表示"没设过"，判定侧一律按「显示」处理。
+      ...(tab.enabled === false ? { enabled: false } : {}),
     })
   })
 
@@ -174,5 +179,7 @@ export function tabBarSnapshot(tabs: NavTab[]): unknown {
     pageId: tab.pageId == null || tab.pageId === '' ? '' : String(tab.pageId),
     pageName: tab.pageName || '',
     tabRoute: (tab as NavTab & { tabRoute?: string }).tabRoute || '',
+    // enabled 要参与脏检查，否则「隐藏某个入口」不会被算成草稿改动
+    enabled: tab.enabled !== false,
   }))
 }

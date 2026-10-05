@@ -9,12 +9,39 @@ const BASE = '/api/v1/admin/authors'
 
 export type AuthorRole = 'owner' | 'editor' | 'contributor' | 'user'
 
+/** 角色枚举 → 后台展示文案。装修器/作者管理/选择器三处共用，避免各写一套 */
+export const AUTHOR_ROLE_LABELS: Record<string, string> = {
+  owner: '主理人',
+  host: '星球主理人',
+  editor: '编辑',
+  contributor: '供稿人',
+  user: '用户',
+}
+
+export function authorRoleLabel(r?: string) {
+  return AUTHOR_ROLE_LABELS[r || ''] || r || '—'
+}
+
+/**
+ * V121：作者主页路径统一出口（后台与小程序端必须同规则）。
+ * 真实页面是分包子包 pkg-content/author-feed/author-feed，入参 id + author 两个。
+ * 之前运营在装修器里手写 /pkg-content/author/detail?id= 这类路径，
+ * 该页面根本不存在 → 必404。这里由代码统一拼，端上手输的旧路径做兼容映射。
+ */
+export function authorHomePath(authorId?: number | string | null, name?: string) {
+  if (authorId === null || authorId === undefined || authorId === '') return ''
+  const n = String(name || '').trim()
+  return `/pkg-content/author-feed/author-feed?id=${authorId}${n ? `&author=${n}` : ''}`
+}
+
 export interface AuthorRecord {
   id?: number
   name?: string
   avatarUrl?: string
   role?: AuthorRole
   title?: string
+  /** V121：逗号分隔标签，如「官方主理人,S级创作者」 */
+  tags?: string
   intro?: string
   contact?: string
   sortOrder?: number
@@ -38,6 +65,17 @@ export interface AuthorQuery {
   role?: string
   userId?: number
   keyword?: string
+}
+
+/** 小程序端作者聚合列表返回项（GET /api/v1/mp/authors） */
+export interface AuthorAggregateItem {
+  id: number
+  name: string
+  avatarUrl: string
+  title: string
+  tags: string[]
+  /** 后端统一拼好的作者主页路径，端上不要再自己拼 */
+  homePath: string
 }
 
 /** 作者列表（所有筛选条件都可选；不传=全部） */

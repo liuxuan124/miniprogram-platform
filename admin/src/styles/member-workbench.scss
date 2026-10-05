@@ -223,6 +223,77 @@
 
 /* users table */
 .member-wb .group { background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+
+/* V121 紧凑指标栏：替代 4 张大卡。单行 ~44px，比原来省约 120px 垂直空间。
+   断点值（破折号）不再出现 —— 字段名修好后本来就有值，接口全挂时整条隐藏。 */
+.member-wb .mbar {
+  display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 8px 4px;
+}
+.member-wb .mbar-item {
+  display: flex; align-items: baseline; gap: 8px; padding: 4px 18px;
+  border-right: 1px solid var(--line2);
+}
+.member-wb .mbar-item:last-child { border-right: 0; }
+.member-wb .mbar-l { color: var(--faint); font-size: 12px; white-space: nowrap; }
+.member-wb .mbar-v {
+  font-family: var(--serif); font-size: 22px; font-weight: 700; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.member-wb .mbar-d { font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.member-wb .mbar-d.up { color: var(--g); }
+.member-wb .mbar-d.down { color: var(--r); }
+
+/* V121 筛选行内的竖分隔，把「搜索+会员状态 | 来源 | 角色」视觉分组 */
+.member-wb .fdiv { width: 1px; height: 20px; background: var(--line); margin: 0 4px; }
+/* 0 计数 chip 收进「更多」后仍是可选的，只是弱化，不做成禁用态 */
+.member-wb .chip.zero { opacity: 0.55; }
+.member-wb .chip.zero:hover { opacity: 1; }
+
+/* V121 可排序表头 */
+.member-wb .chead .sortable { cursor: pointer; user-select: none; justify-content: flex-end; }
+.member-wb .chead .ctime.sortable { justify-content: flex-start; }
+.member-wb .chead .sortable:hover { color: var(--acc); }
+.member-wb .chead .sortable.sorted { color: var(--acc); font-weight: 600; }
+.member-wb .sarrow {
+  display: inline-block; width: 0; height: 0; margin-left: 5px; vertical-align: middle;
+  border-left: 3.5px solid transparent; border-right: 3.5px solid transparent;
+  opacity: 0.35;
+}
+.member-wb .sarrow.asc { border-bottom: 5px solid currentColor; opacity: 1; }
+.member-wb .sarrow.desc { border-top: 5px solid currentColor; opacity: 1; }
+.member-wb .sarrow.off { border-top: 5px solid var(--faint); opacity: 0.3; }
+
+/* V121 操作列 + 行内更多菜单 */
+.member-wb .c-act {
+  width: 168px; flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  position: relative; white-space: nowrap;
+}
+.member-wb .c-act .link { font-size: 13px; }
+.member-wb .c-act .link:disabled { opacity: 0.4; cursor: not-allowed; }
+.member-wb .link.danger { color: var(--r); }
+.member-wb .link.danger:hover { color: var(--r); text-decoration: underline; }
+.member-wb .rowmenu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 132px;
+  display: flex; flex-direction: column; gap: 2px; padding: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(31, 26, 22, 0.14);
+}
+.member-wb .rowmenu .link {
+  text-align: left; padding: 7px 10px; border-radius: 6px; font-size: 13px; white-space: nowrap;
+}
+.member-wb .rowmenu .link:hover { background: var(--soft); }
+
+/* V121 昵称旁的 OpenID 尾号 + 可点手机号 */
+.member-wb .oidtail { font-weight: 400; font-size: 11px; margin-left: 2px; }
+.member-wb .phone { cursor: pointer; border-bottom: 1px dashed var(--line); }
+.member-wb .phone:hover { color: var(--acc); border-bottom-color: var(--acc); }
+
+/* V121 分页栏 */
+.member-wb .pager {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
 .member-wb .chead {
   display: flex; align-items: center; gap: 14px; padding: 10px 16px; background: var(--soft);
   border-bottom: 1px solid var(--line); font-size: 12px; color: var(--faint);

@@ -1,3 +1,14 @@
+<!--
+  ⚠️ 本文件已从路由中移除（/mini/appearance 现在 redirect 到 /mini/brand），保留仅为历史参考。
+
+  2026-10-05：原「外观」页把品牌、配色、底部导航三件事混在一起，配置层级不清。
+  已拆分为：
+    - /mini/brand       品牌信息（名称 / Logo / 配色 / 品牌文案 / 默认分享）
+    - /mini/navigation  导航配置（Tab 名称 / 图标 / 排序 / 绑定 / 可见性 / 默认首页）
+  两页沿用了本文件的静默落草稿与导航编辑逻辑，并新增了绑定体检与引用关系视图。
+
+  如果要改品牌或导航，请改上面两个新页面，不要改这里（改了也不会生效）。
+-->
 <template>
   <div class="mini-wb mw-page appearance-view" v-loading="loading && loaded">
     <MiniSkeleton v-if="!loaded" kind="overview" />
@@ -20,7 +31,7 @@
               :loading="syncing"
               @click="handleSyncAll"
             >
-              保存并同步
+              发布配置
             </button>
             <button type="button" class="btn soft" @click="router.push('/mini/pages')">管理页面 ›</button>
           </div>
@@ -71,6 +82,21 @@
                       class="tag"
                       :class="tabStatusTagClass(tab)"
                     >{{ tabStatus(tab).label === '未绑定' ? '需绑定' : tabStatus(tab).label }}</span>
+                    <!--
+                      「我的」系统页的显式配置入口：点卡片本身是去改绑定，
+                      这里给一个直达配置台的按钮，避免用户以为系统页只能换绑定。
+                      用 span + click.stop 而非嵌套 button（button 不可嵌套，且会触发卡片点击）。
+                    -->
+                    <span
+                      v-if="isMineTab(tab)"
+                      class="tab-config-link"
+                      role="button"
+                      tabindex="0"
+                      title="打开「我的」页配置（模板 / 主题 / 模块 / 菜单）"
+                      @click.stop="goMineConfig"
+                      @keydown.enter.stop="goMineConfig"
+                      @keydown.space.stop.prevent="goMineConfig"
+                    >配置页面</span>
                   </span>
                 </button>
               </template>
@@ -135,7 +161,7 @@
             <span v-if="draftState === 'saving'">正在存入草稿…</span>
             <span v-else-if="draftState === 'saved'">已存入草稿</span>
             <span v-else-if="draftState === 'error'">草稿未保存，请检查网络</span>
-            <span v-else class="faint">配色改动自动保存，顶部「保存并同步」后生效</span>
+            <span v-else class="faint">配色改动自动保存草稿，到「发布与版本」发布配置后生效</span>
             <button
               v-if="themeDirty"
               type="button"
@@ -624,6 +650,11 @@ function pendingTime(item: PendingChangeItem) {
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours} 小时前`
   return formatShort(String(raw))
+}
+
+/** 「我的」系统页有独立的配置台（/page-builder/mine），与「改绑定」是两件事 */
+function goMineConfig() {
+  router.push('/page-builder/mine')
 }
 
 function isMineTab(tab: MiniTabBarItem) {
@@ -1173,6 +1204,31 @@ onUnmounted(() => {
   cursor: grab;
   user-select: none;
   display: inline-flex;
+}
+
+/* 「我的」卡片内的配置台入口。卡片本身是 button，只能用 span 模拟按钮 */
+.tab-config-link {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--brand, #c2410c);
+  background: rgba(194, 65, 12, 0.08);
+  border: 1px solid rgba(194, 65, 12, 0.24);
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tab-config-link:hover {
+  background: rgba(194, 65, 12, 0.16);
+}
+
+.tab-config-link:focus-visible {
+  outline: 2px solid var(--brand, #c2410c);
+  outline-offset: 1px;
 }
 
 .list-row {

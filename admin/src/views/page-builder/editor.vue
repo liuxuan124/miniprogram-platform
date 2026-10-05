@@ -32,7 +32,30 @@
               <span class="toolbar-text">页面</span>
             </el-button>
             <span class="builder-page-name">{{ pageStore.pageConfig.name || '首页' }}</span>
-            <span class="builder-version">v{{ pageStore.currentPage?.currentVersion || pageStore.currentPage?.version || 1 }}</span>
+            <!--
+              🔴 2026-10-06 修「版本号看着矛盾」：
+              原来这里只显示 `v{{ currentVersion }}`，而 currentVersion 是**线上已发布版本**；
+              页面列表里显示的却是**草稿版本**（latestVersion）。两个数天然不同，
+              用户看到「顶部 v111、列表 v247」会以为坏了。
+
+              现在两个都显示并写清含义：
+                线上 vNNN = 用户当前看到的
+                草稿 vNNN = 我正在编辑的（发布后才会变成线上）
+              没有草稿改动时不显示草稿版本，避免「两个版本号」常驻造成噪音。
+            -->
+            <el-tooltip
+              :content="`线上版本 v${liveVersion}：小程序用户当前看到的内容`"
+              placement="bottom"
+            >
+              <span class="builder-version builder-version--live">线上 v{{ liveVersion }}</span>
+            </el-tooltip>
+            <el-tooltip
+              v-if="hasDraftVersion"
+              :content="`草稿版本 v${draftVersion}：你正在编辑的内容，发布配置后才会生效`"
+              placement="bottom"
+            >
+              <span class="builder-version builder-version--draft">草稿 v{{ draftVersion }}</span>
+            </el-tooltip>
           </div>
 
           <!-- 中：画布控制（撤销/重做 + 保存状态）；缩放与设备切换已下移到画布正上方控制条 -->
@@ -70,18 +93,35 @@
 
           <!-- 右：操作流（草稿状态 / 预览 / 保存 / 发布） -->
           <div class="toolbar-group toolbar-actions">
-            <el-button v-if="!toolbarCompact" size="small" @click="handlePreview">
-              <el-icon><View /></el-icon>
-              <span class="toolbar-text">扫码预览</span>
-            </el-button>
-            <el-button size="small" :loading="pageStore.saving" @click="handleSaveDraft">
-              <span class="toolbar-text">保存草稿</span>
-            </el-button>
-            <el-button type="primary" size="small" class="ed-pub-btn" :loading="pageStore.saving || publishCheck.publishing" @click="handleSyncToLive">
-              <el-icon><Upload /></el-icon>
-              <span class="toolbar-text">保存并同步</span>
-              <span class="ed-pub-live-badge" title="此操作会直接发布到线上小程序">上线</span>
-            </el-button>
+            <!--
+              🔴 2026-10-06 工具栏拥挤处理：
+              窄屏下辅助按钮只留图标，所以每个都必须带 tooltip，
+              否则隐藏文字后就变成「一个没标签的图标」，比拥挤更难用。
+              「发布配置」是主操作，任何宽度都保留文字。
+            -->
+            <el-tooltip v-if="!toolbarCompact" content="扫码预览（手机上查看草稿）" placement="bottom">
+              <el-button size="small" @click="handlePreview">
+                <el-icon><View /></el-icon>
+                <span class="toolbar-text">扫码预览</span>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="保存草稿（不影响线上用户）" placement="bottom">
+              <el-button size="small" :loading="pageStore.saving" @click="handleSaveDraft">
+                <el-icon><DocumentChecked /></el-icon>
+                <span class="toolbar-text">保存草稿</span>
+              </el-button>
+            </el-tooltip>
+            <el-tooltip content="发布配置：把草稿写入线上，用户下次打开即生效" placement="bottom">
+              <el-button type="primary" size="small" class="ed-pub-btn" :loading="pageStore.saving || publishCheck.publishing" @click="handleSyncToLive">
+                <el-icon><Upload /></el-icon>
+                <!--
+                  2026-10-05 文案统一：原「保存并同步」把「保存」和「发布」混成一个词，
+                  用户点之前不知道会不会影响线上。改成「发布配置」并保留上线角标。
+                -->
+                <span class="toolbar-text ed-pub-btn__label">发布配置</span>
+                <span class="ed-pub-live-badge" title="会直接写入线上小程序">上线</span>
+              </el-button>
+            </el-tooltip>
             <el-dropdown trigger="click">
               <el-button size="small">
                 更多
@@ -91,7 +131,7 @@
                 <el-dropdown-menu>
                   <el-dropdown-item v-if="toolbarCompact" @click="handlePreview">扫码预览</el-dropdown-item>
                   <el-dropdown-item @click="handleSaveDraft">立即保存草稿</el-dropdown-item>
-                  <el-dropdown-item @click="handlePublishCheck">同步前检查</el-dropdown-item>
+                  <el-dropdown-item @click="handlePublishCheck">发布前检查</el-dropdown-item>
                   <el-dropdown-item @click="handleHistory">历史版本</el-dropdown-item>
                   <el-dropdown-item @click="handleImportDSL">导入 DSL</el-dropdown-item>
                   <el-dropdown-item divided @click="handleViewDSL">高级：查看 DSL</el-dropdown-item>
@@ -187,6 +227,7 @@
         'is-busy': aiRunning,
         'has-badge': !!aiPatchTotal,
         'is-hidden': aiChatVisible,
+        'is-narrow': showRightColumn,
       }"
     >
       <button
@@ -502,9 +543,10 @@ import {
 import { findLegacyDemoMarkersInText } from '@/constants/brand-defaults'
 import { isCanvasShortcutBlocked } from '@/utils/editorKeyboardGuard'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, ArrowRight, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting, MagicStick, FullScreen, Crop } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, View, Upload, ArrowDown, RefreshLeft, RefreshRight, WarningFilled, CircleCheckFilled, Menu, Setting, MagicStick, FullScreen, Crop, DocumentChecked } from '@element-plus/icons-vue'
 import { usePageStore } from '@/stores/page'
-import { getPageDetail, saveDraft, publishPage, createPage, updatePage, runAiPagePipeline, getPageList } from '@/api/page'
+import { getPageDetail, saveDraft, publishPage, createPage, updatePage, runAiPagePipeline } from '@/api/page'
+import { loadAllPages } from '@/composables/usePageCatalog'
 import { collectPageLinks, validatePageLinks } from '@/components/page-builder/linkValidation'
 import { publishMiniSite } from '@/api/miniSite'
 import { refreshMiniPendingGlobal } from '@/composables/useMiniPending'
@@ -556,7 +598,11 @@ const topBanners = computed<TopBanner[]>(() => {
     list.push({
       key: 'warm',
       tone: 'info',
-      text: '当前是暖阁首页壳：真机会自动展开默认区块。若要逐块改文案和顺序，可先展开再编辑。',
+      // 🔴 2026-10-06：原文案写死「暖阁首页壳」——
+      // 那是本项目的一个具体品牌方案，不是通用说法。
+      // 换到别的品牌/别的壳页面时，这句话会直接误导用户（任务书反馈的「与当前页面不符」）。
+      text: '当前页面使用的是「壳」结构：小程序端会按系统配置自动展开默认区块。'
+        + '如需逐块调整文案与顺序，可先在下方展开为可组合区块再编辑。',
       closable: true,
     })
   }
@@ -845,6 +891,29 @@ function handlePublishCheck() {
   void handlePublish()
 }
 
+/**
+ * 🔴 2026-10-06 版本号语义（顶部工具栏）
+ *
+ * 原来只显示一个 `v{{ currentVersion }}`，它是**线上已发布版本**；
+ * 而页面列表显示的是**草稿版本**。两者天然不同（线上 v111 / 草稿 v247），
+ * 同一屏出现两个数却没说明，用户会以为数据坏了。
+ *
+ * 现在：
+ *   liveVersion   线上版本 = mp_page.current_version，用户当前看到的内容
+ *   draftVersion  草稿版本 = mp_page.latest_version（最新草稿号）
+ *   hasDraftVersion 仅当草稿版本 > 线上版本时为 true——
+ *   没改动时不显示「草稿 v」，避免两个版本号常驻造成噪音。
+ */
+const liveVersion = computed(() => {
+  const p = pageStore.currentPage as any
+  return Number(p?.currentVersion || p?.version || 0) || 0
+})
+const draftVersion = computed(() => {
+  const p = pageStore.currentPage as any
+  return Number(p?.latestVersion || p?.draftVersion || 0) || 0
+})
+const hasDraftVersion = computed(() => draftVersion.value > liveVersion.value)
+
 const {
   saveStatus,
   saveStatusText,
@@ -1021,19 +1090,29 @@ function syncSavedDraftVersion(saved: any) {
   }
 }
 
-/** 返回列表 */
+/**
+ * 返回列表
+ *
+ * 🔴 2026-10-06 修复「不改内容点返回也提示未保存 / 再进变空白页」：
+ * 原来有三处问题叠加：
+ *  1. 跳转前无条件 pageStore.resetEditor() —— 一旦点了「离开」就先清空 store，
+ *     再 push；而 onBeforeUnmount 又会再清一次，编辑器状态被彻底清掉。
+ *  2. handleBack 自己弹一次「未保存」，onBeforeRouteLeave 还会再弹一次 → 连弹两回。
+ *  3. 点「取消」时虽然 return 了，但第 1 步如果先执行就已经污染状态。
+ *
+ * 正确顺序：先判断、先询问，**确认离开后交给路由守卫统一处理**，
+ * 本函数不碰 store。状态清理由 onBeforeUnmount 依据「是否真有未保存修改」决定。
+ */
 async function handleBack() {
-  if (pageStore.hasUnpersistedChanges) {
-    try {
-      await ElMessageBox.confirm('页面有未保存的修改，确定离开？', '提示', {
-        type: 'warning',
-      })
-    } catch {
-      return
-    }
+  // 交给 onBeforeRouteLeave 统一拦截与询问，避免两次弹窗
+  const target = { path: '/mini/pages' }
+  if (!pageStore.hasUnpersistedChanges) {
+    await router.push(target)
+    return
   }
-  pageStore.resetEditor()
-  await router.push({ path: '/mini/pages' })
+  // 有未保存修改：让路由守卫去问。这里直接 push 会被守卫拦下并弹框，
+  // 用户选「继续编辑」时 next(false) 保持在当前路由，状态完全不被触碰。
+  await router.push(target)
 }
 
 /** 保存草稿时同步名称/路径到页面表（列表展示依赖库表，不依赖 DSL） */
@@ -1061,16 +1140,22 @@ async function syncPageMetaToServer() {
   pageStore.updatePageConfigSilent({ name, path })
 }
 
-/** 保存前死链校验：扫整页站内链接，对照页面清单（不存在=error / 未发布=warn），接口失败时放行不阻塞 */
+/**
+ * 保存前死链校验：扫整页站内链接，对照页面清单（不存在=error / 未发布=warn）。
+ *
+ * 🔴 2026-10-06 修复：原来写 `size: 500`，后端 PageDTO.normalize() 对
+ * pageSize>100 直接抛 100101 → 被下面的 catch 吞掉返回 [] →
+ * validatePageLinks 拿空清单比对，结果永远是「无问题」。
+ * 即死链校验形同虚设。改为 loadAllPages，且读取失败要如实告知。
+ */
 async function collectLinkIssues(): Promise<string[]> {
-  try {
-    const res = await getPageList({ current: 1, size: 500 })
-    const rows = (res as any)?.data?.records || (res as any)?.data?.list || []
-    const refs = collectPageLinks(pageStore.components)
-    return validatePageLinks(refs, Array.isArray(rows) ? rows : []).map((i) => i.message)
-  } catch {
-    return []
+  const cat = await loadAllPages()
+  if (cat.status === 'error') {
+    // 🔴 读不到页面清单就不能宣称「链接都没问题」——那是在骗用户
+    return [`页面清单读取失败，本次未做死链校验：${cat.error}`]
   }
+  const refs = collectPageLinks(pageStore.components)
+  return validatePageLinks(refs, cat.pages).map((i) => i.message)
 }
 
 /** 保存草稿（手动点击） */
@@ -1288,7 +1373,7 @@ function validateBeforePublish(): string[] {
   return [...new Set(warnings)]
 }
 
-/** 保存草稿后打开同步前检查 */
+/** 保存草稿后打开发布前检查；确认后写入线上配置 */
 async function handleSyncToLive() {
   if (pageStore.hasUnpersistedChanges && pageStore.currentPage) {
     await handleSaveDraft()
@@ -1536,6 +1621,28 @@ watch(
   },
 )
 
+/**
+ * 🔴 2026-10-06 修复「返回后再进同一页面，编辑器停在空白」：
+ *
+ * 场景：编辑页被 keep-alive 复用时，onMounted 不再执行、route.params.id 也没变，
+ * 所以上面那个 watch 不会触发。如果期间 store 被清空过（历史版本里
+ * onBeforeUnmount 无条件 resetEditor），界面就会一直显示
+ * 「未命名页面 / v1 / 空白页面」，而真实草稿在服务端好好躺着。
+ *
+ * 这里加一道自愈：路由 id 对得上、但 store 里没有对应页面时，重新加载。
+ * 只在「确实不匹配」时触发，正常编辑不会重复请求。
+ */
+watch(
+  () => [route.params.id, pageStore.currentPage?.id] as const,
+  ([routeId, storeId]) => {
+    const rid = Number(routeId)
+    if (!rid || Number.isNaN(rid)) return
+    if (storeId != null && Number(storeId) === rid) return
+    if (pageLoadRetrying.value) return
+    void loadPage()
+  },
+)
+
 // 路由离开拦截：有未保存修改时弹出确认（覆盖侧边栏导航等所有跳转路径）
 onBeforeRouteLeave(async (_to, _from, next) => {
   if (!pageStore.hasUnpersistedChanges) {
@@ -1562,6 +1669,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   resetPersistState()
+  // 🔴 2026-10-06 修复「返回后再进编辑器是空白页」：
+  // 原来无条件 resetEditor()，而编辑器可能被 keep-alive 复用，
+  // 于是「离开」这一动作就把 store 清空；下次进同一页面时
+  // 组件拿到的是空 store（未命名页面/v1/空白），真实草稿没被加载回来。
+  // 现在只在「确实要丢弃这份编辑状态」时才重置——
+  // 离开时如果还有未保存修改，说明用户选择了不保存，清空是对的；
+  // 已经没有未保存修改时不清空，让 keep-alive 复用时能拿到原状态。
+  if (!pageStore.hasUnpersistedChanges) return
   pageStore.resetEditor()
 })
 </script>
@@ -1664,6 +1779,33 @@ onBeforeUnmount(() => {
    * 回落到冷灰蓝，在暖棕主题下就会出现「右边蓝色、左边暖色」的割裂。
    * 正确做法是不覆盖，让变量自然继承 html[data-admin-theme] 的值。 */
 
+  /* 🔴 2026-10-06 修属性面板横向溢出：
+   * 通病是 flex/grid 子项默认 min-width:auto，长内容（长 URL、连续英文/数字、
+   * 宽表格、pre/code 块）会把子项撑到超过容器宽度，父级 overflow-x: auto
+   * 于是整个面板出现横向滚动条，右侧内容被推到视口外看不见。
+   *
+   * 修法：给所有直接子项兜底 min-width:0，让它们可以被压缩；
+   * 真正需要完整显示的内容（代码块、长路径）由各自的 scroll 容器负责，
+   * 而不是把整个面板撑宽。
+   * 用 :deep 而非全局，是因为这些子项来自 Element Plus 与各 PropsPanel 组件。 */
+  :deep(> *),
+  :deep(.el-tabs__content),
+  :deep(.el-tab-pane),
+  :deep(.el-form),
+  :deep(.el-form-item),
+  :deep(.el-form-item__content) {
+    min-width: 0;
+  }
+
+  /* 长路径 / URL / 代码块：自身可横向滚动，不撑宽面板 */
+  :deep(code),
+  :deep(pre),
+  :deep(.field-value-text),
+  :deep(.path-text) {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
   :deep(.el-tabs__header) {
     margin: 0;
     padding: 0;
@@ -1740,6 +1882,13 @@ onBeforeUnmount(() => {
   border-radius: 8px 0 0 8px;
   box-shadow: 0 8px 20px -10px rgb(15 23 42 / 30%);
   transition: right 0.22s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.18s ease, visibility 0.18s ease;
+}
+
+/* 🔴 右侧属性面板展开时（.editor-body 三栏 grid 的第三轨固定 380px），
+   Dock 必须让出这段宽度，否则会压住面板右侧的表单与滚动条，
+   表现为「配置项点不到 / 滚动条拖不动」。收起面板时贴回屏幕右缘。 */
+.ai-dock.is-narrow {
+  right: 380px;
 }
 
 /* 对话窗（含小窗）打开时隐藏 Dock：同一功能不留两个入口 */
@@ -2332,6 +2481,48 @@ onBeforeUnmount(() => {
   flex-wrap: nowrap;
 }
 
+/* 🔴 2026-10-06 修工具栏拥挤：
+ * 原来右侧固定 4 个带文字的按钮（扫码预览/保存草稿/发布配置/更多），
+ * 加上左侧页面名 + 两个版本徽标 + 中间撤销重做，1280 宽下就会挤在一起、
+ * 按钮文字被压成竖排。
+ *
+ * 分级处理：
+ *   ≥1400px  全部显示文字
+ *   <1400px  「扫码预览」这类辅助操作只留图标（已有 toolbar-text 可隐藏）
+ *   <1200px  进一步隐藏「保存草稿」文字，只靠图标 + tooltip
+ * 版本徽标在窄屏也保留 —— 那是判断「线上还是草稿」的关键信息，不能砍。
+ */
+@media (max-width: 1400px) {
+  .toolbar-actions .toolbar-text {
+    display: none;
+  }
+  /* 只留图标时给足点击面积 */
+  .toolbar-actions :deep(.el-button) {
+    min-width: 30px;
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+  /* 🔴 主操作例外：「发布配置」在任何宽度都保留文字。
+     它是唯一会真正影响线上用户的操作，藏成图标等于把最重要的按钮降级。 */
+  .toolbar-actions .ed-pub-btn__label {
+    display: inline;
+  }
+  .toolbar-actions .ed-pub-btn {
+    min-width: auto;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .builder-page-name {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .toolbar-text {
   white-space: nowrap;
 }
@@ -2388,6 +2579,20 @@ onBeforeUnmount(() => {
   background: #efeae3;
   border: 0;
   border-radius: 999px;
+}
+
+/* 🔴 2026-10-06 版本语义可区分：
+   线上版本用中性灰（它是「现状」），草稿版本用主色（它是「待发布的变化」），
+   一眼能看出哪个是现状、哪个还没上线。 */
+.builder-version--live {
+  color: #5e5146;
+  background: #efeae3;
+}
+
+.builder-version--draft {
+  color: #8a4a12;
+  background: rgba(180, 110, 15, 0.14);
+  font-weight: 600;
 }
 
 .dirty-dot {
@@ -2501,7 +2706,7 @@ onBeforeUnmount(() => {
   &:hover { opacity: 1; background: rgb(0 0 0 / 6%); }
 }
 
-/* 「保存并同步」上线角标：与保存草稿拉开风险层级 */
+/* 「发布配置」的上线角标：与保存草稿拉开风险层级 */
 .ed-pub-live-badge {
   margin-left: 6px;
   padding: 0 5px;

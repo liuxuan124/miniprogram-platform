@@ -185,9 +185,13 @@ export function listableSystemPages(): MiniSystemPage[] {
   return MINI_SYSTEM_PAGES.filter((s) => !s.hideInList)
 }
 
-/** 系统页「配置」的目标路由；未指定时统一回落到外观页 */
+/**
+ * 系统页「配置」的目标路由；未指定时统一回落到品牌信息页
+ * （2026-10-05：品牌与导航已从原「外观」页拆出，/mini/appearance 变成 redirect，
+ *  这里跟着改，否则会跳到被重定向的地址）
+ */
 export function systemPageConfigRoute(sp: MiniSystemPage): string {
-  return sp.configRoute || '/mini/appearance'
+  return sp.configRoute || '/mini/brand'
 }
 
 /** 该路径是否是「我的」系统页（唯一带模板库/菜单编排能力的系统页） */

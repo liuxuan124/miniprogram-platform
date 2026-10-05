@@ -28,6 +28,9 @@ export function normalizeBrandConfig(
     logoMark,
     loginTagline: pickText(src.loginTagline, DEFAULT_MINIAPP_BRAND_CONFIG.loginTagline),
     brandEyebrow: pickText(src.brandEyebrow, DEFAULT_MINIAPP_BRAND_CONFIG.brandEyebrow),
+    // 🔴 白名单式归一化：不显式透出新字段，它会在保存时被静默丢弃
+    // （2026-10-05 加 intro 时踩过：类型加了、默认值加了，这里漏了，保存后原样丢失）
+    intro: pickText(src.intro, ''),
     loginStyleKey: normalizeLoginStyleKey(src.loginStyleKey),
   }
 }

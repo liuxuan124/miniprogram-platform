@@ -204,6 +204,10 @@
   border: 1.5px dashed #ddbe98; color: #c79a6c; font-size: 19px;
   display: flex; align-items: center; justify-content: center; background: #fffaf3;
 }
+/* 招募位卡片（V121）：组件级配置追加在列表末尾，与作者卡片同尺寸但弱化视觉 */
+.wh-author--recruit .wh-author__n { color: #c79a6c; font-weight: 600; }
+.wh-author--recruit { opacity: .92; }
+.wh-author--recruit:active { opacity: .78; }
 /* 未配头像时用姓名首字占位（后台预览与真机一致，避免出现空白圆） */
 .wh-author__av--initial {
   display: flex; align-items: center; justify-content: center;

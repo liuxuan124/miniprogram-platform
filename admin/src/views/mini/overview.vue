@@ -6,15 +6,19 @@
         <MiniOpsConceptBanner
           variant="overview"
           :live-release-no="site.liveReleaseNo"
+          :live-semver="build.facts.value.liveSemver"
           :live-release-at="site.liveReleaseAt ? formatShort(site.liveReleaseAt) : null"
           :publisher-name="publisherDisplay"
           :pending-count="Number(site.pendingCount ?? pending.length ?? 0)"
         />
         <div class="head ov-head">
           <div>
-            <h1 class="h1">小程序运行状态与发布中心</h1>
+            <h1 class="h1">搭建工作台</h1>
             <div class="sub">
               {{ envLabel }} · {{ healthLabel }}
+              <span v-if="build.summary.value.done < build.summary.value.total">
+                · 搭建完成 {{ build.summary.value.done }}/{{ build.summary.value.total }} 个环节
+              </span>
             </div>
           </div>
           <div class="actions">
@@ -22,9 +26,9 @@
               <MiniIcon name="page" :size="15" />
               页面
             </button>
-            <button type="button" class="btn soft" @click="router.push('/mini/appearance')">
+            <button type="button" class="btn soft" @click="router.push('/mini/brand')">
               <MiniIcon name="palette" :size="15" />
-              外观
+              品牌
             </button>
             <button type="button" class="btn soft" @click="router.push('/mini/templates')">
               <MiniIcon name="grid" :size="15" />
@@ -37,11 +41,130 @@
           </div>
         </div>
 
+        <!--
+          搭建工作流：7 个环节的完成状态。
+          状态由 useBuildWorkbench 统一算出（真实配置 + preflight），
+          本页不自己另判一套，避免和各配置页口径漂移。
+        -->
+        <section class="card build-card">
+          <div class="head" style="margin-bottom: 12px">
+            <div>
+              <h2 class="h2">搭建环节</h2>
+              <div class="sub">
+                {{
+                  build.summary.value.isFirstRun
+                    ? '首次搭建：按顺序走完这 7 个环节，小程序就能上线了'
+                    : '日常维护：任何环节都可以直接进入，不必按顺序'
+                }}
+              </div>
+            </div>
+            <div class="build-sum">
+              <span class="tag" :class="build.summary.value.blockingCount ? 't-err' : 't-live'">
+                {{ build.summary.value.blockingCount ? `${build.summary.value.blockingCount} 个阻断项` : '无阻断项' }}
+              </span>
+              <span v-if="build.summary.value.done" class="tag t-live">{{ build.summary.value.done }} 个已完成</span>
+              <span v-if="build.summary.value.partial" class="tag t-pending">{{ build.summary.value.partial }} 个待完善</span>
+              <span v-if="build.summary.value.todo" class="tag t-slot">{{ build.summary.value.todo }} 个未开始</span>
+            </div>
+          </div>
+
+          <!-- 首次搭建：给出明确的下一步引导 -->
+          <div v-if="build.summary.value.isFirstRun && build.summary.value.next" class="next-card">
+            <div class="next-body">
+              <span class="next-label">建议下一步</span>
+              <strong>{{ build.summary.value.next.order }}. {{ build.summary.value.next.title }}</strong>
+              <span class="faint">{{ build.summary.value.next.summary }}</span>
+            </div>
+            <button
+              v-if="build.summary.value.next"
+              type="button"
+              class="btn primary"
+              @click="goStage(build.summary.value.next)"
+            >
+              {{ build.summary.value.next.entry.label }}
+            </button>
+          </div>
+
+          <!-- 阻断项速览：工作台最该先告诉用户的东西 -->
+          <ul v-if="build.summary.value.blockingIssues.length" class="build-blocking">
+            <li v-for="(b, i) in build.summary.value.blockingIssues.slice(0, 4)" :key="i">
+              <MiniIcon name="x" :size="12" />
+              <span class="bb-text">{{ b.text }}</span>
+              <button
+                v-if="b.action"
+                type="button"
+                class="link"
+                @click="b.action.to && router.push(b.action.to)"
+              >{{ b.action.label }}</button>
+            </li>
+          </ul>
+
+          <div class="stage-grid">
+            <article
+              v-for="s in build.stages.value"
+              :key="s.key"
+              class="stage-card"
+              :class="[`st-${s.status}`, { 'st-next': build.summary.value.next?.key === s.key }]"
+            >
+              <header class="stage-head">
+                <span class="stage-no">{{ s.order }}</span>
+                <div class="stage-title">
+                  <b>{{ s.title }}</b>
+                  <span class="faint">{{ s.summary }}</span>
+                </div>
+                <span class="tag" :class="stageTagClass(s.status)">{{ statusLabel(s.status) }}</span>
+              </header>
+
+              <ul v-if="s.doneItems.length" class="stage-done">
+                <li v-for="(d, i) in s.doneItems.slice(0, 3)" :key="i">
+                  <MiniIcon name="check" :size="11" />{{ d }}
+                </li>
+                <li v-if="s.doneItems.length > 3" class="faint stage-more">
+                  另有 {{ s.doneItems.length - 3 }} 项已完成
+                </li>
+              </ul>
+
+              <ul v-if="s.issues.length" class="stage-issues">
+                <li v-for="(is, i) in s.issues.slice(0, 2)" :key="i" :class="`si-${is.level}`">
+                  <MiniIcon :name="is.level === 'blocking' ? 'x' : 'warn'" :size="11" />
+                  <span>{{ is.text }}</span>
+                </li>
+                <li v-if="s.issues.length > 2" class="faint stage-more">
+                  另有 {{ s.issues.length - 2 }} 项问题
+                </li>
+              </ul>
+
+              <footer class="stage-foot">
+                <button
+                  type="button"
+                  class="btn sm"
+                  :class="build.summary.value.next?.key === s.key ? 'primary' : 'soft'"
+                  @click="goStage(s)"
+                >
+                  {{ s.entry.label }}
+                </button>
+              </footer>
+            </article>
+          </div>
+
+          <!-- 状态依据：不让「已完成」三个字无从核对 -->
+          <details v-if="expandEvidence" class="build-evidence">
+            <summary>每项状态的判定依据</summary>
+            <div v-for="s in build.stages.value" :key="s.key" class="ev-row">
+              <b>{{ s.title }}</b>
+              <ul><li v-for="(e, i) in s.evidence" :key="i" class="faint">{{ e }}</li></ul>
+            </div>
+          </details>
+          <button type="button" class="link ev-toggle" @click="expandEvidence = !expandEvidence">
+            {{ expandEvidence ? '收起判定依据' : '查看判定依据（这些状态怎么算出来的）' }}
+          </button>
+        </section>
+
         <!-- 待同步改动置顶：这是本模块唯一的发布决策入口 -->
         <section class="card pending-card pending-card--top">
           <div class="head">
             <div>
-              <h2 class="h2">待同步改动</h2>
+              <h2 class="h2">待发布改动</h2>
               <div class="sub">{{ pendingCountText }}；点任一项可在右侧预览该页草稿</div>
             </div>
             <div class="actions">
@@ -49,10 +172,9 @@
                 type="button"
                 class="btn sm primary"
                 :disabled="!(site.pendingCount ?? pending.length)"
-                :loading="syncing"
-                @click="openDiffDrawer"
+                @click="router.push('/mini/publish')"
               >
-                查看并发布
+                去发布配置
               </button>
             </div>
           </div>
@@ -74,7 +196,7 @@
               <span class="faint pending-row__go">预览 ›</span>
             </button>
             <div v-if="pending.length > pendingPreview.length" class="faint" style="margin-top: 8px; font-size: 12px">
-              另有 {{ pending.length - pendingPreview.length }} 项，点「查看并发布」查看完整清单
+              另有 {{ pending.length - pendingPreview.length }} 项，去「发布与版本」可查看完整清单并选择发布
             </div>
           </div>
           <div v-else class="empty-mini">
@@ -202,10 +324,13 @@
       hint="扫码打开的是 H5 模拟预览（草稿口径）。真机效果请在微信开发者工具上传体验版后查看。"
     />
 
-    <DiffPublishDrawer
-      v-model="diffDrawerVisible"
-      @published="load()"
-    />
+    <!--
+      2026-10-05 卸载 DiffPublishDrawer。
+      它内部能直接调 publishMiniSite（DiffPublishDrawer.vue:265），是第二个发布出口。
+      工作台已有「去发布配置」跳 /mini/publish（带预检、勾选、版本快照），
+      两个都能上线的按钮会让用户再次陷入「不知道点哪个会生效」——
+      正是本次改造要消灭的问题。组件文件保留，其它调用方不受影响。
+    -->
   </div>
 </template>
 
@@ -218,7 +343,6 @@ import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import DevicePreview from '@/components/mini/DevicePreview.vue'
-import DiffPublishDrawer from '@/components/mini/DiffPublishDrawer.vue'
 import {
   getMiniSite,
   getPendingChanges,
@@ -230,13 +354,36 @@ import { getPageAccess, getRuntimeHealth, type RuntimeHealth } from '@/api/stati
 import { getLatestRelease } from '@/api/version'
 import { getConfigByGroupSilent } from '@/api/system'
 import { refreshMiniPending } from '@/composables/useMiniPending'
-import { useMiniConfigSync } from '@/composables/useMiniConfigSync'
+import { useBuildWorkbench, stageTagClass, type StageStatus } from '@/composables/useBuildWorkbench'
 import type { PageRecord as PageRow } from '@/types/page'
 
 defineOptions({ name: 'MiniOverview' })
 
 const router = useRouter()
-const { syncing, syncToLive } = useMiniConfigSync()
+// 2026-10-05：原用 useMiniConfigSync 做「一键同步到线上」，
+// 现发布路径统一收口到 /mini/publish（预检 + 勾选 + 版本快照），
+// 本页不再持有 syncing/syncToLive，避免出现第二个发布出口。
+// 🔴 DiffPublishDrawer 同样能直接调 publishMiniSite（组件内 :265），
+// 它是「第二个发布出口」。工作台不再挂载它——发布统一去 /mini/publish，
+// 否则用户会面对两个都能上线的按钮，又回到「不知道哪个生效」的老问题。
+
+/**
+ * 搭建环节状态：与各配置页共用同一份判定（useBuildWorkbench）。
+ * 本页不自己再算一遍完成度，避免「工作台说完成、配置页说没配」这种自相矛盾。
+ */
+const build = useBuildWorkbench()
+const expandEvidence = ref(false)
+
+function statusLabel(s: StageStatus) {
+  return build.statusLabel(s)
+}
+
+/** 环节入口跳转：event 型动作不跳转，只给 to 型用 */
+function goStage(stage?: { entry?: { to?: string } } | null) {
+  const to = stage?.entry?.to
+  if (to) router.push(to)
+}
+
 const loading = ref(false)
 /** 首屏用骨架屏，之后的刷新才用遮罩，避免每次操作都闪灰屏 */
 const loaded = ref(false)
@@ -444,13 +591,7 @@ const healthMetrics = computed(() => {
   ]
 })
 
-const diffDrawerVisible = ref(false)
-
-function openDiffDrawer() {
-  diffDrawerVisible.value = true
-}
-
-/** 点待同步清单里的某一项：右侧模拟器切到该页草稿预览 */
+/** 点待发布清单里的某一项：右侧模拟器切到该页草稿预览 */
 function focusPendingOnPage(item: PendingChangeItem) {
   const path = String((item as any).path || (item as any).pagePath || '')
   if (path) {
@@ -516,8 +657,8 @@ function editHomePage() {
   const fromTab = tab0?.pageId != null ? Number(tab0.pageId) : 0
   const id = homeId || fromTab
   if (!id) {
-    ElMessage.warning('请先在「外观」里为底部导航绑定首页')
-    router.push('/mini/appearance')
+    ElMessage.warning('请先在「导航配置」里为底部导航绑定首页')
+    router.push('/mini/navigation')
     return
   }
   router.push(`/mini/pages/${id}/editor`)
@@ -600,11 +741,214 @@ async function load() {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  // 环节状态与概览数据并行取，互不阻塞
+  void build.refresh()
+  void load()
+})
 </script>
 
 <style scoped lang="scss">
 /* 对照 docs/prototypes/暖阁小程序搭建原型.html · vOverview */
+
+/* ---------- 搭建工作流 ---------- */
+.build-card {
+  border-left: 3px solid var(--acc, #b4430f);
+}
+
+.build-sum {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.next-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: rgba(180, 67, 15, 0.06);
+  border: 1px dashed rgba(180, 67, 15, 0.3);
+  margin-bottom: 12px;
+}
+
+.next-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong { font-size: 14px; }
+
+  .faint { font-size: 11.5px; line-height: 1.5; }
+}
+
+.next-label {
+  font-size: 11px;
+  color: var(--acc, #b4430f);
+  font-weight: 600;
+}
+
+.build-blocking {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.build-blocking li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(180, 40, 40, 0.06);
+  color: #972626;
+}
+
+.bb-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.stage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 10px;
+}
+
+.stage-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--wb-line, #e6e0d6);
+  border-radius: 11px;
+  background: transparent;
+  min-width: 0;
+}
+
+.st-done { border-color: rgba(47, 125, 79, 0.35); background: rgba(47, 125, 79, 0.035); }
+.st-partial { border-color: rgba(180, 110, 15, 0.35); }
+.st-todo { border-color: var(--wb-line, #e6e0d6); }
+.st-unknown { border-style: dashed; }
+
+.st-next {
+  border-color: var(--acc, #b4430f);
+  box-shadow: 0 0 0 2px rgba(180, 67, 15, 0.08);
+}
+
+.stage-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.stage-no {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.st-done .stage-no { background: rgba(47, 125, 79, 0.15); color: #24673f; }
+
+.stage-title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  b { font-size: 13.5px; }
+
+  .faint {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+}
+
+.stage-done,
+.stage-issues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stage-done li {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #2f6b46;
+}
+
+.stage-issues li {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+.si-blocking { color: #972626; }
+.si-warning { color: #8f580c; }
+
+.stage-more { font-size: 11px; }
+
+.stage-foot {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.build-evidence {
+  margin-top: 12px;
+  font-size: 12px;
+
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--acc, #b4430f);
+    padding: 4px 0;
+  }
+}
+
+.ev-row {
+  padding: 7px 0;
+  border-bottom: 1px dashed var(--wb-line, #e6e0d6);
+
+  &:last-child { border-bottom: 0; }
+
+  b { font-size: 12.5px; }
+
+  ul {
+    margin: 3px 0 0;
+    padding-left: 17px;
+    line-height: 1.7;
+  }
+}
+
+.ev-toggle {
+  margin-top: 8px;
+  font-size: 11.5px;
+}
+
 .overview.mw-page {
   max-width: none;
   margin: 0;

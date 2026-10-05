@@ -2,10 +2,10 @@
   <div class="overview-page">
     <PageHeader
       title="搭建工作台"
-      description="改完点「上线到小程序」，手机才会变。换整店模板去品牌导航或小程序「整店模版」。"
+      description="改完点「发布配置」，线上才会变。换整店模板去小程序「模板库」。"
     >
       <template #actions>
-        <el-button type="primary" :loading="publishingContent" @click="handlePublishContent">上线到小程序</el-button>
+        <el-button type="primary" :loading="publishingContent" @click="handlePublishContent">发布配置</el-button>
         <el-button @click="openLivePreview">预览真机</el-button>
         <el-button :loading="loading" aria-label="刷新工作台" @click="loadAll">刷新</el-button>
       </template>
@@ -164,7 +164,7 @@ import { useRouter } from 'vue-router'
 import PageHeader from '@/components/PageHeader.vue'
 import IssueActionList, { type IssueActionItem } from '@/components/IssueActionList.vue'
 import { getConfigByGroupSilent } from '@/api/system'
-import { getPublishPreflight, getLatestRelease, getStoreTemplates, publishContentToMiniapp } from '@/api/version'
+import { getPublishPreflight, getLatestRelease, getStoreTemplates } from '@/api/version'
 import { ElMessage } from 'element-plus'
 import { CONFIG_KEYS } from '@/types/miniapp'
 import type { PublishPreflight } from '@/api/version'
@@ -318,14 +318,33 @@ function openLivePreview() {
   window.open(href, '_blank', 'noopener,noreferrer')
 }
 
+/**
+ * 🔴 2026-10-06 发布语义统一：
+ * 原来调 publishContentToMiniapp()（旧通道 /miniapp-releases/publish-content），
+ * 与「发布与版本」页的 publishMiniSite()（/mini/publish）是两条独立链路，
+ * 各自递增发布序号 —— 这是同一版本在不同页面显示不同数字的深层原因之一。
+ * 现在统一走 publishMiniSite，三处（我的页/登录页/这里）完全同源。
+ * 注意本文件是历史页面（/page-builder/overview 路由已 redirect 到 /mini/overview），
+ * 保留仅为深链兼容，但发布机制必须一致。
+ */
 async function handlePublishContent() {
   publishingContent.value = true
   try {
-    await publishContentToMiniapp()
-    ElMessage.success('已上线到小程序')
+    const { publishMiniSite } = await import('@/api/miniSite')
+    const result = await publishMiniSite({ includeSite: true, notes: '发布配置' })
+    if (result.siteConfigPromoted === false && !(result.publishedPages || result.publishedPageCount)) {
+      ElMessage.warning('本次没有可发布的改动，线上配置未变化')
+      return
+    }
+    ElMessage.success(
+      result.liveReleaseNo != null
+        ? `已发布配置（第 ${result.liveReleaseNo} 次），版本快照已保存`
+        : '已发布配置，版本快照已保存',
+    )
     await loadAll()
   } catch (e: any) {
-    ElMessage.error(e?.message || '上线失败')
+    const msg = e?.response?.data?.message || e?.message || '发布失败'
+    ElMessage.error(`${msg}。发布未完成，线上配置不会只改一半`)
   } finally {
     publishingContent.value = false
   }

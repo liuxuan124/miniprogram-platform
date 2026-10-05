@@ -51,6 +51,9 @@ export interface SupportTicket {
   whoName?: string
   lastText?: string
   status: 'open' | 'done' | string
+  source?: string
+  orderId?: number
+  unread?: boolean
   lastReply?: string
   createTime?: string
   updateTime?: string
@@ -203,6 +206,17 @@ export function listSupportTickets(params?: { status?: string }) {
 
 export function replySupportTicket(id: number, content: string) {
   return post<void>(`${BASE}/support/tickets/${id}/reply`, { content } as unknown as Record<string, unknown>)
+}
+
+export interface SupportMessage {
+  id: number
+  sender: 'user' | 'admin' | 'system' | string
+  content: string
+  createTime?: string
+}
+
+export function listSupportTicketMessages(id: number) {
+  return get<SupportMessage[]>(`${BASE}/support/tickets/${id}/messages`)
 }
 
 export function updateSupportTicketStatus(id: number, status: 'open' | 'done') {

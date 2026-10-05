@@ -25,6 +25,11 @@ export type MiniTabBarItem = {
   pagePath?: string
   pageId?: string | number
   pageName?: string
+  /**
+   * 是否在小程序中显示。缺省视为 true。
+   * 老配置没有这个字段，判空时不要当成隐藏（否则上线即空 Tab 栏）。
+   */
+  enabled?: boolean
   /** 兼容后端/快照字段 */
   icon?: string
   selectedIcon?: string
@@ -232,7 +237,7 @@ export async function publishMiniSite(payload?: {
   } catch (err) {
     if (!isMissingEndpoint(err)) throw err
     await publishContentToMiniapp()
-    return { message: '已通过旧通道上线到小程序', liveReleaseNo: undefined }
+    return { message: '已通过旧通道发布配置（发布序号未更新）', liveReleaseNo: undefined }
   }
 }
 

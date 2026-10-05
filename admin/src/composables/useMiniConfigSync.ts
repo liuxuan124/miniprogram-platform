@@ -88,7 +88,7 @@ export function useMiniConfigSync() {
       const result = await publishMiniSite({
         includeSite,
         pageIds: options?.pageIds,
-        notes: options?.notes || '后台保存并同步',
+        notes: options?.notes || '后台发布配置',
       })
 
       await refreshMiniPendingGlobal(true)

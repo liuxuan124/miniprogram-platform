@@ -57,6 +57,22 @@
           <el-tag size="small" :type="roleTagType(row.role)">{{ roleLabel(row.role) }}</el-tag>
         </template>
       </el-table-column>
+      <el-table-column label="标签" min-width="180">
+        <template #default="{ row }">
+          <div v-if="splitTags(row.tags).length" class="tag-cell">
+            <el-tag
+              v-for="t in splitTags(row.tags)"
+              :key="t"
+              size="small"
+              type="info"
+              effect="plain"
+            >
+              {{ t }}
+            </el-tag>
+          </div>
+          <span v-else class="faint">—</span>
+        </template>
+      </el-table-column>
       <el-table-column label="关联用户" width="180">
         <template #default="{ row }">
           <div v-if="row.userId" class="user-cell">
@@ -143,6 +159,23 @@
         </el-form-item>
         <el-form-item label="头衔">
           <el-input v-model="form.title" maxlength="64" placeholder="如：主理人、特约作者、栏目主编" />
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-select
+            v-model="tagList"
+            multiple
+            filterable
+            allow-create
+            default-first-option
+            :reserve-keyword="false"
+            placeholder="回车创建新标签，如：官方主理人 / S级创作者"
+            style="width: 100%"
+          >
+            <el-option v-for="t in knownTags" :key="t" :label="t" :value="t" />
+          </el-select>
+          <div class="ds-hint">
+            标签用于首页「作者列表」区块的动态聚合模式：给作者打上标签，首页自动收录，不用再手动配作者。
+          </div>
         </el-form-item>
         <el-form-item label="简介">
           <el-input v-model="form.intro" type="textarea" :rows="3" maxlength="512" show-word-limit placeholder="一句话介绍" />
@@ -362,6 +395,33 @@ const form = reactive({
   status: 1,
 })
 
+/**
+ * V121：标签编辑态（数组形式方便 el-select 多选/回车创建）。
+ * 存库时拼回逗号分隔字符串；读库时拆回数组。
+ * tags 存储口径 = mp_author.tags（逗号分隔），后端会再做一次归一化（trim/去重/排序）。
+ */
+const tagList = ref<string[]>([])
+
+/** 全库出现过的标签，给 el-select 做建议项（避免每次都手打同样的标签） */
+const knownTags = computed(() => {
+  const set = new Set<string>()
+  rows.value.forEach((r) => {
+    String(r.tags || '')
+      .split(/[,，]/)
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .forEach((t) => set.add(t))
+  })
+  return Array.from(set).sort()
+})
+
+function splitTags(raw?: string): string[] {
+  return String(raw || '')
+    .split(/[,，]/)
+    .map((t) => t.trim())
+    .filter(Boolean)
+}
+
 const rules: FormRules = {
   name: [{ required: true, message: '请填写作者昵称', trigger: 'blur' }],
   role: [{ required: true, message: '请选择身份', trigger: 'change' }],
@@ -412,6 +472,7 @@ function reload() {
 }
 
 function resetForm() {
+  tagList.value = []
   Object.assign(form, {
     name: '',
     avatarUrl: '',
@@ -433,6 +494,7 @@ function openCreate() {
 function openEdit(row: AuthorRecord) {
   resetForm()
   editingId.value = Number(row.id || 0)
+  tagList.value = splitTags(row.tags)
   Object.assign(form, {
     name: row.name || '',
     avatarUrl: row.avatarUrl || '',
@@ -457,6 +519,7 @@ async function submit() {
         avatarUrl: form.avatarUrl?.trim() || undefined,
         role: form.role,
         title: form.title?.trim() || undefined,
+tags: tagList.value.length ? tagList.value.join(',') : undefined,
         intro: form.intro?.trim() || undefined,
         contact: form.contact?.trim() || undefined,
         sortOrder: form.sortOrder ?? 0,
@@ -612,4 +675,7 @@ onMounted(load)
 .user-cell { display: flex; align-items: center; gap: 6px; }
 .user-cell__id { font-size: 12px; color: #909399; font-family: ui-monospace, Menlo, monospace; }
 .link-user__tip { margin-bottom: 12px; padding: 10px 12px; font-size: 12px; line-height: 1.7; color: #606266; background: #f6f8fb; border-radius: 6px; }
+/* V121 作者标签：表格内多标签换行排列 */
+.tag-cell { display: flex; flex-wrap: wrap; gap: 4px; }
+.faint { color: #909399; font-size: 12px; }
 </style>

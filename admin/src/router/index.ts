@@ -76,19 +76,61 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'overview',
         name: 'MiniOverview',
         component: () => import('@/views/mini/overview.vue'),
-        meta: { title: '概览', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '搭建工作台', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
-        path: 'appearance',
-        name: 'MiniAppearance',
-        component: () => import('@/views/mini/appearance.vue'),
-        meta: { title: '外观', icon: 'Brush', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        path: 'brand',
+        name: 'MiniBrand',
+        component: () => import('@/views/mini/brand.vue'),
+        meta: { title: '品牌信息', icon: 'Brush', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'system',
+        name: 'MiniSystemConfig',
+        component: () => import('@/views/mini/system-config.vue'),
+        meta: { title: '系统配置', icon: 'Setting', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'pages',
         name: 'MiniPages',
         component: () => import('@/views/mini/pages.vue'),
-        meta: { title: '页面', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '页面搭建', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'page-config',
+        name: 'MiniPageConfig',
+        component: () => import('@/views/mini/page-config.vue'),
+        meta: { title: '页面配置', icon: 'Gear', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'navigation',
+        name: 'MiniNavigation',
+        component: () => import('@/views/mini/navigation.vue'),
+        meta: { title: '导航配置', icon: 'Menu', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'preview',
+        name: 'MiniPreviewCheck',
+        component: () => import('@/views/mini/preview-check.vue'),
+        meta: { title: '预览检查', icon: 'View', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'publish',
+        name: 'MiniPublish',
+        component: () => import('@/views/mini/publish.vue'),
+        meta: { title: '发布与版本', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        path: 'templates',
+        name: 'MiniTemplates',
+        component: () => import('@/views/mini/templates.vue'),
+        meta: { title: '模板', icon: 'Shop', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
+      {
+        // 旧路径：品牌信息与导航从「外观」拆出后，这两个地址继续可用，避免旧书签/深链失效
+        path: 'appearance',
+        redirect: '/mini/brand',
+        meta: { title: '外观', hidden: true },
       },
       {
         path: 'pages/new-ai',
@@ -101,17 +143,6 @@ export const asyncRoutes: RouteRecordRaw[] = [
         name: 'MiniPageEditor',
         redirect: (to) => ({ path: `/page-builder/editor/${to.params.id}`, query: to.query }),
         meta: { title: '装修', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:update', 'page:create'] },
-      },
-      {
-        path: 'templates',
-        name: 'MiniTemplates',
-        component: () => import('@/views/mini/templates.vue'),
-        meta: { title: '模板', icon: 'Shop', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
-      {
-        path: 'publish',
-        redirect: '/mini/overview',
-        meta: { title: '发布与分发', hidden: true },
       },
     ],
   },
@@ -135,6 +166,8 @@ export const asyncRoutes: RouteRecordRaw[] = [
         meta: { title: '品牌导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
+        // 旧「品牌导航」页：保留深链可达，但侧栏不再展示
+        // （它与 /mini/brand + /mini/navigation 是同一批能力的两套实现，已收编到新路由）
         path: 'appearance',
         name: 'PageBuilderAppearance',
         component: () => import('@/views/page-builder/appearance.vue'),
@@ -160,13 +193,14 @@ export const asyncRoutes: RouteRecordRaw[] = [
         path: 'mine',
         name: 'PageBuilderMine',
         component: () => import('@/views/page-builder/mine-config.vue'),
-        meta: { title: '固定页 · 我的', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        // 2026-10-06：标题与侧栏入口统一，避免面包屑写「固定页 · 我的」而侧栏写「我的页」
+        meta: { title: '我的页', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'login',
         name: 'PageBuilderLogin',
         component: () => import('@/views/page-builder/login-config.vue'),
-        meta: { title: '固定页 · 登录', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '登录页', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'templates',
@@ -621,6 +655,16 @@ export const asyncRoutes: RouteRecordRaw[] = [
         name: 'OpsResource',
         component: () => import('@/views/ops/resource.vue'),
         meta: { title: '全局资源位', icon: 'Promotion' },
+      },
+      {
+        // 通知中心：站内信群发 + 发送记录 + 场景开关 + 订阅消息模板。
+        // 站内信此前只有系统自动写入（UserNoticeService 6 处），运营无任何入口；
+        // 订阅消息模板原先只挂在 /settings（super_admin 专属），运营根本进不去。
+        // 两者都收编到运营中心，路径走 /api/v1/admin/ops/**（只需登录）。
+        path: 'notification',
+        name: 'OpsNotification',
+        component: () => import('@/views/ops/notification.vue'),
+        meta: { title: '通知中心', icon: 'Bell' },
       },
     ],
   },

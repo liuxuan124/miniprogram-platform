@@ -2,7 +2,7 @@
   <div class="appearance-page">
     <PageHeader
       title="品牌导航"
-      description="改完先「保存」（编辑中），再点「上线到小程序」用户才能看到。预览默认=真机所见。"
+      description="改完先「保存草稿」，再点「发布配置」用户才能看到。预览默认=线上所见。"
     >
       <template #actions>
         <span v-if="isDirty" class="dirty-pill">未保存</span>
@@ -16,7 +16,7 @@
           type="primary"
           :loading="publishing"
           @click="publishToMiniapp"
-        >上线到小程序</el-button>
+        >发布配置</el-button>
         <el-dropdown trigger="click">
           <el-button class="ap-more" aria-label="更多操作">
             <el-icon><MoreFilled /></el-icon>

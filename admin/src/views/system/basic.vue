@@ -133,7 +133,19 @@
                 </el-form-item>
 
                 <el-form-item label="客服电话">
-                  <el-input v-model="legalForm.servicePhone" placeholder="小程序「联系客服」拨号号码" clearable />
+                  <!-- 🔴 客服电话唯一真相源 = 客服中心 /member/support（community_config）。
+                       端上 join 页 / 客服页读的都是 community_config → joinGroupConfig.servicePhone，
+                       此前这里独立可改但端上从不读 = 典型「配了没生效」。改为只读镜像。 -->
+                  <div class="readonly-mirror-row">
+                    <el-input
+                      :model-value="legalForm.servicePhone"
+                      placeholder="未配置，请到「用户管理 → 客服中心」配置"
+                      readonly
+                      class="readonly-mirror-input"
+                    />
+                    <el-button type="primary" plain @click="goToSupportCenter">去客服中心配置</el-button>
+                  </div>
+                  <div class="form-hint">客服电话、企微客服、在线说明统一在「用户管理 → 客服中心」维护，此处只读展示</div>
                 </el-form-item>
                 <el-form-item label="隐私政策外链">
                   <el-input v-model="legalForm.privacyPolicyUrl" placeholder="https://（可选，需配置业务域名）" clearable />
@@ -689,6 +701,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules, UploadRequestOptions } from 'element-plus'
 import { Refresh, CircleCheck, ShoppingCart, Document, Promotion, Plus } from '@element-plus/icons-vue'
@@ -729,6 +742,7 @@ import {
 } from '@/types/freight'
 import AssetPickerDialog from '@/components/AssetPickerDialog.vue'
 
+const router = useRouter()
 const loading = ref(false)
 const savingAll = ref(false)
 const miniSaving = ref(false)
@@ -1296,6 +1310,21 @@ function toConfigItems(data: Record<string, unknown>, group: string) {
   return toConfigUpdateItems(data, group)
 }
 
+/**
+ * 「保存全部」时排除客服电话。
+ * 它是客服中心 community_config 的只读镜像，在本页不可编辑；
+ * 若随 legal 组一起回写，会用本页的陈旧值覆盖掉客服中心刚保存的新值
+ * （两个 saveGroup 并发 + 后到的覆盖先到的）。
+ */
+function buildLegalSavePayload() {
+  const { servicePhone: _ignored, ...rest } = legalForm as unknown as Record<string, unknown>
+  return rest
+}
+
+function goToSupportCenter() {
+  router.push('/member/support')
+}
+
 async function saveGroup(group: string, _label: string, data: Record<string, unknown>) {
   await updateConfigs(toConfigItems(data, group))
 }
@@ -1315,7 +1344,7 @@ async function handleSaveAll() {
       updateConfigs(buildBrandSaveItems()),
       saveGroup('wechat', '微信小程序配置', pickWechatFormPayload()),
       saveGroup('wechat', '微信公众号配置', pickOaFormPayload()),
-      saveGroup('legal', '法律协议与客服', legalForm as unknown as Record<string, unknown>),
+      saveGroup('legal', '法律协议与客服', buildLegalSavePayload()),
       saveGroup('wechat', '微信支付配置', paymentForm as unknown as Record<string, unknown>),
       saveGroup('basic', '插件开关', { plugins: pluginModules.value }),
       saveGroup('storage', '物流配置', buildLogisticsPayload()),
@@ -1697,6 +1726,26 @@ onMounted(() => {
    设计参考: 阿里云控制台 / 腾讯云后台 / 飞书管理后台
    核心特点: Tab布局 + 紧凑表单 + 卡片分组 + 无空白
    ============================================ */
+
+/* ========== 只读镜像字段（客服电话等，真相源在客服中心） ========== */
+.readonly-mirror-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.readonly-mirror-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #909399;
+  margin-top: 2px;
+}
 
 .enterprise-setting-page {
   min-height: 100vh;

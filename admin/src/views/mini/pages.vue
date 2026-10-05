@@ -5,7 +5,7 @@
       <MiniOpsConceptBanner variant="pages" />
       <div class="head">
         <div>
-          <h1 class="h1">页面</h1>
+          <h1 class="h1">页面搭建</h1>
           <div class="sub">
             共 {{ totalCount + groupCounts.system }} 个（库表页 {{ totalCount }} · 系统页 {{ groupCounts.system }}）·
             <template v-for="(g, i) in headerGroups" :key="g.key">
@@ -33,13 +33,35 @@
         </div>
       </div>
 
+      <!-- 新建 vs 修改：这两件事最容易混，点错就会攒出一堆同名副本 -->
+      <section class="card scope-card">
+        <div class="scope-item">
+          <span class="scope-ic new"><MiniIcon name="plus" :size="15" /></span>
+          <div>
+            <b>新建页面</b>
+            <span class="faint">从空白、模板或 AI 生成一个<b>新页面</b>。上方三个按钮都是新建，会产生新的页面记录。</span>
+          </div>
+        </div>
+        <div class="scope-item">
+          <span class="scope-ic edit"><MiniIcon name="pen" :size="15" /></span>
+          <div>
+            <b>修改已有页面</b>
+            <span class="faint">点列表里的<b>「装修」</b>进入编辑器改的是<b>原页面</b>，保存目标就是它，不会新建副本。
+              标题、分享、上下线这些属性去「页面配置」改。</span>
+          </div>
+          <button type="button" class="btn sm soft" @click="router.push('/mini/page-config')">
+            页面配置 ›
+          </button>
+        </div>
+      </section>
+
       <!-- 底部导航绑定全景：哪一位绑了哪页、哪一位还空着，一眼可见 -->
       <div class="navmap">
         <div class="navmap__hd">
           <span class="navmap__t">底部导航</span>
           <span class="faint">点击已绑定的槽位直接进入装修</span>
-          <button type="button" class="link navmap__go" @click="router.push('/mini/appearance')">
-            去外观调整
+          <button type="button" class="link navmap__go" @click="router.push('/mini/navigation')">
+            去导航配置
           </button>
         </div>
         <div class="navmap__row">
@@ -63,19 +85,18 @@
         </div>
       </div>
 
-      <!-- 待同步：改动还没上线到小程序端 -->
+      <!-- 待发布：改动已存草稿但还没写入线上配置 -->
       <div v-if="pendingRows.length" class="pending-bar">
-        <span class="tag t-pending">待同步</span>
+        <span class="tag t-pending">待发布</span>
         <b>{{ pendingRows.length }} 个页面的改动还没上线</b>
         <span class="faint">用户端看到的仍是旧版本 · {{ pendingPreviewNames }}</span>
         <span class="pending-bar__sp" />
         <button
           type="button"
           class="btn primary"
-          :disabled="publishing"
-          @click="publishAllPending"
+          @click="router.push('/mini/publish')"
         >
-          {{ publishing ? '同步中…' : '一键同步到线上' }}
+          去发布配置
         </button>
       </div>
 
@@ -178,6 +199,32 @@
                         @click="router.push(systemPageConfigRoute(sp))"
                       >
                         {{ sp.configLabel || '配置' }}
+                      </button>
+                      <!--
+                        「我的」系统页的显式入口：与「配置模板」同一个目标，
+                        但文案更直白地说明这是「配置这个页面」，避免用户以为只能换模板。
+                      -->
+                      <button
+                        v-if="isMineSystemPage(sp)"
+                        type="button"
+                        class="btn primary sm"
+                        title="打开「我的」页配置（模板 / 主题 / 模块 / 菜单）"
+                        @click="router.push('/page-builder/mine')"
+                      >
+                        配置页面
+                      </button>
+                      <!--
+                        「登录」系统页的显式入口：与「配置模板」同一个目标，
+                        但文案更直白地说明这是「配置这个页面」，避免用户以为只能换模板。
+                      -->
+                      <button
+                        v-if="isLoginSystemPage(sp)"
+                        type="button"
+                        class="btn primary sm"
+                        title="打开「登录」页配置（模板 / 主题 / 模块显隐）"
+                        @click="router.push('/page-builder/login')"
+                      >
+                        配置页面
                       </button>
                     </div>
                   </div>
@@ -631,9 +678,6 @@ const groupTargetCurrent = computed(() => {
   return inferPageGroup(groupTarget.value)
 })
 
-/** 待同步一键发布 */
-const publishing = ref(false)
-
 function normalizeAccessPath(raw: string) {
   const p = String(raw || '').split('#')[0].split('?')[0]
   if (!p) return ''
@@ -703,41 +747,16 @@ const pendingPreviewNames = computed(() => {
   return names.join('、') + (pendingRows.value.length > 3 ? ` 等 ${pendingRows.value.length} 个` : '')
 })
 
-async function publishAllPending() {
-  const rows = pendingRows.value
-  if (!rows.length) return
-  try {
-    await ElMessageBox.confirm(
-      `将把 ${rows.length} 个页面的草稿发布到小程序端，并递增站点版本号让用户端刷新缓存。`,
-      '一键同步',
-      { type: 'warning' },
-    )
-  } catch {
-    return
-  }
-  publishing.value = true
-  let ok = 0
-  const failed: string[] = []
-  for (const row of rows) {
-    try {
-      await publishPage(Number(row.id))
-      ok += 1
-    } catch (e: any) {
-      failed.push(`${row.name}：${e?.message || '失败'}`)
-    }
-  }
-  if (ok) {
-    try {
-      await publishMiniSite({ includeSite: true })
-    } catch {
-      /* 站点侧没有改动时会报「没有可发布的改动」，不影响页面已发布 */
-    }
-  }
-  publishing.value = false
-  if (failed.length) ElMessage.warning(`已同步 ${ok} 个，失败 ${failed.length} 个：${failed[0]}`)
-  else ElMessage.success(`已同步 ${ok} 个页面到线上`)
-  await load()
-}
+/**
+ * 🔴 2026-10-05 删除 publishAllPending（原「一键同步到线上」）。
+ * 两个理由，都不是"顺手清理"：
+ * 1. 语义冲突：它绕过「发布与版本」页的预检与勾选，直接逐页 publishPage，
+ *    等于留了一个"点了就上线、没检查"的旁路。本次改造的核心就是消除这种歧义入口。
+ * 2. 部分更新风险：逐页循环里 catch 只记 warning 不回滚，最后 publishMiniSite
+ *    又是静默 catch —— 会出现"一半页面上线、站点配置没升版本号"的中间态，
+ *    而 live_release_no 是小程序缓存失效锚点，不递增就等于用户端继续读旧缓存。
+ * 现在待发布条只做「去发布配置」跳转，发布路径唯一。
+ */
 
 const totalCount = computed(() =>
   pages.value.filter((row) => !String(row.path || '').includes('/pages/mine/mine')).length,
@@ -932,7 +951,7 @@ function scheduleSysHover(sp: MiniSystemPage, evt: MouseEvent) {
  *   ③ 行下方直接列出 6 套模板，点一套即套用
  *
  * 数据源与「保存」保持一致：都读写 system_config 里的 site_builder_draft，
- * 也就是「待上线草稿」；要真机生效仍需到概览点「上线到小程序」。
+ * 也就是「待发布草稿」；要真正生效仍需到「发布与版本」发布配置。
  * ------------------------------------------------------------------ */
 
 /** 线上配置全量（兜底用） */
@@ -1025,7 +1044,7 @@ async function applyLoginTemplate(tpl: LoginTemplatePreset) {
     await ElMessageBox.confirm(
       `将「${tpl.name}」套用到登录页？\n`
         + `会覆盖当前的模板文案与皮肤，并保存为待上线草稿。\n`
-        + `真机生效还需到「概览」点「上线到小程序」。`,
+        + `还需到「发布与版本」发布配置后才会对线上生效。`,
       '套用模板',
       { confirmButtonText: '套用', cancelButtonText: '取消', type: 'info' },
     )
@@ -1047,7 +1066,7 @@ async function applyLoginTemplate(tpl: LoginTemplatePreset) {
 
     siteDraft.value = payload
     loginConfig.value = JSON.parse(payload[CONFIG_KEYS.LOGIN_PAGE_CONFIG])
-    ElMessage.success(`已套用「${tpl.name}」，去「概览」点「上线到小程序」后真机生效`)
+    ElMessage.success(`已套用「${tpl.name}」，到「发布与版本」发布配置后才会对线上生效`)
   } catch (e: any) {
     ElMessage.error(e?.message || '套用失败')
   } finally {
@@ -1093,7 +1112,7 @@ async function applyMineTemplate(tpl: MineTemplatePreset) {
     await ElMessageBox.confirm(
       `将「${tpl.name}」套用到「我的」页？\n`
         + `会覆盖当前的菜单组合、文案与开关（皮肤与主色保留），并保存为待上线草稿。\n`
-        + `真机生效还需到「概览」点「上线到小程序」。`,
+        + `还需到「发布与版本」发布配置后才会对线上生效。`,
       '套用模板',
       { confirmButtonText: '套用', cancelButtonText: '取消', type: 'info' },
     )
@@ -1120,7 +1139,7 @@ async function applyMineTemplate(tpl: MineTemplatePreset) {
 
     siteDraft.value = payload
     mineConfig.value = next
-    ElMessage.success(`已套用「${tpl.name}」，去「概览」点「上线到小程序」后真机生效`)
+    ElMessage.success(`已套用「${tpl.name}」，到「发布与版本」发布配置后才会对线上生效`)
   } catch (e: any) {
     ElMessage.error(e?.message || '套用失败')
   } finally {
@@ -1280,8 +1299,19 @@ function onNavSlotClick(tab: MiniTabBarItem) {
     openEditor(page)
     return
   }
-  ElMessage.info('该导航位未绑定装修页，可到「外观」或页面行的「设为底部导航入口」绑定')
-  router.push('/mini/appearance')
+  // 槽位绑的是系统原生页时，「我的」有独立的配置台（/page-builder/mine），
+  // 直接送过去；别再把人丢到 /mini/appearance —— 那页改不了我的页。
+  if (navBoundIsSystem(tab) && isSystemMinePath(tab.pagePath)) {
+    router.push('/page-builder/mine')
+    return
+  }
+  ElMessage.info('该导航位未绑定装修页，可到「导航配置」或页面行的「设为底部导航入口」绑定')
+  router.push('/mini/navigation')
+}
+
+/** 导航槽位绑的是不是「我的」系统页（路径固定 /pages/mine/mine） */
+function isSystemMinePath(path?: string | null) {
+  return String(path || '').replace(/^\/+/, '') === 'pages/mine/mine'
 }
 
 /** 系统页行：来自内置清单（Tab 壳页不列，真实内容在装修页组），不是库表页面；无页面状态，故只在「全部」筛选下展示 */
@@ -1775,6 +1805,51 @@ onMounted(load)
 </script>
 
 <style scoped lang="scss">
+/* 新建 vs 修改 的职责边界说明 */
+.scope-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+.scope-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--wb-line, #e6e0d6);
+  border-radius: 10px;
+
+  > div {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  b { font-size: 13.5px; }
+
+  .faint {
+    font-size: 11.5px;
+    line-height: 1.6;
+
+    b { font-size: 11.5px; }
+  }
+}
+
+.scope-ic {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &.new { background: rgba(47, 125, 79, 0.12); color: #2f7d4f; }
+  &.edit { background: rgba(180, 67, 15, 0.12); color: var(--acc, #b4430f); }
+}
 /* 底部导航绑定全景 */
 .navmap {
   background: var(--card);

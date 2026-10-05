@@ -12,6 +12,12 @@ export interface NavTab {
   tabRoute?: string
   pageId?: number | string
   pageName?: string
+  /**
+   * 是否在小程序中显示；缺省视为 true。
+   * 2026-10-05 新增：支持临时下掉某个入口而不删配置。
+   * 注意 normalizeTabBarItems 会原样透传，判空时不要当成隐藏。
+   */
+  enabled?: boolean
 }
 
 /** 导航模板 */
@@ -36,6 +42,112 @@ export interface MineMenuItem {
   group?: string
   /** 点击前是否要求登录（undefined 视同 false） */
   needLogin?: boolean
+  /**
+   * 条件显示（小程序端 1.30 起消费）：
+   * - always（默认/缺省）：始终显示 —— 等同于旧行为，老数据无此字段时按此处理
+   * - login：仅已登录时显示
+   * - member：仅会员态显示
+   *
+   * 🔴 这是**界面隐藏**，不是权限控制：needLogin 仍必须在端上 onMenuRowTap 判定，
+   * 两者是独立字段，不要因为配了 visibleOn 就把 needLogin 删掉。
+   */
+  visibleOn?: MineMenuVisibleOn
+}
+
+/** 菜单/模块的条件显示口径 */
+export type MineMenuVisibleOn = 'always' | 'login' | 'member'
+
+/** 菜单条件显示的中文标签（后台下拉 + 端上提示共用一份口径） */
+export const MINE_VISIBLE_ON_LABELS: Record<MineMenuVisibleOn, string> = {
+  always: '始终显示',
+  login: '登录后显示',
+  member: '会员可见',
+}
+
+/** 归一化条件显示取值；非法/缺省一律回退 always（= 旧行为，不破坏线上） */
+export function normalizeMineVisibleOn(raw?: unknown): MineMenuVisibleOn {
+  const s = String(raw ?? '').trim().toLowerCase()
+  if (s === 'login' || s === 'loggedin' || s === 'logged_in') return 'login'
+  if (s === 'member' || s === 'vip') return 'member'
+  return 'always'
+}
+
+/**
+ * 「我的」页模块显隐开关的 key 清单。
+ *
+ * 🔴 默认值口径（铁律）：**新增开关默认必须等于当前线上表现**。
+ * 线上 `mine.wxml` 里这 6 个模块全部无条件渲染，所以默认一律 true；
+ * 任何一项改成 false 都会让老页面升级后外观突变。
+ */
+export const MINE_MODULE_KEYS = [
+  'userHeader',
+  'stats',
+  'memberCard',
+  'quickAccess',
+  'continueLearn',
+  'myPlanet',
+] as const
+
+export type MineModuleKey = (typeof MINE_MODULE_KEYS)[number]
+
+/** 模块 key → 后台中文名 */
+export const MINE_MODULE_LABELS: Record<MineModuleKey, string> = {
+  userHeader: '用户头部',
+  stats: '收藏/笔记/关注/暖豆 统计',
+  memberCard: '会员卡',
+  quickAccess: '快捷入口',
+  continueLearn: '继续学习',
+  myPlanet: '我的星球',
+}
+
+/**
+ * 模块显隐分组配置。
+ *
+ * 存成扁平对象（而不是嵌套），端上 `mineToggles.showXxx` 一行就能取，
+ * 也避免 `updateComponentProps` 浅合并把同级字段冲掉的老问题。
+ * 缺字段时一律按 true 处理（见 `resolveMineModules`）。
+ */
+export type MineModulesConfig = Record<MineModuleKey, boolean>
+
+/** 默认模块显隐：全部显示（= 线上现状） */
+export const DEFAULT_MINE_MODULES: MineModulesConfig = {
+  userHeader: true,
+  stats: true,
+  memberCard: true,
+  quickAccess: true,
+  continueLearn: true,
+  myPlanet: true,
+}
+
+/**
+ * 把已保存的 modules 归一化成完整 6 项。
+ * 缺字段 → true（保持线上表现）；非布尔 → 走默认值。
+ */
+export function resolveMineModules(raw?: Partial<MineModulesConfig> | null): MineModulesConfig {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<MineModuleKey, unknown>>
+  const out = {} as MineModulesConfig
+  for (const key of MINE_MODULE_KEYS) {
+    out[key] = src[key] === undefined || src[key] === null
+      ? DEFAULT_MINE_MODULES[key]
+      : src[key] !== false
+  }
+  return out
+}
+
+/**
+ * 主题色来源：
+ * - inherit（默认）：继承全局品牌色 form.theme.primaryColor/secondaryColor
+ * - page：启用页面独立主题色 mineConfig.themeColor / themeColorSecondary
+ *
+ * 🔴 缺省必须是 inherit —— 线上从没配过 themeColor 的语义就是「跟全局走」。
+ * 注意：老数据里 themeColor 一定有值（历史模板写死的暖橘），
+ * 所以判定「是否页面覆盖」不能只看 themeColor 有没有值，必须看这个显式开关。
+ */
+export type MineThemeSource = 'inherit' | 'page'
+
+/** 归一化主题来源；缺省/非法 → inherit */
+export function normalizeMineThemeSource(raw?: unknown): MineThemeSource {
+  return String(raw ?? '').trim().toLowerCase() === 'page' ? 'page' : 'inherit'
 }
 
 /** 订单快捷入口配置 */
@@ -101,6 +213,46 @@ export interface MinePageConfig {
   style?: string
   themeColor?: string
   themeColorSecondary?: string
+  /**
+   * 主题色来源：inherit（默认，跟随全局品牌色）| page（页面独立覆盖）。
+   * 见 `normalizeMineThemeSource`。
+   */
+  themeSource?: MineThemeSource
+  /**
+   * 内容模块显隐（1.30 新增）。缺字段按 true 处理，保持线上「全显示」表现。
+   * 见 `resolveMineModules` / `DEFAULT_MINE_MODULES`。
+   */
+  modules?: Partial<MineModulesConfig>
+  /**
+   * 页面级背景色（1.30 新增）。空串 = 跟随全局 pageBackgroundColor。
+   * 与 themeSource 独立：背景不参与品牌色继承。
+   */
+  pageBackgroundColor?: string
+  /** 头部配色模式：gradient（默认，线上现状）| solid（纯色铺满） */
+  headerStyle?: MineHeaderStyle
+  /**
+   * 卡片样式：shadow（默认，线上现状）| flat（无阴影）| outline（描边）
+   * 与历史字段 `style`（gradient/outline，会被归一化）刻意分开，避免老数据串味。
+   */
+  cardStyle?: MineCardStyle
+}
+
+/** 头部配色模式 */
+export type MineHeaderStyle = 'gradient' | 'solid'
+
+/** 卡片样式 */
+export type MineCardStyle = 'shadow' | 'flat' | 'outline'
+
+/** 归一化头部模式；缺省/非法 → gradient（= 线上现状） */
+export function normalizeMineHeaderStyle(raw?: unknown): MineHeaderStyle {
+  return String(raw ?? '').trim().toLowerCase() === 'solid' ? 'solid' : 'gradient'
+}
+
+/** 归一化卡片样式；缺省/非法 → shadow（= 线上现状） */
+export function normalizeMineCardStyle(raw?: unknown): MineCardStyle {
+  const s = String(raw ?? '').trim().toLowerCase()
+  if (s === 'flat' || s === 'outline') return s
+  return 'shadow'
 }
 
 /** 「我的」页风格模板卡片 */
@@ -216,6 +368,35 @@ export function applyMineStylePreset(
   return resolved
 }
 
+/**
+ * 「我的」页最终生效的主题色 —— **后台预览与小程序端必须走同一个函数**，
+ * 否则后台显示继承全局、真机还在用页面覆盖色，两端永远对不齐。
+ *
+ * 规则：
+ * - themeSource=page 且配了 themeColor → 用页面色（覆盖）
+ * - themeSource=page 但 themeColor 为空 → 回落全局（避免配了个空值变白板）
+ * - themeSource=inherit（缺省）→ 一律用全局品牌色，忽略 mineConfig.themeColor
+ */
+export function resolveMineEffectiveTheme(
+  mine?: {
+    themeSource?: unknown
+    themeColor?: string
+    themeColorSecondary?: string
+  } | null,
+  globalTheme?: { primaryColor?: string; secondaryColor?: string } | null,
+): { primary: string; secondary: string; source: MineThemeSource } {
+  const gPrimary = String(globalTheme?.primaryColor || '').trim()
+  const gSecondary = String(globalTheme?.secondaryColor || '').trim()
+  const source = normalizeMineThemeSource(mine?.themeSource)
+  if (source === 'page') {
+    const p = String(mine?.themeColor || '').trim()
+    const s = String(mine?.themeColorSecondary || '').trim()
+    if (p) return { primary: p, secondary: s || gSecondary || p, source }
+    return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
+  }
+  return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
+}
+
 /* ============================================================ *
  * 登录页模板（仿「我的」页模板库）
  *
@@ -259,6 +440,166 @@ export interface LoginPageConfig {
   themeColor?: string
   /** 辅色 */
   themeColorSecondary?: string
+  /**
+   * 主题色来源：inherit（默认，跟随全局品牌色）| page（页面独立覆盖）。
+   * 见 `normalizeLoginThemeSource` / `resolveLoginEffectiveTheme`。
+   */
+  themeSource?: LoginThemeSource
+  /**
+   * 内容模块显隐。缺字段按 true 处理 = 线上现状（login.wxml 里这些块全部无条件渲染）。
+   * 见 `resolveLoginModules` / `DEFAULT_LOGIN_MODULES`。
+   */
+  modules?: Partial<LoginModulesConfig>
+  /**
+   * 页面级背景色。空串 = 跟随 login.wxss 的默认底色。
+   * 与 themeSource 独立：背景不参与品牌色继承。
+   */
+  pageBackgroundColor?: string
+  /** 顶部品牌区样式：gradient（默认，线上现状）| solid（纯色铺满） */
+  headerStyle?: LoginHeaderStyle
+  /** 登录卡片样式：shadow（默认，线上现状）| flat（无阴影）| outline（描边） */
+  cardStyle?: LoginCardStyle
+}
+
+/**
+ * 登录页模块显隐 key 清单。
+ *
+ * 🔴 取值以 miniapp/pages/login/login.wxml 的**真实结构**为准，先读 wxml 再定，
+ * 不凭空列。每一项都对应 wxml 里一整块可以 `block wx:if` 包住的区域：
+ * - brandIdentity：顶部品牌 Logo + 名称 + 英文副标
+ * - heroTitle：主标 + 副文案
+ * - interceptTip：「登录后即可 xxx」拦截提示
+ * - sheetHeading：表单标题 + 副文案（含安全徽标所在的整行）
+ * - formHint：协议下方的提示文案
+ * - skipButton：「暂不登录」按钮
+ * - privacyNote：底部隐私提示
+ *
+ * 🔴 默认值口径（铁律）：**全部 true**。线上 login.wxml 里这 7 块都是无条件渲染的，
+ * 任何一项默认 false 都会让老页面升级后外观突变。
+ *
+ * 🔴 注意「用户协议 / 隐私政策」**不在**这个清单里，而且是刻意不放在：
+ * 合规勾选与 open-type="agreePrivacyAuthorization" 按钮不允许被界面开关摘掉
+ * （详见 login.wxml 里的注释）。要改的是它的**文案排版**，不是它本身。
+ */
+export const LOGIN_MODULE_KEYS = [
+  'brandIdentity',
+  'heroTitle',
+  'interceptTip',
+  'sheetHeading',
+  'formHint',
+  'skipButton',
+  'privacyNote',
+] as const
+
+export type LoginModuleKey = (typeof LOGIN_MODULE_KEYS)[number]
+
+/** 模块 key → 后台中文名 */
+export const LOGIN_MODULE_LABELS: Record<LoginModuleKey, string> = {
+  brandIdentity: '品牌标识区（Logo/名称）',
+  heroTitle: '主标与副文案',
+  interceptTip: '登录后即可 xxx 提示',
+  sheetHeading: '表单标题与副文案',
+  formHint: '协议下方提示文案',
+  skipButton: '暂不登录按钮',
+  privacyNote: '底部隐私提示',
+}
+
+/**
+ * 合规相关、**不提供界面开关**的模块。
+ * 后台把它们展示成「不可关闭」的锁定行，只为解释为什么不给开关。
+ */
+export const LOGIN_COMPLIANCE_LOCKED_MODULES: Array<{ key: string; label: string; reason: string }> = [
+  { key: 'agreement', label: '用户协议 / 隐私政策勾选', reason: '合规必需，勾选与授权校验不可隐藏' },
+  { key: 'privacyPopup', label: '隐私保护提示弹窗', reason: '合规必需，未同意时不可登录' },
+  { key: 'loginButton', label: '登录主按钮', reason: '页面唯一登录入口，隐藏后本页失去意义' },
+]
+
+/** 模块显隐分组配置（扁平对象，端上一行就能取） */
+export type LoginModulesConfig = Record<LoginModuleKey, boolean>
+
+/** 默认模块显隐：全部显示（= 线上现状） */
+export const DEFAULT_LOGIN_MODULES: LoginModulesConfig = {
+  brandIdentity: true,
+  heroTitle: true,
+  interceptTip: true,
+  sheetHeading: true,
+  formHint: true,
+  skipButton: true,
+  privacyNote: true,
+}
+
+/** 把已保存的 modules 归一化成完整 7 项；缺字段 → true（保持线上表现） */
+export function resolveLoginModules(raw?: Partial<LoginModulesConfig> | null): LoginModulesConfig {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Partial<Record<LoginModuleKey, unknown>>
+  const out = {} as LoginModulesConfig
+  for (const key of LOGIN_MODULE_KEYS) {
+    out[key] = src[key] === undefined || src[key] === null
+      ? DEFAULT_LOGIN_MODULES[key]
+      : src[key] !== false
+  }
+  return out
+}
+
+/**
+ * 登录页主题色来源：
+ * - inherit（默认）：继承全局品牌色 form.theme.primaryColor/secondaryColor
+ * - page：启用页面独立主题色 loginPageConfig.themeColor / themeColorSecondary
+ *
+ * 🔴 缺省必须是 inherit。线上 login.wxml 的按钮/链接用的是 app.wxss 的
+ * --brand/--brand-dark/--accent（即全局品牌色），从来不是 loginPageConfig.themeColor。
+ */
+export type LoginThemeSource = 'inherit' | 'page'
+
+/** 归一化主题来源；缺省/非法 → inherit */
+export function normalizeLoginThemeSource(raw?: unknown): LoginThemeSource {
+  return String(raw ?? '').trim().toLowerCase() === 'page' ? 'page' : 'inherit'
+}
+
+/** 顶部品牌区样式：gradient（默认，线上现状）| solid */
+export type LoginHeaderStyle = 'gradient' | 'solid'
+
+/** 登录卡片样式：shadow（默认，线上现状）| flat | outline */
+export type LoginCardStyle = 'shadow' | 'flat' | 'outline'
+
+/** 归一化顶部样式；缺省/非法 → gradient（= 线上现状） */
+export function normalizeLoginHeaderStyle(raw?: unknown): LoginHeaderStyle {
+  return String(raw ?? '').trim().toLowerCase() === 'solid' ? 'solid' : 'gradient'
+}
+
+/** 归一化卡片样式；缺省/非法 → shadow（= 线上现状） */
+export function normalizeLoginCardStyle(raw?: unknown): LoginCardStyle {
+  const s = String(raw ?? '').trim().toLowerCase()
+  if (s === 'flat' || s === 'outline') return s
+  return 'shadow'
+}
+
+/**
+ * 登录页最终生效的主题色 —— **后台预览与小程序端必须走同一个口径**，
+ * 否则后台显示继承全局、真机还是页面覆盖色，两端永远对不齐。
+ *
+ * 规则与 `resolveMineEffectiveTheme` 完全一致：
+ * - themeSource=page 且配了 themeColor → 用页面色（覆盖）
+ * - themeSource=page 但 themeColor 为空 → 回落全局（避免配了个空值变白板）
+ * - themeSource=inherit（缺省）→ 一律用全局品牌色，忽略 loginPageConfig.themeColor
+ */
+export function resolveLoginEffectiveTheme(
+  login?: {
+    themeSource?: unknown
+    themeColor?: string
+    themeColorSecondary?: string
+  } | null,
+  globalTheme?: { primaryColor?: string; secondaryColor?: string } | null,
+): { primary: string; secondary: string; source: LoginThemeSource } {
+  const gPrimary = String(globalTheme?.primaryColor || '').trim()
+  const gSecondary = String(globalTheme?.secondaryColor || '').trim()
+  const source = normalizeLoginThemeSource(login?.themeSource)
+  if (source === 'page') {
+    const p = String(login?.themeColor || '').trim()
+    const s = String(login?.themeColorSecondary || '').trim()
+    if (p) return { primary: p, secondary: s || gSecondary || p, source }
+    return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
+  }
+  return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
 }
 
 /** 登录页风格卡片（配置页模板画廊用） */
@@ -353,6 +694,12 @@ export const DEFAULT_LOGIN_PAGE_CONFIG: LoginPageConfig = {
   templateStyle: 'warm',
   themeColor: '#C2410C',
   themeColorSecondary: '#EA580C',
+  // ↓ 新增字段的初值：一律等于**线上现状**（继承全局品牌色 / 模块全显示 / 渐变顶部 / 阴影卡片）
+  themeSource: 'inherit',
+  modules: { ...DEFAULT_LOGIN_MODULES },
+  pageBackgroundColor: '',
+  headerStyle: 'gradient',
+  cardStyle: 'shadow',
 }
 
 /** 旧 key / 别名归一化 */
@@ -411,6 +758,12 @@ export interface MiniappForm {
   minePageId: number | string
   tabs: NavTab[]
   mineConfig: MinePageConfig
+  /**
+   * 登录页配置（固定页 /pages/login/login）。
+   * 与 mineConfig 平行：登录页有自己的配置台 /page-builder/login，
+   * 但草稿键是同一个 site_builder_draft，所以必须挂在同一个 form 上一起存。
+   */
+  loginPageConfig: LoginPageConfig
   theme: ThemeConfig
   shareTitle: string
   shareImage: string
@@ -564,6 +917,8 @@ export interface MiniappBrandConfig {
   loginTagline: string
   /** 登录页/品牌区英文副标（可选） */
   brandEyebrow: string
+  /** 品牌一句话介绍（可选）：用于个人中心「关于」与分享描述兜底 */
+  intro?: string
   /** 登录半屏风格模板 */
   loginStyleKey?: LoginStyleKey
 }
@@ -665,5 +1020,6 @@ export const DEFAULT_MINIAPP_BRAND_CONFIG: MiniappBrandConfig = {
   logoMark: '墨',
   loginTagline: '登录后继续 · 收藏 / 星球 / 已购',
   brandEyebrow: 'CROSS-BORDER INK',
+  intro: '',
   loginStyleKey: 'warm',
 }

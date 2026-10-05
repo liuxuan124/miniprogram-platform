@@ -10,8 +10,8 @@
             <el-icon><Brush /></el-icon>
             进入装修
           </el-button>
-          <el-button @click="router.push('/mini/overview')">小程序概览</el-button>
-          <el-button @click="router.push('/mini/appearance')">外观</el-button>
+          <el-button @click="router.push('/mini/overview')">搭建工作台</el-button>
+          <el-button @click="router.push('/mini/brand')">品牌信息</el-button>
         </template>
       </template>
     </PageHeader>

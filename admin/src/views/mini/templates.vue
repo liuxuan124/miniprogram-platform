@@ -180,7 +180,7 @@
             </div>
           </div>
           <div class="note" style="margin: 12px 0">
-            确认后会切换页面与导航草稿；请到「外观/概览」点「保存并同步」后才会更新线上配置。
+            确认后会切换页面与导航草稿；请到「发布与版本」发布配置后才会更新线上配置。
           </div>
           <label style="display: flex; gap: 8px; align-items: center; font-size: 13px; cursor: pointer">
             <input v-model="keepTheme" type="checkbox" />
@@ -905,7 +905,7 @@ async function editStoreSite(item: ReleaseRecord) {
       await activateStoreTemplate(id)
       await load()
     }
-    router.push('/mini/appearance')
+    router.push('/mini/brand')
   } catch (e: unknown) {
     if (e === 'cancel') return
     const msg = apiErrorMessage(e, '打开编辑失败')

@@ -57,6 +57,13 @@ function mapColumn(c: Record<string, unknown>) {
     desc: c.desc || '',
     price: c.price ? `¥${String(c.price).replace(/^[¥￥]/, '')}` : '',
     origin: c.origin ? `¥${String(c.origin).replace(/^[¥￥]/, '')}` : '',
+    /**
+     * 集数与主理人（2026-10-05 后端新增，此前 VO 里没有这两个字段）。
+     * 都可能为空串 —— 老数据没配作者档案时 host 就是空的，
+     * 由渲染层按「显隐开关 + 值非空」双重判定，不渲染空行。
+     */
+    lessons: c.lessons || '',
+    host: c.host || '',
     url: productId ? `/pkg-content/product-detail/product-detail?id=${productId}` : '',
   }
 }

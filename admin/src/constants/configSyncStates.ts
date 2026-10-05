@@ -22,4 +22,5 @@ export const CONFIG_SYNC_LABELS: Record<ConfigSyncState, string> = {
 export { MINI_PAGE_STATUS_LABELS } from '@/utils/pageStatus'
 
 export const CONFIG_VS_CODE_HINT =
-  '内容配置版本由后台「保存并同步」写入服务端；微信代码包版本请在开发者工具本地上传，二者分开管理。'
+  '内容配置版本由后台「发布与版本」发布配置写入服务端；'
+  + '微信代码包版本请在开发者工具本地上传，二者分开管理。'

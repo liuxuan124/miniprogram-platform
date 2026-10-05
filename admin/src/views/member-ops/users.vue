@@ -35,13 +35,19 @@
         <button type="button" class="btn sm primary" @click="enterDupMode">查看重复</button>
       </div>
 
-      <div class="tiles">
-        <div v-for="s in statsTiles" :key="s.label" class="tile" style="padding:12px 16px">
-          <span class="faint">{{ s.label }}</span>
-          <b style="font-size:26px">{{ s.value }}</b>
+      <!-- V121 紧凑指标栏：单行，替代原来 4 张大卡（3 个还是断点值，纯占 120px 空白）。
+           stats 拿不到时整条隐藏，而不是摆一排破折号。 -->
+      <div v-if="!statsEmpty" class="mbar">
+        <div v-for="s in statsTiles" :key="s.label" class="mbar-item">
+          <span class="mbar-l">{{ s.label }}</span>
+          <b class="mbar-v">{{ s.value }}</b>
+          <span v-if="s.delta" class="mbar-d" :class="s.deltaUp ? 'up' : 'down'">{{ s.delta }}</span>
         </div>
       </div>
+      <div v-else-if="statsError" class="faint">概览统计暂不可用，不影响下方列表操作</div>
 
+      <!-- V121 筛选压成一行：搜索 + 会员状态 + 账号来源 + 角色。
+           来源/角色的 0 计数项收进「更多」，不再常驻占位（原来 3 行把表格推下半屏）。 -->
       <div class="filters">
         <label class="search">
           <MiniIcon name="search" :size="15" />
@@ -62,11 +68,11 @@
           :disabled="dupMode"
           @click="payFilter = c.k; fetchUsers()"
         >{{ c.l }}</button>
-      </div>
 
-      <!-- V116 账号来源：把「真实注册用户」和「后台配置/联调账号」分开，避免统计被污染 -->
-      <div class="filters" style="margin-top: -4px">
-        <span class="faint" style="align-self: center; font-size: 12px">账号来源</span>
+        <span class="fdiv" />
+
+        <!-- V116 账号来源：把「真实注册用户」和「后台配置/联调账号」分开，避免统计被污染 -->
+        <span class="faint" style="font-size:12px">来源</span>
         <button
           type="button"
           class="chip"
@@ -87,42 +93,74 @@
           {{ a.l }}
           <span v-if="a.n !== undefined" class="faint" style="margin-left: 3px">{{ a.n }}</span>
         </button>
-      </div>
-
-      <!-- V114 角色筛选：作者/主理人/编辑等，点一下就把人筛出来，不用再单独建分群 -->
-      <div v-if="roles.length" class="filters" style="margin-top: -4px">
-        <span class="faint" style="align-self: center; font-size: 12px">角色</span>
         <button
+          v-if="zeroAccountChips.length"
           type="button"
-          class="chip"
-          :class="{ on: !roleFilterId }"
-          :disabled="dupMode"
-          @click="setRoleFilter(null)"
-        >全部</button>
-        <button
-          v-for="r in roles"
-          :key="r.id"
-          type="button"
-          class="chip"
-          :class="{ on: roleFilterId === r.id }"
-          :disabled="dupMode"
-          :title="dupMode ? '重复排查模式下不可筛选，退出后可用' : (r.description || r.name)"
-          @click="setRoleFilter(r.id)"
-        >
-          <span class="pdot" :style="{ background: r.color || '#c08e6e', width: '8px', height: '8px' }" />
-          {{ r.name }}
-          <span class="faint" style="margin-left: 3px">{{ r.userCount }}</span>
-        </button>
-      </div>
+          class="link"
+          style="font-size:12px"
+          @click="moreFilters = !moreFilters"
+        >{{ moreFilters ? '收起' : '更多来源' }}（{{ zeroAccountChips.length }}）</button>
+        <template v-if="moreFilters">
+          <button
+            v-for="a in zeroAccountChips"
+            :key="a.k"
+            type="button"
+            class="chip zero"
+            :class="{ on: accountFilter === a.k }"
+            :disabled="dupMode"
+            :title="a.tip"
+            @click="setAccountFilter(a.k)"
+          >{{ a.l }} <span class="faint">{{ a.n }}</span></button>
+        </template>
 
-      <div v-if="selectedIds.length" class="bulk">
-        <b>已选 {{ selectedIds.length }} 人</b>
-        <button type="button" class="btn sm" @click="bulkTagOpen = true">
-          <MiniIcon name="tag" :size="14" />打角色标签
-        </button>
-        <button type="button" class="btn sm" @click="openBulkReach"><MiniIcon name="send" :size="14" />发订阅消息</button>
-        <button type="button" class="btn sm" @click="giftOpen = true"><MiniIcon name="gift" :size="14" />赠送会员</button>
-        <button type="button" class="link" style="margin-left:auto" @click="selectedIds = []">取消选择</button>
+        <!-- V114 角色筛选：作者/主理人/编辑等，点一下就把人筛出来，不用再单独建分群 -->
+        <template v-if="roles.length">
+          <span class="fdiv" />
+          <span class="faint" style="font-size:12px">角色</span>
+          <button
+            type="button"
+            class="chip"
+            :class="{ on: !roleFilterId }"
+            :disabled="dupMode"
+            @click="setRoleFilter(null)"
+          >全部</button>
+          <button
+            v-for="r in visibleRoleChips"
+            :key="r.id"
+            type="button"
+            class="chip"
+            :class="{ on: roleFilterId === r.id }"
+            :disabled="dupMode"
+            :title="dupMode ? '重复排查模式下不可筛选，退出后可用' : (r.description || r.name)"
+            @click="setRoleFilter(r.id)"
+          >
+            <span class="pdot" :style="{ background: r.color || '#c08e6e', width: '8px', height: '8px' }" />
+            {{ r.name }}
+            <span class="faint" style="margin-left: 3px">{{ r.userCount }}</span>
+          </button>
+          <button
+            v-if="hiddenRoleChips.length"
+            type="button"
+            class="link"
+            style="font-size:12px"
+            @click="moreFilters = !moreFilters"
+          >{{ moreFilters ? '收起' : '更多角色' }}（{{ hiddenRoleChips.length }}）</button>
+          <template v-if="moreFilters">
+            <button
+              v-for="r in hiddenRoleChips"
+              :key="r.id"
+              type="button"
+              class="chip zero"
+              :class="{ on: roleFilterId === r.id }"
+              :disabled="dupMode"
+              :title="r.description || r.name"
+              @click="setRoleFilter(r.id)"
+            >
+              <span class="pdot" :style="{ background: r.color || '#c08e6e', width: '8px', height: '8px' }" />
+              {{ r.name }} <span class="faint">{{ r.userCount }}</span>
+            </button>
+          </template>
+        </template>
       </div>
 
       <div v-if="listError" class="empty-box">{{ listError }} <button type="button" class="btn sm" @click="fetchUsers">重试</button></div>
@@ -133,11 +171,22 @@
           <span class="c-pay">账号来源</span>
           <span class="c-pay">付费会员</span>
           <span class="c-lv">角色身份</span>
-          <span class="c-num">积分</span>
-          <span class="c-num">累计消费</span>
-          <span class="c-num">订单</span>
-          <span class="ctime">最近访问</span>
-          <span class="ctime">注册</span>
+          <span class="c-num sortable" :class="{ sorted: sortBy === 'points' }" @click="toggleSort('points')">
+            积分<i class="sarrow" :class="arrowCls('points')" />
+          </span>
+          <span class="c-num sortable" :class="{ sorted: sortBy === 'spend' }" @click="toggleSort('spend')">
+            累计消费<i class="sarrow" :class="arrowCls('spend')" />
+          </span>
+          <span class="c-num sortable" :class="{ sorted: sortBy === 'orders' }" @click="toggleSort('orders')">
+            订单<i class="sarrow" :class="arrowCls('orders')" />
+          </span>
+          <span class="ctime sortable" :class="{ sorted: sortBy === 'lastVisit' }" @click="toggleSort('lastVisit')">
+            最近访问<i class="sarrow" :class="arrowCls('lastVisit')" />
+          </span>
+          <span class="ctime sortable" :class="{ sorted: sortBy === 'created' }" @click="toggleSort('created')">
+            注册<i class="sarrow" :class="arrowCls('created')" />
+          </span>
+          <span class="c-act">操作</span>
         </div>
         <div v-if="!users.length" class="muted" style="padding:28px;text-align:center">
           <template v-if="dupMode">未发现重复账号（没有两个账号共用同一手机号）</template>
@@ -150,8 +199,24 @@
               {{ (u.nickname || '?').charAt(0) }}
             </span>
             <span style="min-width:0">
-              <b>{{ u.nickname || '未命名' }}</b>
-              <span class="faint">{{ u.phone || '—' }} · {{ u.sourceLabel || u.source || '—' }}</span>
+              <b>
+                {{ u.nickname || '未命名用户' }}
+                <span v-if="u.openid" class="faint oidtail" :title="'OpenID：' + u.openid">
+                  ····{{ u.openid.slice(-4) }}
+                </span>
+              </b>
+              <span class="faint">
+                <span
+                  v-if="u.phone"
+                  class="phone"
+                  :title="revealedPhones.has(u.id) ? '点击复制完整手机号' : '点击显示完整手机号'"
+                  @click.stop="togglePhone(u.id)"
+                >{{ revealedPhones.has(u.id) ? u.phone : maskPhone(u.phone) }}</span>
+                <template v-if="u.sourceLabel && u.sourceLabel !== '未知'">
+                  <template v-if="u.phone"> · </template>{{ u.sourceLabel }}
+                </template>
+                <template v-if="!u.phone && (!u.sourceLabel || u.sourceLabel === '未知')">未绑手机号</template>
+              </span>
             </span>
           </button>
           <div class="c-pay">
@@ -171,13 +236,86 @@
           <div class="c-num">{{ u.points ?? 0 }}</div>
           <div class="c-num">{{ money(u.spend ?? u.totalSpend) }}</div>
           <div class="c-num">{{ u.orders ?? 0 }}</div>
-          <div class="ctime faint">{{ shortDate(u.lastVisit) }}</div>
-          <div class="ctime faint">{{ shortDate(u.createdAt || u.joined) }}</div>
+          <div class="ctime faint" :title="fullTime(u.lastVisit)">{{ relTime(u.lastVisit) }}</div>
+          <div class="ctime faint" :title="fullTime(u.createdAt || u.joined)">{{ relTime(u.createdAt || u.joined) }}</div>
+          <div class="c-act">
+            <button type="button" class="link" @click="openDetail(u)">详情</button>
+            <button
+              type="button"
+              class="link"
+              :disabled="!!dupMode"
+              :title="dupMode ? '重复排查模式下不可操作，退出后可用' : '赠送会员'"
+              @click="giftOne(u)"
+            >赠送</button>
+            <button
+              type="button"
+              class="link"
+              :disabled="!!dupMode"
+              title="打角色标签"
+              @click="tagOne(u)"
+            >标签</button>
+            <button type="button" class="link" title="更多操作" @click="toggleRowMenu(u.id)">更多</button>
+            <div v-if="rowMenuId === u.id" class="rowmenu" @click.stop>
+              <button type="button" class="link" @click="openDetail(u); rowMenuId = null">用户画像</button>
+              <button
+                type="button"
+                class="link"
+                @click="rowBan(u); rowMenuId = null"
+              >{{ bannedIds.has(u.id) ? '解除封禁' : '封禁账号' }}</button>
+              <button
+                v-if="(u.duplicateCount ?? 1) >= 2"
+                type="button"
+                class="link"
+                @click="openMergeFor(u); rowMenuId = null"
+              >合并重复账号…</button>
+              <button
+                v-if="canDeleteUser"
+                type="button"
+                class="link danger"
+                @click="doDelete(u); rowMenuId = null"
+              >删除账号</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="faint">
-        <template v-if="dupMode">重复模式：{{ total }} 个账号命中（同手机号 ≥2），点用户查看详情后可在抽屉里比对</template>
-        <template v-else>共 {{ total }} 人 · 点用户查看详情</template>
+
+      <!-- V121 分页：以前固定 current:1/size:50，数据涨上去就只能靠搜索框找人 -->
+      <div class="pager">
+        <span class="faint">
+          <template v-if="dupMode">重复模式：{{ total }} 个账号命中（同手机号 ≥2）</template>
+          <template v-else>共 {{ total }} 人</template>
+        </span>
+        <el-pagination
+          v-if="!dupMode && total > size"
+          v-model:current-page="current"
+          v-model:page-size="size"
+          :page-sizes="[20, 50, 100]"
+          :total="total"
+          layout="sizes, prev, pager, next"
+          background
+          @current-change="fetchUsers"
+          @size-change="onSizeChange"
+        />
+      </div>
+
+      <!-- V121 批量操作栏移到表格下方：原来在表格上方且 sticky top:72px，
+           在表格中段勾选时用户视线在下方，往回滚才看得到，表现为「勾了没反应」。
+           勾选后自动滚入视口，操作闭环才算成立。 -->
+      <div v-if="selectedIds.length" class="bulk" ref="bulkBar">
+        <b>已选择 {{ selectedIds.length }} 人</b>
+        <button type="button" class="btn sm" @click="bulkTagOpen = true">
+          <MiniIcon name="tag" :size="14" />批量打标签
+        </button>
+        <button type="button" class="btn sm" @click="giftOpen = true">
+          <MiniIcon name="gift" :size="14" />批量赠送会员
+        </button>
+        <button type="button" class="btn sm" @click="openBulkReach">
+          <MiniIcon name="send" :size="14" />批量发订阅消息
+        </button>
+        <button type="button" class="btn sm" @click="doBulkExport">
+          <MiniIcon name="receipt" :size="14" />批量导出
+        </button>
+        <button type="button" class="link" style="margin-left:auto" @click="selectedIds = []">取消选择</button>
       </div>
     </template>
 
@@ -515,7 +653,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
@@ -569,6 +707,53 @@ const total = ref(0)
 const listError = ref('')
 const selectedIds = ref<number[]>([])
 const stats = ref<any>({})
+const statsError = ref(false)
+
+/* ============ V121：分页 / 排序 / 手机号脱敏 / 行内操作菜单 ============ */
+const current = ref(1)
+const size = ref(50)
+const sortBy = ref('')
+const sortDir = ref<'asc' | 'desc'>('desc')
+/** 点已排序的列 → 换方向；点新列 → 该列降序（运营最先要的是「最大的」） */
+function toggleSort(key: string) {
+  if (sortBy.value === key) sortDir.value = sortDir.value === 'desc' ? 'asc' : 'desc'
+  else {
+    sortBy.value = key
+    sortDir.value = 'desc'
+  }
+  current.value = 1
+  fetchUsers()
+}
+function arrowCls(key: string) {
+  if (sortBy.value !== key) return 'off'
+  return sortDir.value === 'asc' ? 'asc' : 'desc'
+}
+function onSizeChange() {
+  current.value = 1
+  fetchUsers()
+}
+/** V121：已展开明文的手机号。默认脱敏，点一下才显示，运营核对时用 */
+const revealedPhones = ref<Set<number>>(new Set())
+function togglePhone(id: number) {
+  const next = new Set(revealedPhones.value)
+  if (next.has(id)) next.delete(id)
+  else {
+    next.add(id)
+    const u = users.value.find((x) => x.id === id)
+    if (u?.phone && navigator.clipboard) navigator.clipboard.writeText(u.phone).catch(() => {})
+  }
+  revealedPhones.value = next
+}
+/** V121：行内「更多」下拉，同一时刻只开一个 */
+const rowMenuId = ref<number | null>(null)
+function toggleRowMenu(id: number) {
+  rowMenuId.value = rowMenuId.value === id ? null : id
+}
+/** 封禁状态缓存：行内菜单要显示「封禁」还是「解封」，不能每行都去拉一次接口 */
+const bannedIds = ref<Set<number>>(new Set())
+/** V121：0 计数的来源/角色收进「更多」，避免「后台配置 0」这类空标签常驻占位 */
+const moreFilters = ref(false)
+const bulkBar = ref<HTMLElement | null>(null)
 const dupHint = ref('')
 /** V119：重复账号组数（退出重复模式后仍保留，用于提示条文案） */
 const dupGroupCount = ref(0)
@@ -665,6 +850,12 @@ const accountChips = computed(() => [
   },
 ])
 
+/** V121：计数为 0 的来源 chip 收进「更多来源」，默认不占首行 */
+const zeroAccountChips = computed(() => accountChips.value.filter((a) => a.n === 0))
+/** V121：角色同理。计数为 0 的角色点了必然空表，没必要常驻。 */
+const visibleRoleChips = computed(() => roles.value.filter((r) => (r.userCount ?? 0) > 0).slice(0, 6))
+const hiddenRoleChips = computed(() => roles.value.filter((r) => (r.userCount ?? 0) > 0).slice(6))
+
 /** 来源标签配色：真实注册=绿、后台配置=蓝、联调测试=灰、未知=浅灰 */
 function accountTagClass(type?: string): string {
   switch (type) {
@@ -681,15 +872,33 @@ function accountTagClass(type?: string): string {
 
 async function setAccountFilter(k: string) {
   accountFilter.value = k
+  current.value = 1
   await fetchUsers()
 }
 
-const statsTiles = computed(() => [
-  { label: '总用户', value: stats.value.totalUsers ?? total.value ?? '—' },
-  { label: '近 7 日活跃', value: stats.value.active7d ?? '—' },
-  { label: '有订单用户', value: stats.value.orderedUsers ?? '—' },
-  { label: '有效订单', value: stats.value.orders ?? '—' },
-])
+const statsTiles = computed(() => {
+  const s = stats.value || {}
+  const cur = Number(s.activeUsers7d)
+  const prev = Number(s.activeUsersPrev7d)
+  // 只有两个窗口都有值且基准 >0 才算得出百分比；否则不显示箭头，
+  // 免得出现「+Infinity%」这种把运营带沟里的数字。
+  const hasDelta = Number.isFinite(cur) && Number.isFinite(prev) && prev > 0
+  const pct = hasDelta ? Math.round(((cur - prev) / prev) * 100) : 0
+  return [
+    { label: '总用户', value: s.totalUsers ?? total.value ?? '—', delta: '', deltaUp: false },
+    {
+      label: '近 7 日活跃',
+      value: s.activeUsers7d ?? '—',
+      delta: hasDelta ? `较上周 ${pct >= 0 ? '+' : ''}${pct}%` : '',
+      deltaUp: pct >= 0,
+    },
+    { label: '有订单用户', value: s.usersWithOrders ?? '—', delta: '', deltaUp: false },
+    { label: '有效订单', value: s.totalOrders ?? '—', delta: '', deltaUp: false },
+  ]
+})
+
+/** 统计接口整个失败时（不是「某项为 0」）才提示，避免摆一排破折号占版面 */
+const statsEmpty = computed(() => !stats.value || Object.keys(stats.value).length === 0)
 
 const allSelected = computed(() => users.value.length > 0 && users.value.every((u) => selectedIds.value.includes(u.id)))
 
@@ -703,6 +912,39 @@ function money(n: any) {
 function shortDate(s: any) {
   if (!s) return '—'
   return String(s).replace('T', ' ').slice(5, 10)
+}
+
+/** V121 完整时间戳，挂在 title 上。原来只有 07-28，跨年时分不清 2025 还是 2026 */
+function fullTime(s: any) {
+  if (!s) return '未记录'
+  return String(s).replace('T', ' ').slice(0, 19)
+}
+
+/**
+ * V121 相对时间。列表里 15 个人全是「07-28」这种同宽字符串，扫不出新旧；
+ * 「3 小时前 / 12 天前」才能一眼看出谁在活跃、谁沉睡。
+ * 超过 30 天回落到 YYYY-MM-DD，再久就只显示年份。
+ */
+function relTime(s: any) {
+  if (!s) return '—'
+  const t = new Date(String(s).replace(/-/g, '/')).getTime()
+  if (Number.isNaN(t)) return String(s).slice(0, 10)
+  const diff = Date.now() - t
+  const min = 60_000
+  const hour = 60 * min
+  const day = 24 * hour
+  if (diff < min) return '刚刚'
+  if (diff < hour) return `${Math.floor(diff / min)} 分钟前`
+  if (diff < day) return `${Math.floor(diff / hour)} 小时前`
+  if (diff < 30 * day) return `${Math.floor(diff / day)} 天前`
+  return String(s).replace('T', ' ').slice(0, 10)
+}
+
+/** V121 手机号脱敏：11 位显示前 3 后 4，中间 4 位掩码。非 11 位（座机/异常值）整体打码 */
+function maskPhone(p: string) {
+  const s = String(p || '')
+  if (s.length === 11) return s.slice(0, 3) + '****' + s.slice(7)
+  return s.length > 2 ? s.slice(0, 1) + '****' + s.slice(-2) : '****'
 }
 function reachLabel(a?: string) {
   const map: Record<string, string> = {
@@ -733,24 +975,43 @@ function toggleAll(e: Event) {
   selectedIds.value = on ? users.value.map((u) => u.id) : []
 }
 
+/**
+ * V121：勾选后把批量栏滚进视口。
+ * 批量栏在表格下方，表格有 15+ 行时它落在首屏之外 —— 用户勾完看不到任何反馈，
+ * 只会以为「勾选坏了」。用 nextTick 等 DOM 出现再滚。
+ */
+watch(selectedIds, async (ids) => {
+  if (!ids.length) return
+  await nextTick()
+  bulkBar.value?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+})
+
 async function fetchUsers() {
   loading.value = true
   listError.value = ''
+  rowMenuId.value = null
   try {
     const res: any = await getUserList({
       keyword: keyword.value || undefined,
-      current: 1,
-      size: 50,
+      current: current.value,
+      size: size.value,
       payStatus: payFilter.value === 'all' ? undefined : payFilter.value,
       accountType: accountFilter.value || undefined,
       // V119：角色筛选与重复筛选都已下推到服务端；重复模式下只带 duplicateOnly
       roleTagId: roleFilterId.value ?? undefined,
       duplicateOnly: dupMode.value ? true : undefined,
+      // V121：排序也下推到服务端。只在前端排会只排当前页，
+      // 一翻页顺序就乱，运营会以为「高消费的人不见了」。
+      orderBy: sortBy.value || undefined,
+      orderDir: sortDir.value,
     })
     const page = unwrapList(res)
     let rows = page.records.map((r: any) => ({
       id: Number(r.id),
-      nickname: r.nickname || r.name || '微信用户',
+      // 昵称兜底：生产库大量 nickname 为 NULL，还有人把 openid 直接写进昵称字段。
+      // 统一显示「未命名用户」，OpenID 缩略后四位另起一行浅色标注。
+      nickname: normalizeNickname(r.nickname || r.name),
+      openid: r.openid || r.openId || '',
       phone: r.phone || r.mobile || '',
       source: r.source,
       sourceLabel: r.sourceLabel || r.source_label || r.source || r.sourceChannelLabel,
@@ -801,6 +1062,117 @@ async function fetchUsers() {
   }
 }
 
+/**
+ * V121 昵称归一。
+ * <p>三类要打成「未命名用户」：
+ * ① 空/NULL —— 生产库 15 人里 11 个 nickname 是 NULL
+ * ② 「微信用户」这类占位串 —— 后端兜底写死的，不是真人昵称
+ * ③ wxid_xxx / wx_xxx —— 有人把 openid 直接存进了昵称字段
+ * ④ 长度 ≥ 12 的纯 ASCII 串 —— 同上，且已排除英文名/短 ID 的误伤
+ */
+function normalizeNickname(raw: any): string {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  if (/^微信用户$/i.test(s)) return ''
+  if (/^wx(id)?_/i.test(s)) return ''
+  if (s.length >= 12 && /^[A-Za-z0-9_\-]+$/.test(s)) return ''
+  return s
+}
+
+/* ============ V121：行内操作 + 批量导出 ============ */
+
+/** 单人赠送：预选该人，避免操作者在弹窗里再找人 */
+function giftOne(u: any) {
+  selectedIds.value = [u.id]
+  giftOpen.value = true
+}
+
+/** 单人打标签：预选该人后复用批量弹窗 */
+function tagOne(u: any) {
+  selectedIds.value = [u.id]
+  bulkTagOpen.value = true
+}
+
+/**
+ * 行内「更多 → 封禁/解封」。
+ * <p>列表 VO 不带 banned 字段，所以本行状态以「点过之后才知道」为准：
+ * 点封禁 → 调封禁接口并记入 bannedIds；点解封同理。失败不写缓存，
+ * 否则会出现「菜单写着解封但实际没封」的错位。
+ */
+async function rowBan(u: any) {
+  const banned = bannedIds.value.has(u.id)
+  if (!banned) {
+    try {
+      await ElMessageBox.confirm(
+        `封禁「${u.nickname || '未命名用户'}」？该用户会立即下线且无法重新登录。`,
+        '封禁账号',
+        { type: 'warning', confirmButtonText: '确认封禁', cancelButtonText: '取消' }
+      )
+    } catch {
+      return
+    }
+  }
+  try {
+    if (banned) {
+      await unbanUser(u.id)
+      bannedIds.value = new Set([...bannedIds.value].filter((x) => x !== u.id))
+      ElMessage.success('已解除封禁')
+    } else {
+      await banUser(u.id)
+      bannedIds.value = new Set([...bannedIds.value, u.id])
+      ElMessage.success('已封禁，该用户已下线')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || (banned ? '解封失败' : '封禁失败'))
+  }
+}
+
+/**
+ * V121 批量导出：只导勾选的人。
+ * <p>不用后端 export 接口 —— 它按筛选条件导全量，运营要的是「这 15 个人单独存一份」。
+ * 字段与列表一致，手机号同样脱敏：导出的表格大概率会外发，明文留在文件里是二次泄露。
+ */
+function doBulkExport() {
+  const rows = users.value.filter((u) => selectedIds.value.includes(u.id))
+  if (!rows.length) {
+    ElMessage.warning('请先选择用户')
+    return
+  }
+  const header = ['昵称', '手机号', '账号来源', '付费会员', '角色', '积分', '累计消费', '订单', '最近访问', '注册时间']
+  const lines = [header.join(',')]
+  rows.forEach((u) => {
+    const cell = (v: any) => {
+      const s = String(v ?? '')
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    lines.push(
+      [
+        u.nickname || '未命名用户',
+        u.phone ? maskPhone(u.phone) : '',
+        u.accountTypeLabel || '未知',
+        u.planName || '非会员',
+        (u.roleTagNames || []).join('/'),
+        u.points ?? 0,
+        u.spend ?? u.totalSpend ?? 0,
+        u.orders ?? 0,
+        fullTime(u.lastVisit),
+        fullTime(u.createdAt || u.joined),
+      ]
+        .map(cell)
+        .join(',')
+    )
+  })
+  // BOM：Excel 打开 CSV 不带 BOM 会把中文认成乱码
+  const blob = new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `已选用户_${rows.length}人.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  ElMessage.success(`已导出 ${rows.length} 人（手机号已脱敏）`)
+}
+
 function creatorRoleLabel(role: string): string {
   const map: Record<string, string> = {
     owner: '主理人',
@@ -816,6 +1188,7 @@ function creatorRoleLabel(role: string): string {
 /** 切角色筛选 */
 async function setRoleFilter(id: number | null) {
   roleFilterId.value = id
+  current.value = 1
   await fetchUsers()
 }
 
@@ -823,8 +1196,10 @@ async function loadStats() {
   try {
     const res: any = await getUserStats()
     stats.value = res?.data ?? res ?? {}
+    statsError.value = !stats.value || Object.keys(stats.value).length === 0
   } catch {
     stats.value = {}
+    statsError.value = true
   }
 }
 
@@ -1418,6 +1793,9 @@ watch(dupMode, async (on) => {
 })
 
 onMounted(async () => {
+  // V121：点空白处关掉行内「更多」菜单。挂在 document 上用捕获阶段，
+  // 菜单自身的 @click.stop 才拦得住，不会出现「点菜单项却先被关掉」。
+  document.addEventListener('click', onDocClick, true)
   // 直连 dup=1 时先把互斥筛选归位，再拉列表（否则会拿到空交集）
   if (dupMode.value) resetFilters()
   // 先拉角色，列表里的角色列与筛选 chips 都要用
@@ -1432,4 +1810,15 @@ onMounted(async () => {
     if (hit) await setRoleFilter(rid)
   }
 })
+
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick, true)
+})
+
+function onDocClick(e: MouseEvent) {
+  if (rowMenuId.value === null) return
+  const el = e.target as HTMLElement
+  if (el.closest?.('.c-act')) return
+  rowMenuId.value = null
+}
 </script>

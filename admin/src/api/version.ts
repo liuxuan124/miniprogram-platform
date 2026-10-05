@@ -25,7 +25,12 @@ export function isValidReleaseId(id: unknown): id is number {
   return toReleaseId(id) != null
 }
 
-/** 上线到小程序（导航草稿 + 脏页），不是微信代码包 */
+/**
+ * 🔴 旧发布通道（导航草稿 + 脏页），不是微信代码包。
+ * 2026-10-06 起新代码请改用 `publishMiniSite`（/mini/publish）——
+ * 那条链路带 preflight、勾选与版本快照。保留本函数仅为旧调用方兜底。
+ * ⚠️ 两条链路各自递增发布序号，混用会让同一版本显示成不同数字。
+ */
 export function publishContentToMiniapp() {
   return post(`${BASE}/publish-content`)
 }

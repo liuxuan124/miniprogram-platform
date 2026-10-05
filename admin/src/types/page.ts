@@ -497,11 +497,24 @@ export interface PageGradient {
 
 /** 复合页面背景：solid = 纯色；gradient = 线性渐变 */
 export interface PageBackground {
-  type: 'solid' | 'gradient'
+  type: 'solid' | 'gradient' | 'image'
   /** solid 模式的填充色 */
   color?: string
   /** gradient 模式的渐变参数 */
   gradient?: PageGradient
+  /**
+   * image 模式的背景图（2026-10-06 新增）。
+   * 🔴 放在 background 里而不是平铺到 PageConfig 顶层：
+   * 背景是**一个整体概念**（类型 + 参数），平铺会让 `type` 与其参数分散两处，
+   * 出现「type=image 但 url 在别处」的不可能状态。
+   */
+  image?: {
+    url: string
+    /** cover=全屏覆盖 / tile-top=顶部平铺 / center=居中不拉伸 */
+    mode: 'cover' | 'tile-top' | 'center'
+    /** true=固定视口（不随内容滚动） */
+    fixed: boolean
+  }
 }
 
 /**
@@ -529,6 +542,31 @@ export interface PageConfig {
   background?: PageBackground
   /** 底部渐隐融合遮罩（v2） */
   bottomOverlay?: PageBottomOverlay
+  /**
+   * 顶部导航栏配置（2026-10-06 新增）。
+   * ⚠️ 字段全可选且默认值与「字段缺失」时的旧行为一致 ——
+   * 老页面加载后归一化得到的 nav 等价于「标准模式 + 跟随页面名 + 深色状态栏」，
+   * 即与改动前完全一致，不会因为加了这个字段就换外观。
+   */
+  nav?: {
+    mode: 'standard' | 'immersive' | 'gradient' | 'hidden'
+    sync_title: boolean
+    title: string
+    bg_color: string
+    status_text_tone: 'dark' | 'light'
+    gradient_to: string
+  }
+  /** 分享配置（2026-10-06 扩充：新增 desc） */
+  share_desc?: string
+  /** 高级设置（2026-10-06 新增） */
+  access_mode?: 'public' | 'login' | 'vip'
+  vip_level?: number
+  schedule?: {
+    enabled: boolean
+    online_at: number
+    offline_at: number
+    redirect_path: string
+  }
 }
 
 /** 底部遮罩默认配置（需求基线：默认开启 / 96px / 自动取底色） */
