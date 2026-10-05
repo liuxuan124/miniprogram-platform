@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 首次进入选星球 · 路径与原型</title>
+<style>
+  :root {
+    --brand: #c2410c; --brand-2: #ea580c; --gold: #b45309; --deep: #7c2d12;
+    --ink: #2a1c12; --ink2: #6b5443; --mute: #a1897a;
+    --line: rgba(120,72,40,.13); --bg: #fdf6ec; --sheet: #fffaf3; --sheet2: #f8ecdd;
+    --shadow: 0 18px 44px rgba(120,64,24,.14); --shadow-s: 0 8px 20px rgba(120,64,24,.08);
+    --ok: #15803d; --warn: #b45309; --danger: #b91c1c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background:
+      radial-gradient(900px 520px at 12% -8%, #f7e6cc, transparent 60%),
+      radial-gradient(720px 500px at 94% 4%, #f4dcc6, transparent 55%), #e9d8c3;
+    color: var(--ink);
+    font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif;
+    -webkit-font-smoothing: antialiased; line-height: 1.6;
+  }
+  .serif { font-family: "Iowan Old Style", "Palatino Linotype", "Songti SC", "Noto Serif SC", serif; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ---------- header ---------- */
+  .kicker { font-size: 11px; letter-spacing: .26em; color: var(--gold); font-weight: 800; }
+  h1 { margin-top: 10px; font-size: 34px; letter-spacing: -.03em; font-weight: 640; line-height: 1.3; }
+  .sub { margin-top: 12px; max-width: 900px; font-size: 14px; color: #6b5443; }
+  .concl { margin-top: 20px; max-width: 1080px; padding: 16px 18px; border-radius: 16px;
+    background: rgba(255,252,247,.78); border: 1px dashed rgba(180,83,9,.34); }
+  .concl b { font-size: 13px; color: var(--brand); }
+  .concl p { margin-top: 8px; font-size: 13px; color: #6b5443; line-height: 1.85; }
+  .concl em { font-style: normal; font-weight: 700; color: var(--brand); }
+
+  /* ---------- section ---------- */
+  .sect { margin-top: 44px; }
+  .sect > h2 { font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 9px; }
+  .sect > h2::after { content: ""; flex: 1; height: 1px; background: rgba(120,72,40,.16); }
+  .sect > p.lead { margin-top: 8px; font-size: 13px; color: var(--ink2); max-width: 1000px; }
+
+  /* ---------- table ---------- */
+  .tw { margin-top: 18px; overflow-x: auto; border-radius: 14px; border: 1px solid var(--line);
+    background: rgba(255,252,247,.7); -webkit-overflow-scrolling: touch; }
+  .tw::-webkit-scrollbar { height: 7px; }
+  .tw::-webkit-scrollbar-thumb { background: #dcc4a6; border-radius: 99px; }
+  table { width: 100%; min-width: 660px; border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
+  th, td { padding: 10px 13px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  th { background: rgba(240,225,205,.6); font-size: 11.5px; font-weight: 800; color: #8a5a24; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: 0; }
+  td code, .mono { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11.5px;
+    background: rgba(255,255,255,.7); padding: 1px 5px; border-radius: 4px; color: #9a3412;
+    white-space: nowrap; }
+  .no { color: var(--danger); font-weight: 700; }
+  .yes { color: var(--ok); font-weight: 700; }
+  .mid { color: var(--warn); font-weight: 700; }
+
+  /* ---------- flow ---------- */
+  .flow { margin-top: 18px; display: grid; gap: 14px; }
+  .path { background: rgba(255,252,247,.72); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; }
+  .path > .pt { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .path .pn { font-size: 13.5px; font-weight: 800; }
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 10.5px; font-weight: 700; }
+  .pill.a { background: #fbe6d4; color: var(--brand); }
+  .pill.b { background: #e6f2ea; color: #15803d; }
+  .pill.c { background: #fdf0d6; color: var(--gold); }
+  .chain { margin-top: 13px; display: flex; flex-wrap: wrap; align-items: stretch; gap: 7px; }
+  .node { flex: 1 1 0; min-width: 118px; padding: 10px 11px; border-radius: 12px; background: #fff;
+    border: 1px solid var(--line); font-size: 11.5px; line-height: 1.5; }
+  .node b { display: block; font-size: 12px; font-weight: 750; margin-bottom: 3px; }
+  .node span { color: var(--mute); font-size: 10.5px; }
+  .node.hi { background: linear-gradient(140deg,#fff7ec,#fffaf3); border-color: #f0d3ad; }
+  .node.new { background: linear-gradient(140deg,#fdeee0,#fdf6ec); border-color: #eab88c; border-style: dashed; }
+  .node.new b::after { content: "新增"; margin-left: 6px; font-size: 9.5px; font-weight: 800; color: #fff;
+    background: var(--brand); padding: 1px 6px; border-radius: 99px; vertical-align: 1.5px; }
+  .node.chg b::after { content: "改造"; margin-left: 6px; font-size: 9.5px; font-weight: 800; color: #fff;
+    background: var(--gold); padding: 1px 6px; border-radius: 99px; vertical-align: 1.5px; }
+  .arrow { align-self: center; color: #c9a177; font-size: 14px; flex: none; }
+  .note-line { margin-top: 11px; font-size: 11.5px; color: var(--ink2); background: var(--sheet2);
+    padding: 9px 11px; border-radius: 10px; }
+  .note-line b { color: var(--brand); }
+
+  /* ---------- proto layout ---------- */
+  .proto { margin-top: 18px; display: grid; grid-template-columns: 320px 1fr; gap: 30px; align-items: start; }
+  .panel { position: sticky; top: 20px; background: rgba(255,252,247,.8); border: 1px solid var(--line);
+    border-radius: 16px; padding: 16px; }
+  .panel h4 { font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 7px; }
+  .panel h4 + p { margin-top: 6px; font-size: 11.5px; color: var(--mute); }
+  .grp { margin-top: 14px; }
+  .grp > label { display: block; font-size: 11px; font-weight: 800; color: #8a5a24; letter-spacing: .06em; margin-bottom: 7px; }
+  .seg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  button.b { font: inherit; cursor: pointer; border: 1px solid var(--line); background: #fff; color: var(--ink2);
+    padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 650; text-align: left; }
+  button.b:hover { border-color: #e0b98d; }
+  button.b.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; border-color: transparent; }
+  button.b.wide { grid-column: 1 / -1; }
+  .screens { margin-top: 14px; display: grid; gap: 6px; }
+  .scr { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent; font-size: 12px; }
+  .scr:hover { background: #fff; }
+  .scr.on { background: #fff; border-color: #f0d3ad; font-weight: 750; }
+  .scr i { width: 20px; height: 20px; border-radius: 6px; background: var(--sheet2); display: grid; place-items: center;
+    font-style: normal; font-size: 10.5px; font-weight: 800; color: var(--brand); flex: none; }
+  .scr.on i { background: var(--brand); color: #fff; }
+  .scr em { margin-left: auto; font-style: normal; font-size: 10px; color: var(--mute); }
+  .stbox { margin-top: 14px; padding: 11px 12px; border-radius: 11px; background: #fff; border: 1px dashed #e3c9a8; font-size: 11.5px; }
+  .stbox .r { display: flex; justify-content: space-between; gap: 8px; padding: 3px 0; }
+  .stbox .r span:first-child { color: var(--mute); }
+  .stbox .r b { font-weight: 750; }
+  .stbox .r b.y { color: var(--ok); } .stbox .r b.n { color: var(--mute); }
+
+  /* ---------- device ---------- */
+  .devwrap { display: flex; flex-wrap: wrap; gap: 34px; align-items: flex-start; }
+  .cell { display: flex; flex-direction: column; align-items: center; }
+  .cell .lb { margin-bottom: 11px; text-align: center; max-width: 412px; }
+  .cell .lb b { display: block; font-size: 13.5px; font-weight: 780; }
+  .cell .lb em { display: block; font-style: normal; font-size: 11.5px; color: var(--mute); margin-top: 4px; line-height: 1.6; }
+  .device { width: 390px; height: 844px; background: #171008; border-radius: 48px; padding: 10px;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.16) inset, 0 40px 90px rgba(90,50,20,.38); flex: none; }
+  .screen { position: relative; height: 100%; border-radius: 38px; background: var(--bg); overflow: hidden; }
+  .notch { position: absolute; z-index: 30; top: 8px; left: 50%; width: 118px; height: 28px; transform: translateX(-50%);
+    background: #171008; border-radius: 20px; }
+  .status { height: 54px; padding: 15px 24px 0; display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; font-weight: 650; }
+  .status.light { color: #fff; }
+  .scroll { position: absolute; inset: 0; padding-top: 54px; padding-bottom: 74px; overflow: auto; }
+  .scroll::-webkit-scrollbar { display: none; }
+  .scroll.full { padding-bottom: 0; }
+  .scroll.hasbar { padding-bottom: 74px; }
+  .home-ind { position: absolute; z-index: 34; left: 50%; bottom: 7px; width: 120px; height: 4px;
+    transform: translateX(-50%); background: #3a2416; border-radius: 4px; opacity: .3; }
+  .tabbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 20; height: 74px; padding: 9px 6px 18px;
+    display: grid; grid-template-columns: repeat(5,1fr); background: rgba(255,250,243,.94);
+    backdrop-filter: blur(20px); border-top: 1px solid var(--line); }
+  .tabbar a { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; color: #b3a091; cursor: pointer; }
+  .tabbar a.on { color: var(--brand); font-weight: 750; }
+  .tabbar svg { width: 23px; height: 23px; }
+  .navbar { position: absolute; top: 0; left: 0; right: 0; z-index: 18; height: 96px; padding: 54px 14px 0;
+    display: flex; align-items: center; gap: 10px; background: linear-gradient(180deg,rgba(253,246,236,.97),rgba(253,246,236,.86) 70%,transparent); }
+  .navbar .bk { width: 32px; height: 32px; display: grid; place-items: center; font-size: 20px; cursor: pointer; }
+  .navbar h4 { font-size: 16px; font-weight: 700; flex: 1; }
+  .navbar.plain { background: none; }
+
+  /* ---------- in-phone atoms ---------- */
+  .btn { height: 44px; padding: 0 22px; border-radius: 99px; display: inline-grid; place-items: center;
+    background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; font-size: 14px; font-weight: 750;
+    box-shadow: 0 10px 22px rgba(194,65,12,.3); border: 0; cursor: pointer; }
+  .btn.ghost { background: #fbe6d4; color: var(--brand); box-shadow: none; }
+  .btn.block { width: 100%; }
+  .btn.sm { height: 34px; padding: 0 14px; font-size: 12.5px; }
+  .tag { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 700;
+    background: #fbe6d4; color: var(--brand); }
+  .tag.gold { background: #fdf0d6; color: var(--gold); }
+  .tag.gray { background: #efe6dc; color: #8b7a6b; }
+  .tag.on { background: var(--brand); color: #fff; }
+  .muted { color: var(--ink2); }
+  .emptystate { padding: 70px 20px; text-align: center; color: var(--mute); font-size: 12.5px; }
+
+  /* picker page */
+  .pk { padding: 0 16px 20px; }
+  .pk-hero { margin: 0 -16px; padding: 8px 18px 22px; color: #fff; position: relative; overflow: hidden;
+    background: linear-gradient(150deg,#7c2d12,#b45309 55%,#d97706); }
+  .pk-hero::after { content:""; position:absolute; width:230px; height:230px; border-radius:99px; right:-84px; top:-100px; background:rgba(255,255,255,.09); }
+  .pk-hero h2 { position: relative; font-size: 22px; font-weight: 780; letter-spacing: -.02em; }
+  .pk-hero p { position: relative; margin-top: 8px; font-size: 12px; opacity: .86; line-height: 1.7; }
+  .pk-steps { position: relative; margin-top: 14px; display: flex; gap: 6px; }
+  .pk-steps i { flex: 1; height: 4px; border-radius: 99px; background: rgba(255,255,255,.28); }
+  .pk-steps i.on { background: #fff; }
+  .pk-bar { margin: 14px 0 4px; display: flex; align-items: baseline; gap: 8px; }
+  .pk-bar b { font-size: 14.5px; font-weight: 780; }
+  .pk-bar span { font-size: 11px; color: var(--mute); }
+  .pk-card { margin-top: 11px; border-radius: 18px; background: var(--sheet); border: 1px solid var(--line);
+    box-shadow: var(--shadow-s); overflow: hidden; }
+  .pk-card.main { border-color: transparent; background: linear-gradient(140deg,#ea580c,#c2410c); color: #fff;
+    box-shadow: 0 14px 30px rgba(194,65,12,.26); }
+  .pk-card__rw { display: flex; align-items: flex-start; gap: 12px; padding: 14px 14px 12px; cursor: pointer; }
+  .pk-card__lg { width: 44px; height: 44px; border-radius: 15px; display: grid; place-items: center; font-size: 22px; flex: none;
+    background: linear-gradient(135deg,#fdeedb,#f6ddbf); }
+  .pk-card.main .pk-card__lg { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.24); }
+  .pk-card__meta { flex: 1; min-width: 0; }
+  .pk-card__t { font-size: 14.5px; font-weight: 780; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .pk-card.main .pk-card__t { color: #fff; }
+  .pk-card__s { margin-top: 4px; font-size: 11.5px; color: var(--ink2); line-height: 1.5; }
+  .pk-card.main .pk-card__s { color: rgba(255,255,255,.88); }
+  .pk-card__n { margin-top: 6px; font-size: 10.5px; color: var(--mute); display: flex; gap: 8px; flex-wrap: wrap; }
+  .pk-card.main .pk-card__n { color: rgba(255,255,255,.8); }
+  .pk-card__hl { padding: 0 14px 12px; display: grid; gap: 5px; }
+  .pk-card__hl div { display: flex; gap: 7px; font-size: 11px; color: var(--ink2); align-items: flex-start; }
+  .pk-card.main .pk-card__hl div { color: rgba(255,255,255,.9); }
+  .pk-card__ft { display: flex; align-items: center; gap: 8px; padding: 11px 14px; border-top: 1px solid var(--line); }
+  .pk-card.main .pk-card__ft { border-color: rgba(255,255,255,.2); }
+  .pk-card__ft .sp { margin-left: auto; font-size: 10.5px; color: var(--mute); }
+  .pk-card.main .pk-card__ft .sp { color: rgba(255,255,255,.78); }
+  .pk-foot { position: sticky; bottom: 0; margin: 18px -16px -20px; padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+    background: rgba(253,246,236,.96); backdrop-filter: blur(16px); border-top: 1px solid var(--line); }
+  .pk-tip { margin-top: 9px; font-size: 10.5px; color: var(--mute); text-align: center; line-height: 1.6; }
+
+  /* intro page */
+  .pi-hero { position: relative; padding: 54px 18px 20px; color: #fff; overflow: hidden;
+    background: linear-gradient(150deg,#7c2d12,#b45309 55%,#d97706); }
+  .pi-hero::after { content:""; position:absolute; width:220px; height:220px; border-radius:99px; right:-78px; top:-92px; background:rgba(255,255,255,.1); }
+  .pi-hero .lg { width: 56px; height: 56px; border-radius: 19px; background: rgba(255,255,255,.17);
+    border: 1px solid rgba(255,255,255,.26); display: grid; place-items: center; font-size: 27px; position: relative; }
+  .pi-hero h2 { position: relative; margin-top: 12px; font-size: 21px; font-weight: 780; }
+  .pi-hero .sb { position: relative; margin-top: 6px; font-size: 12px; opacity: .86; }
+  .pi-body { padding: 16px; }
+  .pi-lab { font-size: 10.5px; letter-spacing: .1em; color: var(--gold); font-weight: 800; margin-bottom: 7px; }
+  .pi-p { font-size: 13px; line-height: 1.8; color: #3a2a1c; }
+  .pi-p + .pi-p { margin-top: 8px; }
+  .pi-hl { margin-top: 16px; display: grid; gap: 9px; }
+  .pi-hl div { display: flex; gap: 10px; padding: 12px 13px; border-radius: 13px; background: var(--sheet); border: 1px solid var(--line); }
+  .pi-hl .i { font-size: 19px; flex: none; }
+  .pi-hl b { display: block; font-size: 12.5px; font-weight: 720; }
+  .pi-hl p { font-size: 10.5px; color: var(--mute); margin-top: 3px; line-height: 1.55; }
+  .pi-foot { position: sticky; bottom: 0; margin: 0 -16px -16px; padding: 12px 16px 18px;
+    background: rgba(253,246,236,.96); backdrop-filter: blur(16px); border-top: 1px solid var(--line); }
+  .pi-foot .btns { display: flex; gap: 9px; }
+  .pi-foot .btns .btn { flex: 1; }
+  .pi-set { margin-top: 9px; text-align: center; font-size: 12px; font-weight: 700; color: var(--brand); cursor: pointer; }
+  .pi-set.muted { color: var(--mute); }
+
+  /* pay page */
+  .pd { padding: 16px; }
+  .pd-card { border-radius: 18px; background: var(--sheet); border: 1px solid var(--line); box-shadow: var(--shadow-s); padding: 15px; }
+  .pd-row { display: flex; align-items: center; gap: 12px; }
+  .pd-row .lg { width: 52px; height: 52px; border-radius: 16px; display: grid; place-items: center; font-size: 25px;
+    background: linear-gradient(135deg,#fdeedb,#f6ddbf); flex: none; }
+  .pd-row b { font-size: 14.5px; font-weight: 760; display: block; }
+  .pd-row p { font-size: 11px; color: var(--mute); margin-top: 3px; }
+  .pd-price { display: flex; align-items: baseline; gap: 8px; margin-top: 14px; padding-top: 13px; border-top: 1px dashed var(--line); }
+  .pd-price b { font-size: 25px; font-weight: 800; color: var(--brand); }
+  .pd-price s { font-size: 12px; color: var(--mute); }
+  .pd-price em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--ok); font-weight: 700; }
+  .pd-list { margin-top: 14px; display: grid; gap: 8px; }
+  .pd-list div { display: flex; gap: 8px; font-size: 11.5px; color: var(--ink2); }
+  .pd-list div::before { content: "✓"; color: var(--ok); font-weight: 800; }
+
+  /* planet tab */
+  .pl-hero { position: relative; padding: 54px 16px 16px; color: #fff; overflow: hidden;
+    background: linear-gradient(150deg,#7c2d12 0%,#b45309 55%,#d97706 100%); }
+  .pl-hero::after { content:""; position:absolute; width:230px; height:230px; border-radius:99px; right:-80px; top:-96px; background:rgba(255,255,255,.09); }
+  .pl-hero__rw { display: flex; align-items: center; gap: 13px; position: relative; }
+  .pl-hero__lg { width: 56px; height: 56px; border-radius: 19px; background: rgba(255,255,255,.16);
+    border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; font-size: 27px; flex: none; }
+  .pl-hero__meta { flex: 1; min-width: 0; }
+  .pl-hero h2 { font-size: 19px; font-weight: 760; letter-spacing: -.02em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-hero .sb { margin-top: 4px; font-size: 11px; opacity: .84;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pl-hero__acts { display: flex; gap: 7px; flex: none; }
+  .pl-hero__sw, .pl-hero__jn { height: 30px; padding: 0 13px; border-radius: 99px; font-size: 12px; font-weight: 750;
+    display: grid; place-items: center; cursor: pointer; }
+  .pl-hero__sw { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.26); color: #fff; }
+  .pl-hero__jn { background: #fff; color: #9a3412; }
+  .pl-kpi { position: relative; margin-top: 15px; display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+  .pl-kpi div { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); border-radius: 13px; padding: 9px 8px; text-align: center; }
+  .pl-kpi b { display: block; font-size: 15px; font-weight: 780; }
+  .pl-kpi span { font-size: 9.5px; opacity: .78; }
+  .pl-exp { position: relative; margin-top: 11px; font-size: 11px; opacity: .9; }
+  .pl-joinrow { position: relative; margin-top: 10px; display: flex; align-items: center; gap: 6px; padding: 9px 12px;
+    border-radius: 12px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.16); font-size: 11.5px; cursor: pointer; }
+  .pl-joinrow b { margin-left: auto; flex: none; font-weight: 760; }
+  .fc { margin: -12px 16px 0; position: relative; z-index: 4; border-radius: 20px; padding: 15px 16px 14px;
+    background: var(--sheet); box-shadow: var(--shadow); }
+  .fc .t { display: flex; align-items: center; gap: 7px; }
+  .fc .t h4 { font-size: 14.5px; font-weight: 780; }
+  .fc .t .tag { margin-left: auto; }
+  .fc .bar { margin-top: 12px; display: grid; gap: 9px; }
+  .fc .row { display: flex; align-items: center; gap: 9px; font-size: 12px; }
+  .fc .row .nm { width: 88px; flex: none; color: var(--ink2); font-weight: 620; }
+  .fc .row .tr { flex: 1; height: 7px; border-radius: 99px; background: #f3e3d0; overflow: hidden; }
+  .fc .row .tr i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,var(--gold),var(--brand-2)); }
+  .fc .row .pct { width: 44px; text-align: right; font-size: 11px; font-weight: 750; color: var(--brand); }
+  .fc .note { margin-top: 11px; font-size: 10.5px; color: var(--mute); line-height: 1.55; border-top: 1px dashed var(--line); padding-top: 9px; }
+  .segs { display: flex; gap: 7px; overflow: auto; padding: 16px 16px 8px; position: sticky; top: 0; z-index: 6;
+    background: linear-gradient(180deg,var(--bg) 72%,transparent); }
+  .segs::-webkit-scrollbar { display: none; }
+  .segs a { flex: none; padding: 7px 14px; border-radius: 99px; font-size: 12.5px; font-weight: 650;
+    background: #fffaf3; border: 1px solid var(--line); color: var(--ink2); }
+  .segs a.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; border-color: transparent; }
+  .fd { margin: 0 16px 11px; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 14px 15px 10px; }
+  .fd.top { border: 1px solid #f0d3ad; background: linear-gradient(150deg,#fff7ec,#fffaf3); }
+  .fd .hh { display: flex; align-items: center; gap: 9px; }
+  .fd .hh .av { width: 34px; height: 34px; border-radius: 99px; background: #e9d6bd; flex: none; }
+  .fd .hh .nm { font-size: 13px; font-weight: 720; display: flex; align-items: center; gap: 5px; }
+  .fd .hh .tm { font-size: 10.5px; color: var(--mute); margin-top: 2px; }
+  .fd .ct { display: block; margin-top: 11px; font-size: 14.5px; line-height: 1.72; color: #3a2a1c; }
+  .fd .ct b { color: var(--brand); }
+  .fd .tp { display: block; margin-top: 10px; font-size: 12px; color: var(--brand); font-weight: 600; }
+  .fd .ft { display: flex; margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--mute); }
+  .fd .ft span, .fd .ft a { flex: 1; text-align: center; }
+  .fd .ft span.hot { color: var(--brand); font-weight: 680; }
+
+  /* home planet cards */
+  .hm { padding: 0 16px 20px; }
+  .hm-greet { padding: 20px 18px 16px; color: #fff; background: linear-gradient(150deg,#7c2d12,#b45309 60%,#d97706); position: relative; overflow: hidden; }
+  .hm-greet::after { content:""; position:absolute; width:200px; height:200px; border-radius:99px; right:-70px; top:-84px; background:rgba(255,255,255,.1); }
+  .hm-greet h2 { position: relative; font-size: 20px; font-weight: 780; }
+  .hm-greet p { position: relative; margin-top: 5px; font-size: 11.5px; opacity: .85; }
+  .hm-nav { margin-top: 14px; display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
+  .hm-nav div { background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.16); border-radius: 13px;
+    padding: 9px 4px; text-align: center; font-size: 10.5px; }
+  .hm-sec { margin-top: 18px; display: flex; align-items: baseline; gap: 8px; }
+  .hm-sec h3 { font-size: 15px; font-weight: 780; }
+  .hm-sec a { margin-left: auto; font-size: 11px; color: var(--mute); cursor: pointer; }
+  .hm-hscroll { margin-top: 11px; display: flex; gap: 10px; overflow: auto; padding-bottom: 4px; }
+  .hm-hscroll::-webkit-scrollbar { display: none; }
+  .pcard { flex: none; width: 232px; border-radius: 18px; background: var(--sheet); border: 1px solid var(--line);
+    box-shadow: var(--shadow-s); overflow: hidden; }
+  .pcard__top { padding: 13px 13px 11px; }
+  .pcard__rw { display: flex; align-items: center; gap: 10px; }
+  .pcard__lg { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; flex: none;
+    background: linear-gradient(135deg,#fdeedb,#f6ddbf); }
+  .pcard__t { font-size: 13.5px; font-weight: 760; line-height: 1.35; }
+  .pcard__s { margin-top: 4px; font-size: 10.5px; color: var(--ink2); line-height: 1.5; }
+  .pcard__it { margin-top: 9px; display: flex; gap: 5px; flex-wrap: wrap; }
+  .pcard__ft { display: flex; align-items: center; gap: 7px; padding: 9px 13px; border-top: 1px solid var(--line);
+    background: #fffdf9; }
+  .pcard__ft .sp { margin-left: auto; font-size: 10px; color: var(--mute); }
+  .pcard.main { border-color: transparent; background: linear-gradient(140deg,#ea580c,#c2410c); color: #fff;
+    box-shadow: 0 14px 30px rgba(194,65,12,.24); }
+  .pcard.main .pcard__lg { background: rgba(255,255,255,.18); }
+  .pcard.main .pcard__s, .pcard.main .pcard__ft .sp { color: rgba(255,255,255,.86); }
+  .pcard.main .pcard__ft { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.18); }
+  .hm-single { margin-top: 11px; }
+  .hm-single .foot { margin-top: 11px; display: flex; align-items: center; gap: 8px; }
+
+  /* switch sheet */
+  .mask { position: absolute; inset: 0; z-index: 40; background: rgba(42,28,18,.42); backdrop-filter: blur(2px); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 41; background: var(--bg);
+    border-radius: 24px 24px 0 0; padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -18px 44px rgba(60,30,10,.28); max-height: 76%; overflow: auto; }
+  .sheet::-webkit-scrollbar { display: none; }
+  .sheet .grab { width: 38px; height: 4px; border-radius: 99px; background: #ddcdba; margin: 6px auto 12px; }
+  .sheet h4 { font-size: 16px; font-weight: 800; }
+  .sheet .sh-s { margin-top: 4px; font-size: 11.5px; color: var(--mute); }
+  .sh-lab { margin-top: 15px; font-size: 10.5px; font-weight: 800; color: #8a5a24; letter-spacing: .08em; }
+  .sh-li { margin-top: 8px; display: flex; align-items: center; gap: 11px; padding: 11px 12px; border-radius: 14px;
+    background: var(--sheet); border: 1px solid var(--line); cursor: pointer; }
+  .sh-li.on { border-color: #f0d3ad; background: linear-gradient(150deg,#fff7ec,#fffaf3); }
+  .sh-li .lg { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; font-size: 19px; flex: none;
+    background: linear-gradient(135deg,#fdeedb,#f6ddbf); }
+  .sh-li .m { flex: 1; min-width: 0; }
+  .sh-li b { font-size: 13.5px; font-weight: 750; display: flex; align-items: center; gap: 6px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sh-li p { font-size: 10.5px; color: var(--mute); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sh-li .go { flex: none; font-size: 11.5px; font-weight: 750; color: var(--brand); padding: 6px 12px; border-radius: 99px; background: #fbe6d4; }
+  .sh-li .go.on { background: var(--brand); color: #fff; }
+  .sh-ft { margin-top: 16px; }
+
+  /* login sheet */
+  .lg-mask { position: absolute; inset: 0; z-index: 50; background: rgba(42,28,18,.46); }
+  .lg-sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 51; background: var(--sheet);
+    border-radius: 24px 24px 0 0; padding: 20px 18px calc(22px + env(safe-area-inset-bottom));
+    box-shadow: 0 -18px 44px rgba(60,30,10,.3); }
+  .lg-sheet h4 { font-size: 17px; font-weight: 800; text-align: center; }
+  .lg-sheet p { margin-top: 8px; font-size: 12px; color: var(--ink2); line-height: 1.7; text-align: center; }
+  .lg-av { width: 62px; height: 62px; border-radius: 99px; margin: 4px auto 0; background: #e9d6bd; }
+  .lg-btns { margin-top: 18px; display: grid; gap: 9px; }
+  .lg-btns .btn.ghost { background: transparent; color: var(--mute); font-weight: 600; }
+
+  /* toast */
+  .toast { position: absolute; z-index: 60; left: 50%; top: 46%; transform: translate(-50%,-50%);
+    padding: 11px 18px; border-radius: 12px; background: rgba(42,28,18,.86); color: #fff; font-size: 12.5px;
+    font-weight: 650; white-space: nowrap; opacity: 0; transition: opacity .18s, transform .18s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translate(-50%,-50%) scale(1.04); }
+
+  /* ---------- rules / prio ---------- */
+  .cards3 { margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 16px; }
+  .rc { padding: 16px 17px; border-radius: 16px; background: rgba(255,252,247,.76); border: 1px solid var(--line); }
+  .rc h5 { font-size: 13.5px; font-weight: 800; display: flex; align-items: center; gap: 7px; }
+  .rc p { margin-top: 8px; font-size: 12px; color: var(--ink2); line-height: 1.8; }
+  .rc ol, .rc ul { margin: 8px 0 0 17px; font-size: 12px; color: var(--ink2); line-height: 1.85; }
+  .rc code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 11px; background: #fff; padding: 1px 4px; border-radius: 4px; color: #9a3412; }
+  .prio { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 10.5px; font-weight: 800; }
+  .prio.p0 { background: #fee2e2; color: #b91c1c; }
+  .prio.p1 { background: #fdf0d6; color: #b45309; }
+  .prio.p2 { background: #e6f2ea; color: #15803d; }
+  .foot { margin-top: 50px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--mute); }
+  @media (max-width: 1120px) { .proto { grid-template-columns: 1fr; } .panel { position: static; } }
+  @media (max-width: 700px) {
+    h1 { font-size: 26px; }
+    .wrap { padding: 26px 14px 60px; }
+    /* 手机壳在窄屏要缩到容器内，否则整页出现横向滚动 */
+    .device { width: 100%; max-width: 390px; }
+    .cell { width: 100%; }
+    .cell .lb { max-width: 100%; }
+    .chain { gap: 6px; }
+    .node { min-width: 104px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">WARM · 星球路由方案 · PROTOTYPE</div>
+  <h1 class="serif">首次进入「选一个星球」——路径设计与可交互原型</h1>
+  <p class="sub">补上缺失的一环：用户第一次点进星球 Tab 时，应该先看到所有社区、由他选一个作为主星球；选定后写入 <code class="mono">user.main_planet_id</code>，之后每次进入直接落在主星球。同时把「切换」从跳页改成半屏弹层，就地生效不丢上下文。</p>
+
+  <div class="concl">
+    <b>核心结论</b>
+    <p>不新建「 onboarding 页面」，而是<em>把已有的 planet-list 改造出两种形态</em>（<em>首次引导态 / 常驻管理态</em>），再加<em>一个半屏切换器组件</em>替代现有的跳页切换。理由：<em>列表数据源、设为常驻接口、介绍页、下单页全部已存在</em>，缺的是「什么时候让用户选」和「切换时能不能不跳页」这两个决策点。原路径「点 Tab 直接落到配置 primary 星球」保持不变，作为游客与兜底路径。</p>
+  </div>
+
+  <!-- ============ 1 现状 ============ -->
+  <section class="sect">
+    <h2>一、现状对照：已有什么、缺什么</h2>
+    <p class="lead">下表逐项核对线上代码，避免重复造已有的能力。</p>
+    <div class="tw"><table>
+      <thead><tr><th style="width:22%">能力</th><th style="width:30%">现状（代码位置）</th><th style="width:14%">判定</th><th style="width:34%">本次要做的</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>社区列表接口</td>
+          <td><code>GET /api/v1/mp/planet/communities</code><br><span class="mono">listCommunities(userId)</span> 已带 <code>joined</code> / <code>primary</code> / <code>enabled</code></td>
+          <td class="yes">已有</td>
+          <td>不改。仅需确认「未加入的社区也会返回」——现状已满足（只按 <code>enabled</code> 过滤）</td>
+        </tr>
+        <tr>
+          <td>设为常驻接口</td>
+          <td><code>PUT /api/v1/mp/planet/main</code> 写 <code>user.main_planet_id</code>，返回 <code>MainPlanetVO{planetId,userSet,community}</code></td>
+          <td class="yes">已有</td>
+          <td>不改。<code>userSet</code> 字段正好用来判断「用户是否主动选过」</td>
+        </tr>
+        <tr>
+          <td>读当前主星球</td>
+          <td><code>GET /api/v1/mp/planet/main</code>，未登录回落配置 <code>primary</code>；端上 <code>StorageUtil</code> 缓存 <code>main_planet_id</code></td>
+          <td class="yes">已有</td>
+          <td>不改。缓存是「下次进入直达」的本地依据</td>
+        </tr>
+        <tr>
+          <td>社区列表页</td>
+          <td><code>pkg-content/planet-list</code>，标题固定「我加入的星球」，卡上「设为常驻 / 去看看」</td>
+          <td class="mid">需改造</td>
+          <td>加 <code>?mode=pick</code>：首次引导态换标题与文案、强化「加入」按钮、底部加「先逛逛」</td>
+        </tr>
+        <tr>
+          <td>星球介绍页</td>
+          <td><code>pkg-content/planet-intro</code>，已有「先逛逛 / 加入星球 / 设为常驻星球」</td>
+          <td class="yes">已有</td>
+          <td>不改，直接复用为选择页的二级页</td>
+        </tr>
+        <tr>
+          <td>切换星球</td>
+          <td>hero 与动态流页的「切换」→ <code>wx.navigateTo('/planet-list')</code></td>
+          <td class="no">缺失</td>
+          <td><b>新增半屏组件</b> <code>planet-switch-sheet</code>：就地切换、不跳页、保留滚动位置</td>
+        </tr>
+        <tr>
+          <td>首次进入引导</td>
+          class="muted" colspan="3">无任何判定逻辑：<code>pages/planet/planet</code> 的 <code>onShow</code> 直接 <code>loadTabBoundDslPage</code>，用户没有选择机会</td>
+        </tr>
+        <tr>
+          <td>首页星球卡切换</td>
+          <td><code>dsl-warm-block</code> 的 <code>onPickMainTap</code> → 也是跳 <code>planet-list</code>；卡上已有「设为主星球」可就地改</td>
+          <td class="mid">半可用</td>
+          <td>「设为主星球」保留就地改；「选一个主星球」改走半屏弹层</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 2 路径 ============ -->
+  <section class="sect">
+    <h2>二、三条路径</h2>
+    <p class="lead">同一条链路，按用户状态分流。判定全部落在星球 Tab 的 <code>onShow</code> 与首页星球卡的点击回调里。</p>
+    <div class="flow">
+
+      <div class="path">
+        <div class="pt">
+          <span class="pn serif">路径 A · 首次进入（已登录、未设主星球）</span>
+          <span class="pill a">新增引导</span>
+          <span class="pill c">主路径</span>
+        </div>
+        <div class="chain">
+          <div class="node"><b>首页</b><span>正常浏览，不打断</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>点星球 Tab</b><span>onShow 判定</span></div>
+          <div class="arrow">→</div>
+          <div class="node hi"><b>GET /planet/main</b><span>userSet=false 且本地无缓存</span></div>
+          <div class="arrow">→</div>
+          <div class="node new"><b>选择页 mode=pick</b><span>redirectTo，不可返回</span></div>
+          <div class="arrow">→</div>
+          <div class="node hi"><b>PUT /planet/main</b><span>写 main_planet_id</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>switchTab 回星球</b><span>已是主星球</span></div>
+        </div>
+        <div class="note-line">卡身点进 <b>planet-intro</b> 看详情再决定加入；「先逛逛」= 不写 main_planet_id，直接用配置 primary 兜底，下次仍会看到选择页（只提示一次，不再拦）。</div>
+      </div>
+
+      <div class="path">
+        <div class="pt">
+          <span class="pn serif">路径 B · 再次进入（已设主星球）</span>
+          <span class="pill b">零改动</span>
+        </div>
+        <div class="chain">
+          <div class="node"><b>点星球 Tab</b><span>onShow</span></div>
+          <div class="arrow">→</div>
+          <div class="node hi"><b>读本地缓存</b><span>main_planet_id 命中</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>直接渲染主星球</b><span>warm.primaryOnly=true 单卡</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>后台静默校正</b><span>GET /main 失败则沿用缓存</span></div>
+        </div>
+        <div class="note-line">这条路径<b>不需要任何改动</b>——现状的 <code>applyUserMainPlanet</code> 已经会按 <code>user.main_planet_id</code> 打 <code>primary</code> 标记，<code>warm.primaryOnly</code> 随之变 true，首页与 Tab 都自动收成单卡。</div>
+      </div>
+
+      <div class="path">
+        <div class="pt">
+          <span class="pn serif">路径 C · 随时切换（星球 Tab / 动态流页 / 首页星球卡）</span>
+          <span class="pill b">新增组件</span>
+        </div>
+        <div class="chain">
+          <div class="node"><b>点「切换」</b><span>hero / 动态流 / 首页</span></div>
+          <div class="arrow">→</div>
+          <div class="node new"><b>半屏 planet-switch-sheet</b><span>已加入的在上，未加入的在下</span></div>
+          <div class="arrow">→</div>
+          <div class="node hi"><b>PUT /planet/main</b><span>点已加入的：就地切</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>当前页就地刷新</b><span>不跳页，滚动位置保留</span></div>
+        </div>
+        <div class="note-line">点未加入的 → 关弹层，进 <b>planet-intro</b>。切换成功后由组件 <code>triggerEvent('change')</code>，宿主（<code>dsl-planet-hero</code> / 页面 / <code>dsl-warm-block</code>）各自刷新自己那份数据，<b>三处都要实现刷新</b>，否则会出现「Tab 已切、首页没切」。</div>
+      </div>
+
+      <div class="path">
+        <div class="pt">
+          <span class="pn serif">路径 D · 游客与异常兜底</span>
+          <span class="pill c">不拦</span>
+        </div>
+        <div class="chain">
+          <div class="node"><b>游客点星球 Tab</b><span>也能看</span></div>
+          <div class="arrow">→</div>
+          <div class="node"><b>直接进配置 primary</b><span>现状行为，不变</span></div>
+          <div class="arrow">→</div>
+          <div class="node hi"><b>点「加入 / 设为常驻」</b><span>才弹登录层</span></div>
+          <div class="arrow">→</div>
+          <div class="node new"><b>登录后自动续跑</b><span>存 intent，登录成功继续原动作</span></div>
+        </div>
+        <div class="note-line">合规红线：<b>浏览绝不拦登录</b>，只在「加入 / 设为常驻 / 提问」这些写操作上弹层（沿用 <code>AuthUtil.requireLoginForAction</code>）。<code>requireLoginForAction</code> 现在是「不登录直接 return」，需要补一个 <code>intent</code> 参数把待办动作带过登录层。</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ 3 判定表 ============ -->
+  <section class="sect">
+    <h2>三、什么时候弹选择页（判定表）</h2>
+    <p class="lead">只在「星球 Tab 的第一次进入」弹一次，且必须已登录。任何一条不满足都直接走原路径，避免把用户拦在门口。</p>
+    <div class="tw"><table>
+      <thead><tr><th style="width:8%">序</th><th style="width:34%">条件</th><th style="width:20%">行为</th><th style="width:38%">理由</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>已登录 且 <code>GET /main</code> 返回 <code>userSet=false</code> 且本地无 <code>main_planet_id</code></td><td class="mid">弹选择页<br><code>redirectTo?mode=pick</code></td><td>这就是「首次进入且没选过」的唯一判据</td></tr>
+        <tr><td>2</td><td>已登录 且 <code>userSet=true</code></td><td class="yes">直达主星球</td><td>选过了就不再打扰</td></tr>
+        <tr><td>3</td><td>未登录</td><td class="yes">直达配置 primary</td><td>开屏/进 Tab 拦登录会被审核驳回</td></tr>
+        <tr><td>4</td><td>选择页已用「先逛逛」退出过</td><td class="yes">直达 + 顶部一次性提示条</td><td>看过一次引导就不再拦，改用非阻断提示</td></tr>
+        <tr><td>5</td><td>主星球被运营停用（<code>enabled=false</code>）</td><td class="mid">直达配置 primary + toast</td><td><code>resolveMainPlanet</code> 已回落，端上要提示「原星球已停用」</td></tr>
+        <tr><td>6</td><td>只有 1 个启用社区</td><td class="yes">直达，不弹</td><td>没得选就不该让用户「选」</td></tr>
+        <tr><td>7</td><td><code>GET /main</code> 网络失败</td><td class="yes">用本地缓存；无缓存则直达配置 primary</td><td>网络问题不该导致白屏或卡在引导页</td></tr>
+        <tr><td>8</td><td>用户已加入 ≥1 个星球但没设主星球</td><td class="yes">直达主星球（配置 primary）</td><td>这种情况只可能在老版本产生，不追溯弹引导，避免存量用户被打扰</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- ============ 4 原型 ============ -->
+  <section class="sect">
+    <h2>四、可交互原型</h2>
+    <p class="lead">左边调状态，右边点。所有按钮都能点，状态是真实联动的：加入后星球变「已加入」、设为常驻后主星球立刻换人、游客模式下所有写操作会弹登录层。默认停在「首次进入 + 已登录 + 未选过」。</p>
+
+    <div class="proto">
+      <div class="panel">
+        <h4>🎛 原型控制台</h4>
+        <p>先设用户状态，再选屏。</p>
+
+        <div class="grp">
+          <label>用户状态</label>
+          <div class="seg2">
+            <button class="b on" id="u-new" onclick="setUser('new')">首次进入</button>
+            <button class="b" id="u-done" onclick="setUser('done')">已选过主星球</button>
+            <button class="b" id="u-guest" onclick="setUser('guest')">游客未登录</button>
+            <button class="b" id="u-net" onclick="setUser('net')">接口失败</button>
+          </div>
+        </div>
+
+        <div class="grp">
+          <label>快捷场景</label>
+          <div class="seg2">
+            <button class="b wide" onclick="preset('skip')">模拟「先逛逛」退出过一次</button>
+            <button class="b wide" onclick="preset('disabled')">模拟主星球被停用</button>
+            <button class="b wide" onclick="preset('single')">模拟只剩 1 个社区</button>
+          </div>
+        </div>
+
+        <div class="grp">
+          <label>屏幕</label>
+          <div class="screens" id="screens"></div>
+        </div>
+
+        <div class="stbox" id="statebox"></div>
+      </div>
+
+      <div>
+        <div class="devwrap" id="devwrap"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5 组件与接口 ============ -->
+  <section class="sect">
+    <h2>五、组件与接口契约</h2>
+    <div class="cards3">
+      <div class="rc">
+        <h5>🧩 新增组件 <code>planet-switch-sheet</code></h5>
+        <p>半屏弹层，替代现有跳页切换。三处接入：</p>
+        <ul>
+          <li><code>components/dsl-planet-hero</code> 的 <code>onSwitch</code></li>
+          <li><code>pkg-content/planet-feed</code> 的 <code>onSwitchPlanet</code></li>
+          <li><code>components/dsl-warm-block</code> 的 <code>onPickMainTap</code></li>
+        </ul>
+        <p style="margin-top:8px"><b>props</b>：<code>list</code>（社区数组）、<code>currentId</code><br>
+        <b>events</b>：<code>change</code>（已加入的切主星球，携带 <code>planetId</code>）、<code>intro</code>（未加入的进介绍页）、<code>close</code></p>
+        <p style="margin-top:8px"><b>硬约束</b>：切换成功后宿主必须刷新自己的数据源。星球 Tab 刷新 <code>warm</code>，首页刷新 <code>warm.primaryPlanetId / primaryOnly</code>，动态流页重拉 <code>/planet/feed</code>。只改一处会出现三端不一致。</p>
+      </div>
+      <div class="rc">
+        <h5>🔧 改造 <code>planet-list</code></h5>
+        <p>加参数 <code>mode=pick|first</code>，只影响文案与主按钮，不新增接口。</p>
+        <ul>
+          <li><code>pick</code>：标题「选一个你的星球」，副标「以后可以随时换」，卡上主按钮为「加入星球」或「设为常驻」，底部固定「先逛逛」+ 一行小字</li>
+          <li><code>first</code>（缺省）：保持现状「我加入的星球」，无底部栏</li>
+        </ul>
+        <p style="margin-top:8px"><b>踩坑提示</b>：<code>onLoad</code> 里任何 <code>xxx()</code> 抛错都会中断后续，配置拉取必须排最前；<code>mainPlanetId</code> 回落顺序是 接口 → 缓存 → 列表里 <code>primary</code> → 第一条，四级兜底不能省。</p>
+      </div>
+      <div class="rc">
+        <h5>🔐 登录层补 intent</h5>
+        <p><code>AuthUtil.requireLoginForAction(action, {silent})</code> 现在不登录直接 <code>return</code>，用户登录完得自己再点一次。</p>
+        <p style="margin-top:8px">加 <code>intent</code>：<br>
+        <code>{ type:'setMain'|'join', planetId, from:'picker'|'sheet'|'home' }</code><br>
+        登录成功后由调用页读取并续跑，避免「登录完还要再点一次加入」。</p>
+        <p style="margin-top:8px"><b>不要</b>把选择页做成必须登录才能看——浏览路径全程不拦。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6 优先级 ============ -->
+  <section class="sect">
+    <h2>六、实施优先级</h2>
+    <div class="tw"><table>
+      <thead><tr><th style="width:8%">级别</th><th style="width:30%">事项</th><th style="width:12%">端</th><th style="width:50%">说明</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="prio p0">P0</span></td>
+          <td>星球 Tab <code>onShow</code> 加首次判定 + <code>redirectTo?mode=pick</code></td>
+          <td>小程序</td>
+          <td>路径 A 的入口。判定条件严格按第三节第 1 条（已登录 + <code>userSet=false</code> + 无缓存）</td>
+        </tr>
+        <tr>
+          <td><span class="prio p0">P0</span></td>
+          <td><code>planet-list</code> 加 <code>mode=pick</code> 形态与「先逛逛」</td>
+          <td>小程序</td>
+          <td>不改接口、不改数据结构，只换文案与主按钮</td>
+        </tr>
+        <tr>
+          <td><span class="prio p0">P0</span></td>
+          <td>兜底：主星球停用提示、接口失败用缓存、只剩 1 社区不弹</td>
+          <td>小程序</td>
+          <td>这三条不做，引导页会变成「进不去也出不来」的坑</td>
+        </tr>
+        <tr>
+          <td><span class="prio p1">P1</span></td>
+          <td><code>planet-switch-sheet</code> 组件 + 三处接入</td>
+          <td>小程序</td>
+          <td>解决「切换要跳页、跳页丢上下文」。三处宿主刷新逻辑必须同时上</td>
+        </tr>
+        <tr>
+          <td><span class="prio p1">P1</span></td>
+          <td>登录层 <code>intent</code> 续跑</td>
+          <td>小程序</td>
+          <td>已有 <code>login-sheet</code> 组件，不用新建</td>
+        </tr>
+        <tr>
+          <td><span class="prio p2">P2</span></td>
+          <td>「选星球」分享落地页：带 <code>planetId</code> 参数进小程序直接落该星球的介绍页</td>
+          <td>小程序</td>
+          <td>增长位，先不做。<code>scene</code> 有 32 字符上限，别直接拼 id，要存短 ID</td>
+        </tr>
+        <tr>
+          <td><span class="prio p2">P2</span></td>
+          <td>后台社区配置加「引导页排序 / 是否进引导页」开关</td>
+          <td>后台</td>
+          <td>复用 <code>mp_planet</code> 配置的 <code>sortOrder</code> 与 <code>enabled</code>，<b>不要新造字段</b></td>
+        </tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <div class="foot">
+    口径对齐：主社区 id 为 <code class="mono">warm-main</code>（<code>defaultCommunities()</code> 的 primary），另有 <code>warm-read</code> / <code>warm-write</code>；主星球默认值取 <code>planet_config.communities[].primary</code>，前端不硬编码。社区清单以 <code>GET /api/v1/mp/planet/communities</code> 返回为准，本原型中的星球文案仅为示意。
+  </div>
+</div>
+
+<script>
+/* ================= 数据 ================= */
+const PLANETS = [
+  {
+    id: 'warm-main', emoji: '🪐', title: '暖阁星球 · 内容创作者',
+    subtitle: '内容创作者的自留地 · 由 墨白 主理',
+    members: '3,241 位球友', today: '今日 27 条新动态', kpis: ['3,241','1.2万','27'],
+    cta: '加入星球', joinHint: '加入后可提问 · 看精华 · 下资料',
+    intro: '这里是内容创作者的自留地。提问有人答，日更有人陪，沉淀都能搜到。\n加入后，你将进入一个更专注、更有反馈的创作小世界。',
+    highlights: [
+      { i: '💬', t: '提问必达', d: '星主与编辑轮流答疑，不让问题沉底' },
+      { i: '⭐', t: '精华沉淀', d: '每周精选方法论与实操清单' },
+      { i: '📂', t: '资料库', d: '模板、提纲、案例包随手可下' },
+    ],
+  },
+  {
+    id: 'warm-read', emoji: '📖', title: '共读小站',
+    subtitle: '每月一本书，交 300 字笔记',
+    members: '860 位球友', today: '今日 3 条新动态', kpis: ['860','26','3'],
+    cta: '加入共读', joinHint: '先逛逛也可以，合适再留下',
+    intro: '一起读一本好书，交 300 字笔记。不求快，求真有收获。\n适合想建立阅读节奏、和同频伙伴交流的你。',
+    highlights: [
+      { i: '📅', t: '月度共读', d: '固定书单与领读提纲' },
+      { i: '✍️', t: '笔记打卡', d: '交 300 字，换一份反馈' },
+      { i: '👥', t: '小圈互助', d: '同频读者互相看见' },
+    ],
+  },
+  {
+    id: 'warm-write', emoji: '✍️', title: '日更互助营',
+    subtitle: '打卡与互评，养写作肌肉',
+    members: '1,280 位球友', today: '今日 12 条新动态', kpis: ['1,280','94','12'],
+    cta: '加入日更营', joinHint: '可先逛逛动态，再决定加入',
+    intro: '用打卡养肌肉，用互评找手感。每天写一点，圈子里有人看、有人回。\n适合想坚持输出、又不想一个人硬撑的创作者。',
+    highlights: [
+      { i: '🔥', t: '日更打卡', d: '轻量节奏，容易坚持' },
+      { i: '🤝', t: '互评反馈', d: '别人看见你的进步' },
+      { i: '🎯', t: '选题互助', d: '卡住时有人一起拆' },
+    ],
+  },
+];
+const CONFIG_PRIMARY = 'warm-main';
+
+const SCREENS = [
+  { key: 'picker',  name: '① 选择页（首次引导态）', hint: '展示所有社区，加入 + 选主星球，底部「先逛逛」' },
+  { key: 'intro',   name: '② 星球介绍页',           hint: '复用现成页：先逛逛 / 加入星球 / 设为常驻' },
+  { key: 'pay',     name: '③ 下单页',               hint: '复用现成商品详情，支付成功即开通' },
+  { key: 'tab',     name: '④ 星球 Tab（主星球）',   hint: '选定后每次进入直达这里' },
+  { key: 'sheet',   name: '⑤ 切换半屏弹层',        hint: '已加入的在上，未加入的在下，就地切不跳页' },
+  { key: 'home',    name: '⑥ 首页星球卡',           hint: '多卡横滑可设常驻；单卡时改走半屏' },
+  { key: 'login',   name: '⑦ 登录层（游客写操作）', hint: '浏览不拦，只在写操作弹，登录后续跑' },
+];
+
+/* ================= 状态 ================= */
+const S = {
+  user: 'new',            // new | done | guest | net
+  joined: ['warm-main'],
+  mainId: '',
+  screen: 'picker',
+  introId: 'warm-main',
+  sheetOpen: false,
+  loginFor: null,         // {type, planetId, from}
+  skipped: false,
+  disabledMain: false,
+  single: false,
+  toast: '',
+};
+
+function cfgPrimary() { return CONFIG_PRIMARY; }
+function enabledList() {
+  let l = PLANETS.slice();
+  if (S.single) l = l.slice(0, 1);
+  return l;
+}
+function userMainId() {
+  if (S.user === 'guest') return '';
+  if (S.user === 'done') return S.mainId || 'warm-read';
+  if (S.user === 'net') return S.mainId || '';
+  return S.mainId || '';
+}
+function effectiveMain() {
+  const um = userMainId();
+  if (um) {
+    if (S.disabledMain && um === S.mainId) return cfgPrimary();
+    return um;
+  }
+  return cfgPrimary();
+}
+function mainSetByUser() {
+  if (S.user === 'guest') return false;
+  return !!S.mainId;
+}
+function shouldShowPicker() {
+  if (S.single) return false;
+  if (S.user === 'guest') return false;
+  if (S.skipped) return false;
+  if (S.user === 'net') return false;
+  if (S.disabledMain) return false;
+  if (S.user === 'done') return false;
+  return enabledList().length > 1;
+}
+function isJoined(id) { return S.joined.indexOf(id) >= 0; }
+function p(id) { return PLANETS.find(x => x.id === id) || PLANETS[0]; }
+
+/* ================= 交互 ================= */
+function toast(t) {
+  S.toast = t; render();
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { S.toast = ''; render(); }, 1500);
+}
+function setUser(u) {
+  S.user = u;
+  if (u === 'new') { S.mainId = ''; S.joined = ['warm-main']; S.skipped = false; }
+  if (u === 'done') { S.mainId = 'warm-main'; S.joined = ['warm-main', 'warm-read']; }
+  if (u === 'guest') { S.mainId = ''; S.joined = []; }
+  if (u === 'net') { S.mainId = 'warm-main'; S.joined = ['warm-main']; }
+  S.disabledMain = false; S.single = false; S.sheetOpen = false; S.loginFor = null;
+  syncScreens();
+  render();
+}
+function preset(k) {
+  S.skipped = false; S.disabledMain = false; S.single = false; S.user = 'new'; S.mainId = '';
+  if (k === 'skip') { S.skipped = true; S.joined = ['warm-main']; }
+  if (k === 'disabled') { S.disabledMain = true; S.mainId = 'warm-read'; S.joined = ['warm-main','warm-read']; }
+  if (k === 'single') { S.single = true; }
+  syncScreens(); render();
+}
+function go(k) { S.screen = k; S.sheetOpen = (k === 'sheet'); syncScreens(); render(); }
+
+function requireLogin(intent) {
+  if (S.user === 'guest') { S.loginFor = intent; S.screen = 'login'; S.sheetOpen = false; render(); return false; }
+  return true;
+}
+function doJoin(id) {
+  if (!requireLogin({ type: 'join', planetId: id, from: S.screen })) return;
+  S.joined = S.joined.indexOf(id) >= 0 ? S.joined : S.joined.concat([id]);
+  S.screen = 'pay'; render();
+}
+function doSetMain(id) {
+  if (!requireLogin({ type: 'setMain', planetId: id, from: S.screen })) return;
+  S.mainId = id;
+  S.skipped = false;
+  if (S.screen === 'picker') { toast('已设为主星球，正在进入…'); setTimeout(() => go('tab'), 700); }
+  else if (S.screen === 'sheet') { S.sheetOpen = false; S.screen = S.sheetFrom || 'tab'; toast('已切换到 ' + p(id).title); }
+  else { toast('已设为主星球'); }
+  render();
+}
+function doSkip() {
+  S.skipped = true;
+  toast('先逛逛，之后可在「切换」里改');
+  setTimeout(() => go('tab'), 700);
+}
+function payDone() {
+  const id = S.introId;
+  S.mainId = id; S.skipped = false;
+  toast('开通成功，已设为主星球');
+  setTimeout(() => go('tab'), 800);
+}
+
+/* ================= 渲染 ================= */
+function syncScreens() {
+  const el = document.getElementById('screens');
+  el.innerHTML = SCREENS.map((s, i) => {
+    let tag = '';
+    if (s.key === 'picker') tag = shouldShowPicker() ? '会弹' : '不弹';
+    if (s.key === 'tab') tag = p(effectiveMain()).title.replace(/ ·.*/, '');
+    return `<div class="scr ${S.screen === s.key ? 'on' : ''}" onclick="go('${s.key}')"><i>${i + 1}</i>${s.name}<em>${tag}</em></div>`;
+  }).join('');
+  ['new','done','guest','net'].forEach(u => {
+    const b = document.getElementById('u-' + u);
+    if (b) b.classList.toggle('on', S.user === u);
+  });
+}
+
+function deviceWrap(inner, hint) {
+  return `<div class="cell">
+    <div class="lb"><b>${hint.title}</b><em>${hint.desc}</em></div>
+    <div class="device"><div class="screen">${inner}<div class="home-ind"></div></div></div>
+  </div>`;
+}
+function statusBar(light) { return `<div class="status ${light ? 'light' : ''}"><span>9:41</span><span>●●● ᯤ ▮</span></div>`; }
+function tabbar(on) {
+  const items = [
+    ['home', '首页', '<path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>'],
+    ['discover', '内容', '<circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/>'],
+    ['planet', '星球', '<circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/>'],
+    ['shop', '商城', '<path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'],
+    ['mine', '我的', '<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/>'],
+  ];
+  return `<nav class="tabbar">${items.map(([k, l, path]) =>
+    `<a class="${on === k ? 'on' : ''}" onclick="go('${k === 'planet' ? 'tab' : k === 'home' ? 'home' : k}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${path}</svg>${l}</a>`).join('')}</nav>`;
+}
+
+/* ---- ① 选择页 ---- */
+function viewPicker() {
+  const mode = shouldShowPicker() ? 'pick' : 'first';
+  const list = enabledList();
+  const main = effectiveMain();
+  const hero = mode === 'pick' ? `
+    <div class="pk-hero">
+      <h2 class="serif">先挑一个星球</h2>
+      <p>暖阁有 3 个社区，各有侧重。<br>选一个当你的主星球，下次进来直接就是它。</p>
+      <div class="pk-steps"><i class="on"></i><i></i><i></i></div>
+    </div>` : `
+    <div class="pk-hero" style="padding-bottom:18px">
+      <h2 class="serif">我加入的星球</h2>
+      <p>随时可以换一颗常驻星球，只影响首页和星球页展示哪一颗。</p>
+    </div>`;
+
+  const cards = list.map(c => {
+    const isMain = c.id === main;
+    const joined = isJoined(c.id);
+    const mainBtn = mode === 'pick'
+      ? (joined
+        ? `<button class="btn sm" onclick="doSetMain('${c.id}')">设为我的主星球</button>`
+        : `<button class="btn sm ghost" onclick="doJoin('${c.id}')">先加入</button>`)
+      : (isMain
+        ? `<span class="tag on">常驻</span>`
+        : `<button class="btn sm ghost" onclick="doSetMain('${c.id}')">设为常驻</button>`);
+    return `<div class="pk-card ${isMain ? 'main' : ''}">
+      <div class="pk-card__rw" onclick="openIntro('${c.id}')">
+        <div class="pk-card__lg">${c.emoji}</div>
+        <div class="pk-card__meta">
+          <div class="pk-card__t">${c.title}
+            ${isMain ? '<span class="tag on">主星球</span>' : ''}
+            ${!isMain && joined ? '<span class="tag gray">已加入</span>' : ''}
+            ${!isMain && !joined ? '<span class="tag">可加入</span>' : ''}
+          </div>
+          <div class="pk-card__s">${c.subtitle}</div>
+          <div class="pk-card__n"><span>${c.members}</span><span>${c.today}</span></div>
+        </div>
+      </div>
+      <div class="pk-card__hl">
+        ${c.highlights.map(h => `<div><span>${h.i}</span><span>${h.t} · ${h.d}</span></div>`).join('')}
+      </div>
+      <div class="pk-card__ft">
+        ${mainBtn}
+        <button class="btn sm ghost" onclick="openIntro('${c.id}')">看详情</button>
+        <span class="sp">${isMain ? '下次进来就是它' : '点卡片看详情'}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const foot = mode === 'pick' ? `
+    <div class="pk-foot">
+      <button class="btn block ghost" onclick="doSkip()">先逛逛，稍后再选</button>
+      <div class="pk-tip">不选也能用：默认展示「${p(cfgPrimary()).title}」，之后在星球页点「切换」随时改</div>
+    </div>` : `<div style="height:14px"></div>`;
+
+  return `<div class="notch"></div>${statusBar(false)}
+    <div class="scroll">${hero}
+      <div class="pk">
+        <div class="pk-bar"><b>${mode === 'pick' ? '全部社区' : '已加入'}</b><span>共 ${list.length} 个 · ${list.filter(c => isJoined(c.id)).length} 个已加入</span></div>
+        ${cards}
+        ${foot}
+      </div>
+    </div>
+    <div class="toast ${S.toast ? 'show' : ''}">${S.toast}</div>`;
+}
+
+/* ---- ② 介绍页 ---- */
+function openIntro(id) { S.introId = id; go('intro'); }
+function viewIntro() {
+  const c = p(S.introId);
+  const joined = isJoined(c.id);
+  const isMain = c.id === effectiveMain();
+  return `<div class="notch"></div>${statusBar(false)}
+    <div class="navbar"><div class="bk" onclick="go('picker')">‹</div><h4>${c.title}</h4></div>
+    <div class="scroll full" style="padding-top:96px;padding-bottom:0">
+      <div class="pi-hero">
+        <div class="lg">${c.emoji}</div>
+        <h2 class="serif">${c.title}</h2>
+        <div class="sb">${c.subtitle}</div>
+      </div>
+      <div class="pi-body">
+        <div class="pi-lab">关于这里</div>
+        ${c.intro.split('\n').map(x => `<p class="pi-p">${x}</p>`).join('')}
+        <div class="pi-hl">
+          ${c.highlights.map(h => `<div><span class="i">${h.i}</span><div><b>${h.t}</b><p>${h.d}</p></div></div>`).join('')}
+        </div>
+        <div class="pi-body" style="padding:14px 0 4px">
+          <div class="tag ${joined ? 'on' : 'gold'}">${joined ? '你已加入本星球' : '尚未开通本星球会员'}</div>
+        </div>
+        <div class="pi-foot">
+          <div class="pi-tip muted" style="font-size:10.5px;text-align:center;margin-bottom:9px">${c.joinHint}</div>
+          <div class="btns">
+            <button class="btn ghost" onclick="openSheetFrom('intro')">看别的星球</button>
+            ${joined
+              ? `<button class="btn" onclick="doSetMain('${c.id}')">${isMain ? '已是主星球' : '设为主星球'}</button>`
+              : `<button class="btn" onclick="doJoin('${c.id}')">${c.cta}</button>`}
+          </div>
+          <div class="pi-set ${isMain ? 'muted' : ''}" onclick="doSetMain('${c.id}')">${isMain ? '已是你的常驻星球' : '设为常驻星球'}</div>
+        </div>
+      </div>
+    </div>
+    <div class="toast ${S.toast ? 'show' : ''}">${S.toast}</div>`;
+}
+
+/* ---- ③ 下单页 ---- */
+function viewPay() {
+  const c = p(S.introId);
+  return `<div class="notch"></div>${statusBar(false)}
+    <div class="navbar"><div class="bk" onclick="go('intro')">‹</div><h4>确认订单</h4></div>
+    <div class="scroll full" style="padding-top:96px">
+      <div class="pd">
+        <div class="pd-card">
+          <div class="pd-row">
+            <div class="lg">${c.emoji}</div>
+            <div><b>${c.title} · 年卡</b><p>虚拟商品 · 支付即开通 · 不支持退款</p></div>
+          </div>
+          <div class="pd-price"><b>¥199</b><s>¥299</s><em>会员价 6.6 折</em></div>
+        </div>
+        <div class="pd-list" style="margin-top:14px">
+          <div>365 天星球会员权益</div>
+          <div>提问与精华区 unlimited</div>
+          <div>资料库全解锁 + 可转发保存</div>
+          <div>共读 / 日更营活动名额</div>
+        </div>
+        <div class="pd-card" style="margin-top:14px;background:#fffdf9;border-style:dashed">
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:#6b5443;line-height:1.6">
+            <input type="checkbox" checked /> 我已阅读并同意《虚拟商品购买协议》，理解支付后不支持退款
+          </label>
+        </div>
+        <div style="margin-top:16px"><button class="btn block" onclick="payDone()">微信支付 ¥199</button></div>
+        <div class="pk-tip" style="margin-top:10px">支付成功后自动把本星球设为主星球</div>
+      </div>
+    </div>
+    <div class="toast ${S.toast ? 'show' : ''}">${S.toast}</div>`;
+}
+
+/* ---- ④ 星球 Tab ---- */
+function viewTab() {
+  const main = effectiveMain();
+  const c = p(main);
+  const warn = S.disabledMain && S.mainId && S.mainId !== main;
+  return `<div class="notch"></div>${statusBar(true)}
+    <div class="scroll hasbar">
+      <section class="pl-hero">
+        <div class="pl-hero__rw">
+          <div class="pl-hero__lg">${c.emoji}</div>
+          <div class="pl-hero__meta">
+            <h2 class="serif">${c.title.replace(/ ·.*/, '')}</h2>
+            <div class="sb">${c.subtitle}</div>
+          </div>
+          <div class="pl-hero__acts">
+            <div class="pl-hero__sw" onclick="openSheetFrom('tab')">切换</div>
+            <div class="pl-hero__jn" onclick="doJoin('${main}')">${isJoined(main) ? '已加入' : '加入'}</div>
+          </div>
+        </div>
+        <div class="pl-kpi">${c.kpis.map((k, i) => `<div><b>${k}</b><span>${['球友','沉淀内容','今日新增'][i]}</span></div>`).join('')}</div>
+        <div class="pl-exp">🎫 会员有效期至 2027-03-18 · 剩余 185 天</div>
+        <div class="pl-joinrow"><span>👥 加入球友微信群，第一时间收到更新通知</span><b>去加入 ›</b></div>
+      </section>
+      ${warn ? `<div style="margin:12px 16px 0;padding:10px 12px;border-radius:12px;background:#fdf0d6;color:#b45309;font-size:11.5px">⚠️ 你原来的主星球已被停用，已自动切到「${p(main).title}」</div>` : ''}
+      ${S.skipped ? `<div style="margin:12px 16px 0;padding:10px 12px;border-radius:12px;background:#f8ecdd;color:#6b5443;font-size:11.5px">💡 你还没选过主星球，点上方「切换」随时改 <span style="color:#c2410c;font-weight:700;cursor:pointer" onclick="openSheetFrom('tab')">去选 ›</span></div>` : ''}
+      <section class="fc">
+        <div class="t"><span style="font-size:17px">📈</span><h4>本周星球话题预测</h4><span class="tag gold">AI 推演</span></div>
+        <div class="bar">
+          <div class="row"><span class="nm">AI 写作工具</span><span class="tr"><i style="width:88%"></i></span><span class="pct">↑ 62%</span></div>
+          <div class="row"><span class="nm">小红书新规</span><span class="tr"><i style="width:71%"></i></span><span class="pct">↑ 34%</span></div>
+          <div class="row"><span class="nm">付费社群定价</span><span class="tr"><i style="width:54%"></i></span><span class="pct">↑ 12%</span></div>
+        </div>
+        <div class="note">基于近 30 天星球发帖、提问与互动数据推演。「AI 写作工具」将持续升温，建议提前储备相关选题。</div>
+      </section>
+      <div class="segs"><a class="on">全部</a><a>官方更新</a><a>精华 ⭐️</a><a>读者提问</a><a>打卡</a></div>
+      <div class="fd top">
+        <div class="hh"><span class="av"></span><div><div class="nm">墨白 <span class="tag gold">置顶</span><span class="tag">星主</span></div><div class="tm">2 小时前 · 官方发布</div></div><span style="margin-left:auto;color:#a1897a">···</span></div>
+        <a class="ct" onclick="go('tab')">【9 月共读】本月我们读《认知盈余》。<b>读完在评论区交一份 300 字笔记</b>，我会逐条点评，优秀的直接进精华区 📌</a>
+        <span class="tp">#共读计划 #认知盈余</span>
+        <div class="ft"><span class="hot">❤️ 486</span><span>💬 142</span><span>⭐️ 收藏</span><span>↗️ 分享</span></div>
+      </div>
+      <div class="fd">
+        <div class="hh"><span class="av"></span><div><div class="nm">十一 <span class="tag">读者提问</span></div><div class="tm">4 小时前 · 杭州</div></div><span style="margin-left:auto;color:#a1897a">···</span></div>
+        <a class="ct" onclick="go('tab')">知识付费定价 99 和 199 差别有多大？我的专栏内容体量大概 20 讲，纠结一周了。</a>
+        <div class="ft"><span class="hot">❤️ 231</span><span>💬 86</span><span>⭐️ 收藏</span><span>↗️ 分享</span></div>
+      </div>
+      <div class="fd">
+        <div class="hh"><span class="av"></span><div><div class="nm">小满 <span class="tag gold">精华</span></div><div class="tm">昨天 21:40</div></div><span style="margin-left:auto;color:#a1897a">···</span></div>
+        <a class="ct" onclick="go('tab')">我用 3 个月把公众号做到 5000 付费，把踩过的坑整理成了 9 张图。核心就一句：<b>别追热点，追人群</b>。</a>
+        <div class="ft"><span class="hot">❤️ 1.1k</span><span>💬 203</span><span>⭐️ 收藏</span><span>↗️ 分享</span></div>
+      </div>
+    </div>
+    ${tabbar('planet')}
+    <div class="toast ${S.toast ? 'show' : ''}">${S.toast}</div>`;
+}
+
+/* ---- ⑤ 切换半屏 ---- */
+function openSheetFrom(from) { S.sheetFrom = from; S.sheetOpen = true; S.screen = from; render(); }
+function viewSheet() {
+  const list = enabledList();
+  const main = effectiveMain();
+  const joined = list.filter(c => isJoined(c.id));
+  const notJoined = list.filter(c => !isJoined(c.id));
+  const row = c => {
+    const on = c.id === main;
+    return `<div class="sh-li ${on ? 'on' : ''}" onclick="${isJoined(c.id) ? `doSetMain('${c.id}')` : `sheetIntro('${c.id}')`}">
+      <div class="lg">${c.emoji}</div>
+      <div class="m"><b>${c.title} ${on ? '<span class="tag on">常驻</span>' : ''}</b><p>${c.members} · ${c.subtitle}</p></div>
+      <div class="go ${on ? 'on' : ''}">${on ? '当前' : (isJoined(c.id) ? '切过去' : '去加入')}</div>
+    </div>`;
+  };
+  return `<div class="notch"></div>${statusBar(true)}
+    <div class="scroll hasbar" style="pointer-events:none">
+      <section class="pl-hero" style="opacity:.5">
+        <div class="pl-hero__rw">
+          <div class="pl-hero__lg">${p(main).emoji}</div>
+          <div class="pl-hero__meta"><h2 class="serif">${p(main).title.replace(/ ·.*/, '')}</h2><div class="sb">${p(main).subtitle}</div></div>
+        </div>
+        <div class="pl-kpi">${p(main).kpis.map((k, i) => `<div><b>${k}</b><span>${['球友','沉淀内容','今日新增'][i]}</span></div>`).join('')}</div>
+      </section>
+    </div>
+    ${tabbar('planet')}
+    <div class="mask" onclick="closeSheet()"></div>
+    <div class="sheet">
+      <div class="grab"></div>
+      <h4 class="serif">切换主星球</h4>
+      <div class="sh-s">主星球决定首页星球卡和星球页展示哪一颗，随时可改</div>
+      ${joined.length ? `<div class="sh-lab">已加入 ${joined.length}</div>${joined.map(row).join('')}` : ''}
+      ${notJoined.length ? `<div class="sh-lab">还可以加入 ${notJoined.length}</div>${notJoined.map(row).join('')}` : ''}
+      <div class="sh-ft"><button class="btn block ghost" onclick="closeSheet()">取消</button></div>
+      <div class="pk-tip">点已加入的即时切换；点未加入的会进入介绍页</div>
+    </div>
+    <div class="toast ${S.toast ? 'show' : ''}">${S.toast}</div>`;
+}
+function sheetIntro(id) { S.sheetOpen = false; openIntro(id); }
+function closeSheet() { S.sheetOpen = false; S.screen = S.sheetFrom || 'tab'; render(); }
+
+/* ---- ⑥ 首页 ---- */
+function viewHome() {
+  const list = enabledList();
+  const main = effectiveMain();
+  const multi = list.length > 1;
+  const section = multi ? `
+    <div class="hm-hscroll">
+      ${list.map(c => {
+        const on = c.id === main;
+        return `<div class="pcard ${on ? 'main' : ''}">
+          <div class="pcard__top" onclick="${isJoined(c.id) ? `homePick('${c.id}')` : `homeIntro('${c.id}')`}">
+            <div class="pcard__rw"><div class="pcard__lg">${c.emoji}</div>
+              <div><div class="pcard__t">${c.title.replace(/ ·.*/, '')}</div></div></div>
+            <div class="pcard__s">${c.subtitle}</div>
+            <div class="pcard__it">${c.highlights.slice(0, 2).map(h => `<span class="tag ${on ? 'soft' : 'gray'}">${h.t}</span>`).join('')}</div>
+          </div>
+          <div class="pcard__ft">
+            ${on ? '<span class="tag on">主星球</span>'
+              : (isJoined(c.id)
+                ? `<button class="btn sm ghost" onclick="doSetMain('${c.id}')">设为主星球</button>`
+                : `<button class="btn sm ghost" onclick="doJoin('${c.id}')">加入</button>`)}
+            <span class="sp">${c.members}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="pk-tip" style="text-align:left">多卡横滑：未设主星球时可逐张挑；点卡片 = 已加入直接进动态流，未加入进介绍页</div>
+  ` : `
+    <div class="hm-single">
+      <div class="pcard main">
+        <div class="pcard__top" onclick="homePick('${main}')">
+          <div class="pcard__rw"><div class="pcard__lg">${p(main).emoji}</div>
+            <div><div class="pcard__t">${p(main).title}</div></div></div>
+          <div class="pcard__s">${p(main).subtitle}</div>
+          <div class="pcard__it">${p(main).highlights.map(h => `<span class="tag gray">${h.t}</span>`).join('')}</div>
+        </div>
+        <div class="pcard__ft"><span class="tag on">主星球</span><span class="sp">${p(main).members} · ${p(main).today}</span></div>
+      </div>
+      <div class="foot">
+        <button class="btn sm ghost" onclick="openSheetFrom('home')">选一个主星球</button>
+        <span class="pk-tip" style="display:inline;margin-left:8px">已设主星球时首页只展示这一张</span>
+      </div>
+    </div>`;
+
+  return `<div class="notch"></div>${statusBar(true)}
+    <div class="scroll hasbar">
+      <div class="hm-greet">
+        <h2 class="serif">下午好，刘玄</h2>
+        <p>今天有 3 条新内容 · 你在${p(main).title.replace(/ ·.*/, '')} 还有 185 天</p>
+        <div class="hm-nav"><div>📚 专栏</div><div>🧺 资料库</div><div>🪐 星球</div><div>🎁 商城</div></div>
+      </div>
+      <div class="hm">
+        <div class="hm-sec"><h3>我的星球</h3><a onclick="go('picker')">全部社区 ›</a></div>
+        ${section}
+        <div class="hm-sec"><h3>今日精选</h3><a onclick="go('home')">更多 ›</a></div>
+        <div class="fd"><div class="hh"><span class="av"></span><div><div class="nm">墨白 <span class="tag gold">主理人</span></div><div class="tm">今天 08:12</div></div></div>
+          <a class="ct" onclick="go('home')">内容平台做了一年，我最后悔的是这 3 个决定。<b>第 2 个几乎所有人都踩过</b>。</a>
+          <div class="ft"><span class="hot">❤️ 862</span><span>💬 97</span><span>⭐️ 收藏</span><span>↗️ 分享</span></div></div>
+      </div>
+    </div>
+    ${tabbar('home')}
+    <div class="toast ${S.toast ? 'show' : ''}">${S.toast}</div>`;
+}
+function homePick(id) { if (isJoined(id)) { S.mainId = id; toast('已切到 ' + p(id).title); } else homeIntro(id); render(); }
+function homeIntro(id) { S.sheetOpen = false; openIntro(id); }
+
+/* ---- ⑦ 登录层 ---- */
+function viewLogin() {
+  const it = S.loginFor || { type: 'setMain', planetId: CONFIG_PRIMARY, from: 'picker' };
+  const verb = it.type === 'join' ? '加入「' + p(it.planetId).title + '」' : '把「' + p(it.planetId).title + '」设为主星球';
+  return `<div class="notch"></div>${statusBar(false)}
+    <div class="scroll" style="pointer-events:none;opacity:.4">
+      <div class="pk-hero"><h2 class="serif">先挑一个星球</h2><p>暖阁有 3 个社区，各有侧重。</p></div>
+      <div class="pk"><div class="pk-card"><div class="pk-card__rw"><div class="pk-card__lg">🪐</div>
+        <div class="pk-card__meta"><div class="pk-card__t">暖阁星球 · 内容创作者</div><div class="pk-card__s">内容创作者的自留地</div></div></div></div></div>
+    </div>
+    <div class="lg-mask"></div>
+    <div class="lg-sheet">
+      <div class="lg-av"></div>
+      <h4>登录后继续</h4>
+      <p>你要${verb}。<br>登录只需要一次，之后自动续跑这一步。</p>
+      <div class="lg-btns">
+        <button class="btn block" onclick="loginOk()">微信一键登录</button>
+        <button class="btn block ghost" onclick="loginSkip()">暂不登录，先逛逛</button>
+      </div>
+      <div class="pk-tip">浏览全程不需要登录，加入 / 设为常驻 / 提问才需要</div>
+    </div>
+    <div class="toast ${S.toast ? 'show' : ''}">${S.toast}</div>`;
+}
+function loginOk() {
+  const it = S.loginFor || { type: 'setMain', planetId: CONFIG_PRIMARY, from: 'picker' };
+  S.user = 'new';
+  S.loginFor = null;
+  if (it.type === 'join') { S.joined = S.joined.concat([it.planetId]); S.screen = 'pay'; render(); return; }
+  S.mainId = it.planetId; S.skipped = false; S.screen = 'picker';
+  toast('已登录并完成上一步操作'); render();
+}
+function loginSkip() { S.loginFor = null; go('tab'); }
+
+/* ================= 组装 ================= */
+function render() {
+  syncScreens();
+  const hints = {
+    picker: { title: '① 星球选择页（首次引导态）', desc: '改造 pkg-content/planet-list：?mode=pick。展示全部社区，加入与「设为主星球」都在这一屏完成，底部给「先逛逛」出口。' },
+    intro:  { title: '② 星球介绍页（复用现成页）', desc: 'pkg-content/planet-intro，不改。点「看别的星球」会打开切换半屏，形成「这一颗 ↔ 那一颗」的横向切换闭环。' },
+    pay:    { title: '③ 下单页（复用现成页）', desc: '虚拟商品支付即开通。支付成功后直接把本星球设为主星球，省掉一次选择动作。' },
+    tab:    { title: '④ 星球 Tab（主星球）', desc: '选定后每次进入直达这里。顶部「切换」= 半屏弹层，不再跳页。灰条是「先逛逛」后的一次性非阻断提示。' },
+    sheet:  { title: '⑤ 切换半屏弹层（新增组件）', desc: '已加入的在上、未加入的在下。点已加入的即时 PUT 切换并就地刷新；点未加入的进介绍页。' },
+    home:   { title: '⑥ 首页星球卡', desc: '多卡横滑：卡上「设为主星球」可就地改；已设主星球后自动收成单卡，底部改走半屏弹层。' },
+    login:  { title: '⑦ 登录层（仅写操作触发）', desc: '浏览全程不拦。登录成功后由 intent 续跑原动作，用户不用再点一次。' },
+  };
+  const views = { picker: viewPicker, intro: viewIntro, pay: viewPay, tab: viewTab, sheet: viewSheet, home: viewHome, login: viewLogin };
+  const key = S.screen;
+  const inner = (views[key] || viewPicker)();
+  document.getElementById('devwrap').innerHTML = deviceWrap(inner, hints[key]);
+
+  const main = effectiveMain();
+  const box = document.getElementById('statebox');
+  box.innerHTML = `
+    <div class="r"><span>GET /main → userSet</span><b class="${mainSetByUser() ? 'y' : 'n'}">${mainSetByUser() ? 'true' : 'false'}</b></div>
+    <div class="r"><span>本地 main_planet_id</span><b class="${S.mainId ? 'y' : 'n'}">${S.mainId || '（空）'}</b></div>
+    <div class="r"><span>生效主星球</span><b>${p(main).title.replace(/ ·.*/, '')}</b></div>
+    <div class="r"><span>已加入</span><b>${S.joined.length ? S.joined.map(p).map(c => c.title.replace(/ ·.*/, '')).join('、') : '（无）'}</b></div>
+    <div class="r"><span>首次是否弹选择页</span><b class="${shouldShowPicker() ? '' : 'n'}" style="${shouldShowPicker() ? 'color:#b45309' : ''}">${shouldShowPicker() ? '是' : '否'}</b></div>
+    <div class="r"><span>warm.primaryOnly</span><b class="${mainSetByUser() ? 'y' : 'n'}">${mainSetByUser() ? 'true' : 'false'}</b></div>`;
+}
+
+setUser('new');
+go('picker');
+</script>
+</body>
+</html>

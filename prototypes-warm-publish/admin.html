@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 运营后台原型</title>
+<link rel="stylesheet" href="./admin.css" />
+</head>
+<body>
+<div class="page">
+
+<!-- 资料试读配置 -->
+<div class="ptt">后台 ①　资料与试读配置</div>
+<div class="pnote">对应小程序端 <b>resources.html / file-preview.html</b>。核心是把「非会员能看多少」做成每份资料可单独配置的字段，而不是写死在代码里。建议表结构：<b>preview_mode</b>（枚举：none / first_page / pages / percent / full）+ <b>preview_value</b>（整数）。</div>
+<div class="app">
+  <aside class="side">
+    <div class="lg">🏮 暖阁运营后台</div>
+    <div class="grp">内容</div>
+    <a><span class="ic">📝</span>文章管理</a>
+    <a><span class="ic">🌿</span>笔记管理</a>
+    <a class="on"><span class="ic">🗂</span>资料库</a>
+    <a><span class="ic">🪐</span>星球运营</a>
+    <div class="grp">交易</div>
+    <a><span class="ic">🛍</span>商品管理</a>
+    <a><span class="ic">🧾</span>订单管理</a>
+    <a><span class="ic">🎫</span>会员与权益</a>
+    <div class="grp">用户</div>
+    <a><span class="ic">👥</span>用户列表</a>
+    <a><span class="ic">✍️</span>创作者审核</a>
+    <a><span class="ic">💬</span>客服与社群</a>
+    <div class="grp">系统</div>
+    <a><span class="ic">⚙️</span>基础设置</a>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <h1>资料库</h1><span class="crumb">/ 编辑资料 / 9月共读·领读提纲.pdf</span>
+      <div class="me"><span>运营 · 小周</span><span class="av"></span></div>
+    </div>
+    <div class="body2">
+      <div class="card">
+        <div class="ch"><h3>基本信息</h3><div class="rt"><button class="btn gh">取消</button><button class="btn">保存</button></div></div>
+        <div class="cb">
+          <div class="fr"><div class="lb">资料名称</div><div class="ct"><span class="ipt w240">9月共读·领读提纲</span></div></div>
+          <div class="fr"><div class="lb">文件</div><div class="ct"><span class="pill v">PDF · 2.4 MB · 12 页</span> <button class="btn gh sm">替换文件</button><div class="hint">支持 pdf / xlsx / docx / zip，单文件 ≤ 50 MB。上传后存 CDN，端上通过 <code>wx.downloadFile</code> + <code>wx.openDocument</code> 预览。</div></div></div>
+          <div class="fr"><div class="lb">所属分类</div><div class="ct"><span class="ipt w140">提纲</span></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>访问权限</h3><span class="sub">决定谁能看、能看多少</span></div>
+        <div class="cb">
+          <div class="fr">
+            <div class="lb">可见范围</div>
+            <div class="ct"><div class="radios">
+              <label><i></i>所有人免费</label>
+              <label class="on"><i></i>仅会员</label>
+              <label><i></i>仅指定专栏购买者</label>
+              <label><i></i>仅星球成员</label>
+            </div></div>
+          </div>
+          <div class="fr">
+            <div class="lb">非会员试读方式<em>preview_mode</em></div>
+            <div class="ct">
+              <div class="radios">
+                <label><i></i>完全不可见</label>
+                <label><i></i>仅首页</label>
+                <label class="on"><i></i>前 N 页</label>
+                <label><i></i>前 N %</label>
+              </div>
+              <div style="margin-top:11px;display:flex;align-items:center">
+                <span class="unit" style="margin-left:0">可试读</span><span class="ipt w80">2</span><span class="unit">页 / 共 12 页</span>
+                <span class="pill v">约 16%</span>
+              </div>
+              <div class="hint">端上表现：超出范围的页面做模糊遮罩 + 入会引导。<b style="color:#9a3412">务必由服务端裁切后再下发</b>，不要把完整文件传到前端再遮挡，否则可被抓包绕过。</div>
+            </div>
+          </div>
+          <div class="fr">
+            <div class="lb">允许转发保存</div>
+            <div class="ct"><span class="sw on"><i></i></span><span class="unit">会员可转发给微信好友</span><div class="hint">关闭后端上隐藏「转发保存」按钮，仅允许在小程序内阅读。</div></div>
+          </div>
+          <div class="fr">
+            <div class="lb">水印</div>
+            <div class="ct"><span class="sw on"><i></i></span><span class="unit">叠加用户昵称 + 手机号后四位</span><div class="hint">防止付费资料被批量外传，出事可溯源。</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>端上效果预览</h3><span class="sub">非会员看到的样子</span></div>
+        <div class="cb" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="prev">
+            <div class="t">第 1-2 页 · 完整可见</div>
+            <div class="sheetbox">
+              <div class="ln" style="width:60%;height:10px"></div>
+              <div class="ln"></div><div class="ln" style="width:92%"></div><div class="ln" style="width:78%"></div><div class="ln" style="width:88%"></div>
+            </div>
+          </div>
+          <div class="prev">
+            <div class="t">第 3 页起 · 遮罩</div>
+            <div class="sheetbox" style="filter:blur(2px);opacity:.6">
+              <div class="ln" style="width:60%;height:10px"></div>
+              <div class="ln"></div><div class="ln" style="width:92%"></div>
+            </div>
+            <div class="lock">🔒 加入会员查看全部 12 页</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 商品管理 -->
+<div class="ptt" style="margin-top:38px">后台 ②　商品管理与上架</div>
+<div class="pnote">对应 <b>shop.html / goods.html / order.html</b>。虚拟商品和实物商品共用一张表，用 <b>goods_type</b> 区分交付逻辑：虚拟商品支付成功即写权限记录，实物商品才走地址与物流。</div>
+<div class="app">
+  <aside class="side">
+    <div class="lg">🏮 暖阁运营后台</div>
+    <div class="grp">内容</div>
+    <a><span class="ic">📝</span>文章管理</a>
+    <a><span class="ic">🌿</span>笔记管理</a>
+    <a><span class="ic">🗂</span>资料库</a>
+    <a><span class="ic">🪐</span>星球运营</a>
+    <div class="grp">交易</div>
+    <a class="on"><span class="ic">🛍</span>商品管理</a>
+    <a><span class="ic">🧾</span>订单管理</a>
+    <a><span class="ic">🎫</span>会员与权益</a>
+    <div class="grp">用户</div>
+    <a><span class="ic">👥</span>用户列表</a>
+    <a><span class="ic">✍️</span>创作者审核</a>
+    <a><span class="ic">💬</span>客服与社群</a>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h1>商品管理</h1><span class="crumb">/ 全部商品</span><div class="me"><span>运营 · 小周</span><span class="av"></span></div></div>
+    <div class="body2">
+      <div class="stats">
+        <div><b>36</b><span>在售商品</span></div>
+        <div><b>¥182,640</b><span>近 30 天销售额<em>↑ 12%</em></span></div>
+        <div><b>2,140</b><span>本月订单</span></div>
+        <div><b>3.8%</b><span>详情页转化率<em>↑ 0.4%</em></span></div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          <h3>商品列表</h3><span class="sub">共 36 件</span>
+          <div class="rt"><button class="btn gh">导出</button><button class="btn">＋ 新建商品</button></div>
+        </div>
+        <div class="tabs2"><a class="on">全部 36</a><a>虚拟商品 28</a><a>实物 5</a><a>会员/社群 3</a><a>已下架 4</a></div>
+        <table>
+          <thead><tr><th style="width:34%">商品</th><th>类型</th><th>价格 / 会员价</th><th>库存</th><th>销量</th><th>状态</th><th style="width:130px">操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="gname"><div class="im">📘</div><div><b>内容生意手册</b><span>EPUB / PDF · 试读 2 章</span></div></div></td>
+              <td><span class="pill v">虚拟 · 电子书</span></td>
+              <td>¥39 <span style="color:var(--mute)">/ ¥31</span></td>
+              <td>不限</td><td>2,140</td>
+              <td><span class="pill on2">在售</span></td>
+              <td><div class="acts"><button class="btn gh sm">编辑</button><button class="btn gh sm">下架</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="gname"><div class="im">🗂</div><div><b>选题库模板包</b><span>Notion / Excel · 7 个文件</span></div></div></td>
+              <td><span class="pill v">虚拟 · 资料包</span></td>
+              <td>¥29 <span style="color:var(--mute)">/ 免费</span></td>
+              <td>不限</td><td>1,806</td>
+              <td><span class="pill on2">在售</span></td>
+              <td><div class="acts"><button class="btn gh sm">编辑</button><button class="btn gh sm">下架</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="gname"><div class="im">🎧</div><div><b>一个人的内容生意 · 32 讲</b><span>音频 + 讲稿 · 赠 90 天星球</span></div></div></td>
+              <td><span class="pill v">虚拟 · 专栏</span></td>
+              <td>¥199 <span style="color:var(--mute)">/ ¥159</span></td>
+              <td>不限</td><td>8,214</td>
+              <td><span class="pill on2">在售</span></td>
+              <td><div class="acts"><button class="btn gh sm">编辑</button><button class="btn gh sm">下架</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="gname"><div class="im">🎁</div><div><b>暖阁陶土杯垫</b><span>实物 · 需收货地址</span></div></div></td>
+              <td><span class="pill">实物</span></td>
+              <td>¥68 <span style="color:var(--mute)">/ ¥54</span></td>
+              <td>128</td><td>312</td>
+              <td><span class="pill on2">在售</span></td>
+              <td><div class="acts"><button class="btn gh sm">编辑</button><button class="btn gh sm">下架</button></div></td>
+            </tr>
+            <tr>
+              <td><div class="gname"><div class="im">📕</div><div><b>2025 年度长文合集</b><span>PDF · 已过季</span></div></div></td>
+              <td><span class="pill v">虚拟 · 电子书</span></td>
+              <td>¥19</td>
+              <td>不限</td><td>3,412</td>
+              <td><span class="pill off">已下架</span></td>
+              <td><div class="acts"><button class="btn gh sm">编辑</button><button class="btn gh sm">上架</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>虚拟商品交付设置</h3><span class="sub">编辑「内容生意手册」时展开的关键项</span></div>
+        <div class="cb">
+          <div class="fr"><div class="lb">商品类型<em>goods_type</em></div><div class="ct"><div class="radios"><label class="on"><i></i>虚拟 · 电子书</label><label><i></i>虚拟 · 资料包</label><label><i></i>虚拟 · 专栏</label><label><i></i>会员 / 社群</label><label><i></i>实物</label></div><div class="hint">选「实物」后才出现收货地址、运费、物流模板；虚拟商品全部隐藏这些字段。</div></div></div>
+          <div class="fr"><div class="lb">交付方式</div><div class="ct"><div class="radios"><label class="on"><i></i>支付成功自动开通权限</label><label><i></i>人工发放</label><label><i></i>发放兑换码</label></div><div class="hint">自动开通需在<b style="color:#9a3412">微信支付回调</b>里写权限记录，并做幂等（同一 out_trade_no 重复回调只开通一次）。</div></div></div>
+          <div class="fr"><div class="lb">试读设置</div><div class="ct"><span class="unit" style="margin-left:0">免费试读前</span><span class="ipt w80">2</span><span class="unit">章 / 共 12 章</span><div class="hint">与资料库共用同一套 preview_mode 逻辑。</div></div></div>
+          <div class="fr"><div class="lb">退款政策</div><div class="ct"><div class="radios"><label class="on"><i></i>不支持退款</label><label><i></i>未开始阅读可退</label><label><i></i>7 天无理由</label></div><div class="hint">所选政策会同步展示在下单页协议与订单详情页，避免纠纷。</div></div></div>
+          <div class="fr"><div class="lb">会员权益</div><div class="ct"><span class="sw on"><i></i></span><span class="unit">会员享 8 折</span>　<span class="sw"><i></i></span><span class="unit">会员免费</span></div></div>
+          <div class="fr"><div class="lb">上架时间</div><div class="ct"><span class="ipt w140">2026-09-14 10:00</span><span class="unit">起</span><span class="sw on"><i></i></span><span class="unit">定时上架</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 会员权益 + 内容审核 -->
+<div class="ptt" style="margin-top:38px">后台 ③　会员权益与内容审核</div>
+<div class="pnote">会员权益做成可配置的开关组合，避免每次调整权益都要改代码发版。内容审核对应 UGC 阶段二：投稿、笔记、星球提问统一进审核队列。</div>
+<div class="app">
+  <aside class="side">
+    <div class="lg">🏮 暖阁运营后台</div>
+    <div class="grp">内容</div>
+    <a><span class="ic">📝</span>文章管理</a>
+    <a><span class="ic">🌿</span>笔记管理</a>
+    <a><span class="ic">🗂</span>资料库</a>
+    <a><span class="ic">🪐</span>星球运营</a>
+    <div class="grp">交易</div>
+    <a><span class="ic">🛍</span>商品管理</a>
+    <a><span class="ic">🧾</span>订单管理</a>
+    <a class="on"><span class="ic">🎫</span>会员与权益</a>
+    <div class="grp">用户</div>
+    <a><span class="ic">👥</span>用户列表</a>
+    <a><span class="ic">✍️</span>创作者审核</a>
+    <a><span class="ic">💬</span>客服与社群</a>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h1>会员与权益</h1><span class="crumb">/ 年度会员</span><div class="me"><span>运营 · 小周</span><span class="av"></span></div></div>
+    <div class="body2">
+      <div class="card">
+        <div class="ch"><h3>会员档位</h3><div class="rt"><button class="btn">＋ 新增档位</button></div></div>
+        <table>
+          <thead><tr><th>档位</th><th>价格</th><th>时长</th><th>续费价</th><th>在售人数</th><th>状态</th><th style="width:100px">操作</th></tr></thead>
+          <tbody>
+            <tr><td><b>月度会员</b></td><td>¥19</td><td>30 天</td><td>¥19</td><td>486</td><td><span class="pill on2">在售</span></td><td><button class="btn gh sm">编辑</button></td></tr>
+            <tr><td><b>年度会员</b> <span class="pill v">主推</span></td><td>¥168</td><td>365 天</td><td>¥134（8折）</td><td>3,241</td><td><span class="pill on2">在售</span></td><td><button class="btn gh sm">编辑</button></td></tr>
+            <tr><td><b>终身会员</b></td><td>¥698</td><td>永久</td><td>—</td><td>112</td><td><span class="pill wait">灰度中</span></td><td><button class="btn gh sm">编辑</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>年度会员包含的权益</h3><span class="sub">开关组合，改动即时生效，无需发版</span></div>
+        <div class="cb">
+          <div class="fr"><div class="lb">全站长文免费读</div><div class="ct"><span class="sw on"><i></i></span><span class="unit">含标记为「会员专享」的付费长文</span></div></div>
+          <div class="fr"><div class="lb">资料库全解锁</div><div class="ct"><span class="sw on"><i></i></span><span class="unit">128 份资料不再受 preview_mode 限制</span></div></div>
+          <div class="fr"><div class="lb">商城折扣</div><div class="ct"><span class="sw on"><i></i></span><span class="ipt w80" style="margin-left:8px">8.0</span><span class="unit">折</span></div></div>
+          <div class="fr"><div class="lb">赠送星球会员</div><div class="ct"><span class="sw on"><i></i></span><span class="ipt w80" style="margin-left:8px">90</span><span class="unit">天</span></div></div>
+          <div class="fr"><div class="lb">专属身份标识</div><div class="ct"><span class="sw on"><i></i></span><span class="unit">评论区与星球显示会员角标</span></div></div>
+          <div class="fr"><div class="lb">到期提醒</div><div class="ct"><span class="sw on"><i></i></span><span class="unit">到期前</span><span class="ipt w80">7</span><span class="unit">天通过订阅消息提醒续费</span><div class="hint">需用户主动授权一次性订阅消息，授权入口建议放在支付成功页。</div></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>内容审核队列</h3><span class="sub">UGC 阶段二启用 · 当前 3 条待审</span><div class="rt"><button class="btn gh">审核规则</button></div></div>
+        <div class="tabs2"><a class="on">待审核 3</a><a>已通过 142</a><a>已驳回 18</a><a>机器拦截 7</a></div>
+        <div class="cb">
+          <div class="audit">
+            <div class="im"></div>
+            <div style="flex:1">
+              <h5>我的书桌改造 ✨ 一个内容人的暖光角落</h5>
+              <p>去年整整一年，我都在客厅那张餐桌上写东西。今年终于给自己搭了一个只属于写作的角落，成本 2000 出头……</p>
+              <div class="mt">投稿人 林砚（特约作者）· 图文笔记 · 9 张图 · 提交于 09-14 09:12 · <span style="color:#15803d">机器初审通过</span></div>
+            </div>
+            <div class="rt"><button class="btn sm">通过</button><button class="btn gh sm">退回修改</button><button class="btn dg sm">驳回</button></div>
+          </div>
+          <div class="audit">
+            <div class="im"></div>
+            <div style="flex:1">
+              <h5>知识付费定价 99 和 199 差别有多大？</h5>
+              <p>我的专栏大概 20 讲，录了一半。身边朋友劝我定 99 先跑量……</p>
+              <div class="mt">用户 十一 · 星球提问 · 3 张图 · 提交于 09-14 05:26 · <span style="color:#15803d">机器初审通过</span></div>
+            </div>
+            <div class="rt"><button class="btn sm">通过</button><button class="btn gh sm">退回修改</button><button class="btn dg sm">驳回</button></div>
+          </div>
+          <div class="audit">
+            <div class="im"></div>
+            <div style="flex:1">
+              <h5>加我微信领取全套资料，vx: xxxxx</h5>
+              <p>私聊送 200G 运营资料包，需要的扣 1……</p>
+              <div class="mt">用户 匿名用户8812 · 评论 · 提交于 09-14 03:40 · <span style="color:#b91c1c">命中敏感词：引流联系方式</span></div>
+            </div>
+            <div class="rt"><button class="btn gh sm">通过</button><button class="btn dg sm">驳回并禁言</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ch"><h3>创作者申请</h3><span class="sub">对应小程序 contribute.html</span></div>
+        <table>
+          <thead><tr><th>申请人</th><th>方向</th><th>形态</th><th>代表作</th><th>提交时间</th><th>状态</th><th style="width:150px">操作</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><b>林砚</b></td><td>内容创业 / 工位美学</td><td>长文 · 图文笔记</td><td><a style="color:var(--brand)">2 份 ›</a></td><td>09-14 09:05</td>
+              <td><span class="pill wait">待审核</span></td>
+              <td><div class="acts"><button class="btn sm">通过并授予「特约」</button></div></td>
+            </tr>
+            <tr>
+              <td><b>阿柚</b></td><td>读书</td><td>图文笔记</td><td><a style="color:var(--brand)">1 份 ›</a></td><td>09-13 21:40</td>
+              <td><span class="pill no">已驳回</span></td>
+              <td><div class="acts"><button class="btn gh sm">查看理由</button></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

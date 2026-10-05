@@ -6,7 +6,7 @@
 
 | 主题 | 真相源 | 注意 |
 |------|--------|------|
-| 库表 / 迁移 | `backend/src/main/resources/db/migration/` | 当前最高 **V70**。`docs/handover/database-schema.md` 只写到 V10，已过期 |
+| 库表 / 迁移 | `backend/src/main/resources/db/migration/` | 当前最高 **V101**（含 `V101__channel_attribution.sql` 渠道归因）。`docs/handover/database-schema.md` 只写到 V10，已过期 |
 | 跨端契约 | `agent-team/contracts/` | 改接口/表结构/DSL/订单状态前先读冻结日志 |
 | 测试续跑 | `agent-team/testing/status-ledger.md` | 禁止凭记忆重头测 |
 | 上线人工项 | `docs/handover/pending-items.md` | 资质 / 备案 / 支付商户 |
@@ -26,7 +26,7 @@
 ## 写代码前
 
 1. 读 `docs/CHANGELOG.md` 顶部（本季 + 未入库工作）。
-2. 动库表只新增 Flyway（编号续 V69 之后），不要改已执行过的脚本语义。
+2. 动库表只新增 Flyway（编号续 V101 之后），不要改已执行过的脚本语义。
 3. 跨模块改动对照 `agent-team/contracts/`；冲突先停，不要猜哪份为准。
 4. QA / 上线任务走 `agent-team/agents/qa-release-agent.md`，先标明 QA 或 RELEASE。
 

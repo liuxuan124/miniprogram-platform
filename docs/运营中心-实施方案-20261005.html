@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>运营中心 · 实施方案</title>
+<style>
+  :root {
+    --paper: #f7f3e8;
+    --ink: #2b2621;
+    --ink2: #5c544a;
+    --ink3: #8a8074;
+    --cinnabar: #a63d2a;
+    --cinnabar-l: rgba(166,61,42,.10);
+    --line: rgba(43,38,33,.14);
+    --line-soft: rgba(43,38,33,.08);
+    --ok: #2f6b3a;
+    --ok-bg: #e8f0e6;
+    --warn: #9a6b1a;
+    --warn-bg: #f8efdc;
+    --bad: #a63d2a;
+    --bad-bg: #f6e4df;
+    --info: #3b5a7a;
+    --info-bg: #e6ecf1;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #ece5d5;
+    color: var(--ink);
+    font-family: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.75;
+  }
+  .sheet {
+    max-width: 1080px; margin: 34px auto 80px; background: var(--paper);
+    padding: 54px 62px 70px; border-radius: 3px;
+    box-shadow: 0 18px 44px rgba(60,45,30,.16);
+  }
+  .seal {
+    display: inline-block; background: var(--cinnabar); color: #fdf6ec;
+    font-size: 12px; letter-spacing: .22em; padding: 7px 14px 7px 16px;
+    border-radius: 2px; font-weight: 700; margin-bottom: 20px;
+  }
+  h1 { font-size: 27px; font-weight: 700; letter-spacing: .02em; line-height: 1.4; }
+  .sub { margin-top: 10px; font-size: 13px; color: var(--ink3); letter-spacing: .04em; }
+  .meta { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--ink3); display: flex; flex-wrap: wrap; gap: 6px 26px; }
+
+  h2 {
+    font-size: 18px; font-weight: 700; margin: 42px 0 14px; padding-left: 12px;
+    border-left: 4px solid var(--cinnabar); letter-spacing: .02em;
+  }
+  h3 { font-size: 15px; font-weight: 700; margin: 26px 0 10px; color: var(--ink); }
+  h3::before { content: "▍"; color: var(--cinnabar); margin-right: 5px; font-size: 13px; }
+  p { font-size: 14px; margin: 10px 0; color: var(--ink); }
+  p.lead { font-size: 14.5px; background: var(--cinnabar-l); border-left: 3px solid var(--cinnabar); padding: 14px 18px; margin: 14px 0 4px; }
+  ul, ol { margin: 10px 0 10px 22px; font-size: 14px; }
+  li { margin: 6px 0; }
+  strong { font-weight: 700; color: var(--cinnabar); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
+    background: rgba(43,38,33,.06); padding: 1px 5px; border-radius: 3px; color: #6b4a2f;
+    overflow-wrap: anywhere;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin: 14px 0 18px; font-size: 13px; }
+  th {
+    text-align: left; font-weight: 700; font-size: 12.5px; color: var(--ink2);
+    padding: 9px 11px; background: rgba(43,38,33,.05); border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td { padding: 10px 11px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.c { text-align: center; white-space: nowrap; }
+  .tbl-wrap { border: 1px solid var(--line); border-radius: 4px; overflow-x: auto; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11.5px; font-weight: 700; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+  .t-ok { background: var(--ok-bg); color: var(--ok); }
+  .t-warn { background: var(--warn-bg); color: var(--warn); }
+  .t-bad { background: var(--bad-bg); color: var(--bad); }
+  .t-info { background: var(--info-bg); color: var(--info); }
+  .t-off { background: rgba(43,38,33,.07); color: var(--ink3); }
+
+  .tree {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px;
+    background: #fffdf7; border: 1px solid var(--line); border-radius: 4px;
+    padding: 18px 22px; line-height: 1.95; color: var(--ink2); white-space: pre; overflow-x: auto;
+  }
+  .tree b { color: var(--cinnabar); font-weight: 700; }
+  .tree i { color: var(--ink3); font-style: normal; }
+
+  .box { border: 1px solid var(--line); border-radius: 4px; padding: 16px 20px; margin: 16px 0; background: #fffdf7; }
+  .box.danger { border-color: rgba(166,61,42,.4); background: #fdf6f3; }
+  .box .bt { font-size: 13.5px; font-weight: 700; margin-bottom: 8px; color: var(--cinnabar); }
+  .box.danger .bt::before { content: "⚠ "; }
+
+  .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin: 14px 0 18px; }
+  .before-after > div { padding: 14px 18px; font-size: 13px; }
+  .before-after .b { background: #f3efe5; border-right: 1px solid var(--line); }
+  .before-after .a { background: #fffdf7; }
+  .before-after h4 { font-size: 12px; letter-spacing: .1em; color: var(--ink3); font-weight: 700; margin-bottom: 8px; }
+  .before-after .a h4 { color: var(--cinnabar); }
+
+  .batch { display: flex; align-items: baseline; gap: 10px; margin: 30px 0 8px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .batch .p { font-size: 12px; font-weight: 700; letter-spacing: .1em; color: #fdf6ec; background: var(--cinnabar); padding: 4px 11px; border-radius: 3px; }
+  .batch .n { font-size: 16px; font-weight: 700; }
+  .batch .e { font-size: 12px; color: var(--ink3); margin-left: auto; }
+
+  hr.sep { border: 0; border-top: 1px solid var(--line); margin: 34px 0 0; }
+  .foot { margin-top: 26px; font-size: 12px; color: var(--ink3); text-align: right; letter-spacing: .08em; }
+  @media (max-width: 760px) {
+    .sheet { padding: 30px 22px 44px; margin: 12px 10px 40px; }
+    h1 { font-size: 21px; }
+    .before-after { grid-template-columns: 1fr; }
+    .before-after .b { border-right: 0; border-bottom: 1px solid var(--line); }
+    table { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="seal">实 施 方 案</div>
+  <h1>运营中心 · 横向运营能力统一收口</h1>
+  <div class="sub">基于现有后台菜单、路由表与库表的实测核查结果</div>
+  <div class="meta">
+    <span>日期：2026-10-05</span>
+    <span>当前迁移水位：V113</span>
+    <span>影响端：admin 后台 + backend（小程序端仅资源位子模块）</span>
+  </div>
+
+  <h2>一、结论</h2>
+
+  <p class="lead">
+    方向成立，但实施口径须由「新建一个平台运营模块」调整为「<strong>收编已有能力 + 补真缺口</strong>」。
+    核查发现原清单中五项能力里，<strong>三项的后端底座已经建好，缺的只是后台界面</strong>；
+    只有「资源位运营」与「搜索运营」属全新建设。据此实施成本比原估计低，但若按原方案新建，
+    将与现有 <code>/activity</code>、<code>/commerce/coupons</code>、<code>/content/creators</code> 形成重复入口。
+  </p>
+
+  <h3>1.1 核心数字</h3>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>子模块</th><th>数据库表</th><th>后端接口</th><th>后台页面</th><th>实际状态</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>私域引流</td>
+        <td><code>mp_group_qrcode</code><br><code>mp_reader_group</code></td>
+        <td>已就绪（含定时轮换）</td>
+        <td>无（读者群已在社区列表）</td>
+        <td><span class="tag t-bad">后端就绪·C 端未接线</span></td>
+      </tr>
+      <tr>
+        <td>邀请裂变</td>
+        <td><code>mp_invite_relation</code><br><code>mp_invite_scene</code></td>
+        <td>已就绪</td>
+        <td>无</td>
+        <td><span class="tag t-ok">只缺 UI</span></td>
+      </tr>
+      <tr>
+        <td>活动管理</td>
+        <td><code>mp_activity</code><br><code>mp_activity_signup</code></td>
+        <td>已就绪</td>
+        <td>已有一级菜单 <code>/activity</code></td>
+        <td><span class="tag t-info">已存在·需收编</span></td>
+      </tr>
+      <tr>
+        <td>审核中心</td>
+        <td><code>mp_creator_application</code><br><code>mp_copyright_complaint</code></td>
+        <td>部分（仅只读）</td>
+        <td>无（仅作者档案页）</td>
+        <td><span class="tag t-warn">半成品</span></td>
+      </tr>
+      <tr>
+        <td>搜索运营</td>
+        <td>无（<code>mp_search_log</code> 只进统计）</td>
+        <td>无</td>
+        <td>无（热词硬编码）</td>
+        <td><span class="tag t-bad">全新</span></td>
+      </tr>
+      <tr>
+        <td>资源位运营</td>
+        <td>无</td>
+        <td>无</td>
+        <td>无</td>
+        <td><span class="tag t-bad">全新</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>1.2 现状核查明细</h3>
+  <ul>
+    <li><strong>私域引流（最重要的一条修正）</strong>：<code>mp_group_qrcode</code> 具备 <code>valid_until</code>、<code>sort_order</code>、<code>status</code> 三个轮换字段，管理端 CRUD（<code>AdminGroupQrcodeController</code>，<strong>POST 已按 id 是否为 null 自动 upsert，无需补 PUT</strong>）、C 端取码接口（<code>MpGroupQrcodeController</code>）、以及每小时扫描过期码的定时任务（<code>GroupQrcodeRotateJob</code>）<strong>全部就绪</strong>。<br>
+    <strong>但小程序端从未调用过该接口</strong>——全仓检索 <code>/api/v1/mp/group-qrcode</code> 在 <code>miniapp/</code> 下零命中；装修器组件 <code>dsl-join-group</code> 的群列表完全来自页面 DSL 内联配置（<code>config.groups[].qrcode</code> / <code>wecom_url</code>），组件内<strong>没有任何网络请求</strong>。CHANGELOG 亦已记录「<code>mp_group_qrcode</code> 仍 0 条，接口通了但运营数据未录，前台相关功能是空态」。<br>
+    <strong>结论：这是一套「造好了引擎但没接轮子」的半拉子工程。</strong>仅补后台页面而不接通 C 端，运营配置的活码在小程序上不会生效——「满员自动切码」永远不会触发。P0 的实施范围因此由「纯写页面」变更为「写页面 + 接通 C 端」。</li>
+    <li><strong>读者群已存在</strong>：<code>mp_reader_group</code> 的完整 CRUD（<code>AdminMemberOpsController</code> 的 <code>/reader-groups</code> 四个接口）与后台界面（<code>admin/src/views/community/list.vue</code> 底部「读者群」区块，含增删改、启停、到期标签）均已上线，收编即可，不重复建设。</li>
+    <li><strong>邀请裂变</strong>：<code>mp_invite_relation</code>、<code>mp_invite_scene</code>、<code>mp_invite_content_unlock</code>、<code>mp_referral_commission</code> 四张表齐全，<code>MpInviteController</code> 服务小程序端；后台无运营侧收口。</li>
+    <li><strong>活动管理</strong>：现有 <code>/activity</code> 为顶级菜单，页面 1292 行，语义是「沙龙 / 课程 / 展会的报名、审核、核销」（含核销中心），<strong>并非营销活动</strong>。原方案直接新增同名「活动管理」，将产生两套入口。</li>
+    <li><strong>审核中心</strong>：创作者申请审批链路已打通（<code>AdminCreatorController</code> + <code>mp_creator_application</code>）；<code>AdminComplianceController</code> <strong>仅有 1 个只读接口</strong> <code>GET /audit-events</code>；举报与封禁无表、无接口。</li>
+    <li><strong>搜索运营</strong>：小程序搜索页 <code>pages/search</code> 已存在（263 行），热门词常量 <code>SEARCH_HOT</code> <strong>硬编码于 <code>miniapp/data/warm-source.js</code></strong>，运营不可改。全站无底纹词、热词榜、搜索置顶干预接口。敏感词仅存在于内容审核链路（<code>ContentAuditRulesService</code>）。</li>
+    <li><strong>资源位运营</strong>：全库检索 <code>popup</code> / <code>bulletin</code> / <code>announce</code> / <code>banner</code> <strong>零命中</strong>。现有 <code>dsl-banner</code>、<code>dsl-promo-banner</code>、<code>dsl-float-button</code>、<code>dsl-notice-bar</code>、<code>dsl-flash-sale</code> 等均为页面级 DSL 组件，只能随装修器发版，无跨页面全局触点。</li>
+  </ul>
+
+  <hr class="sep">
+
+  <h2>二、边界规则</h2>
+
+  <p>收口的前提是先定义「什么该进运营中心」。建议采用一条判据：</p>
+
+  <div class="box">
+    <div class="bt">归属判据</div>
+    <p style="margin:4px 0"><strong>资产</strong> —— 页面、内容、商品、社区：长期存在、由各自模块维护其自身生命周期 → 留在原模块。</p>
+    <p style="margin:4px 0"><strong>运营动作</strong> —— 具备「<strong>时间窗</strong>、<strong>排期</strong>、<strong>启停</strong>、<strong>跨资产生效</strong>」四个特征之一的动作 → 归运营中心。</p>
+  </div>
+
+  <p>按此判据：卡券本身是资产（留在商业变现），但「发券活动」是运营动作；星球介绍页是资产，但「星球招新活动」是运营动作。这条规则决定了后续边界争议的处理方式，建议写入模块说明。</p>
+
+  <hr class="sep">
+
+  <h2>三、目录结构</h2>
+
+  <p>建议一级目录命名为「运营中心」，置于「工作总览」之后。现有独立的 <code>/activity</code> 一级菜单收编为二级项，原路由保留重定向以兼容旧书签。</p>
+
+  <div class="tree">├── 工作总览
+├── <b>运营中心</b>  <i>（新增一级 · 横向运营动作）</i>
+│   ├── <b>营销活动</b>      <i>收编现有 /activity + 新增营销活动类型</i>
+│   ├── <b>资源位运营</b>    <i>全站弹窗 / 开屏公告 / 悬浮挂件</i>
+│   ├── <b>搜索运营</b>      <i>底纹词 / 热门搜索词 / 搜索干预</i>
+│   ├── <b>私域引流</b>      <i>微信群活码 / 企微客服 / 导流漏斗</i>
+│   └── <b>审核中心</b>      <i>创作者入驻 / 内容人审 / 举报处理</i>
+├── 小程序
+├── 内容管理
+├── 商业变现
+├── 用户管理 / 会员管理 / 社区管理
+├── 活动与预约            <i>（原 /activity 保留，语义收窄为线下）</i>
+│   ├── 线下活动
+│   └── 预约管理
+├── 数据统计 / 经营管理 / 系统设置</div>
+
+  <div class="before-after">
+    <div class="b">
+      <h4>原来</h4>
+      <p>横向运营动作散落在各垂直模块：<br>
+      弹窗只能进装修器改页面；<br>
+      热词硬编码在小程序源码；<br>
+      活码后端就绪但无界面；<br>
+      活动管理实为线下报名；<br>
+      审核只有创作者申请一处。</p>
+    </div>
+    <div class="a">
+      <h4>现在</h4>
+      <p>一级目录「运营中心」统一收口五类横向动作，<br>
+      运营按排期启停资源位与活动，无需装修器发版；<br>
+      搜索词与底纹由后台下发；<br>
+      活码轮换可视化维护；<br>
+      审核队列集中处理。</p>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <h2>四、分批实施</h2>
+
+  <div class="batch"><span class="p">P0</span><span class="n">私域引流 + 搜索运营</span><span class="e">后端就绪 · 需同时接通 C 端</span></div>
+
+  <h3>4.1 私域引流</h3>
+  <p>本子模块拆成「后台补页面」与「C 端接线」两段，<strong>必须两段都做才算交付</strong>；只做前者等于给一张没有消费方的表配界面。</p>
+  <ul>
+    <li><strong>① 后台页面</strong>：新增 <code>admin/src/views/ops/private-domain.vue</code>，含活码列表、新增/替换二维码、启停、排序、有效期与到期提醒、按群分组。
+      接口侧新增 <code>admin/src/api/groupQrcode.ts</code> 客户端（当前无任何 API 封装）。</li>
+    <li><strong>② C 端接线（关键）</strong>：改造 <code>miniapp/components/dsl-join-group</code>，将群列表来源由「页面 DSL 内联配置」改为「优先请求 <code>GET /api/v1/mp/group-qrcode?groupKey=</code>，失败或未配置时回落 DSL 内联值」。
+      回落策略必须保留，否则接口异常会导致加群组件整块空白。<code>group_key</code> 仍由装修器配置（与现有 <code>config.groups[].id</code> 对齐），二维码图片本身不再由运营手填。</li>
+    <li><strong>③ 收编读者群</strong>：<code>community/list.vue</code> 底部的读者群区块迁移至本页统一管理，避免「社区管理」与「运营中心」两处都能改群。</li>
+    <li><strong>后端</strong>：<strong>零改动</strong>（CRUD、取码、定时轮换均已完成；<code>POST</code> 已支持 upsert）。</li>
+    <li><strong>库表 / 迁移</strong>：<strong>无</strong>。</li>
+    <li><strong>发布影响</strong>：需小程序发版（<code>dsl-join-group</code> 在主包内，改动量小，但须走真机验证 + <code>cli preview</code> 包体复核）。</li>
+  </ul>
+
+  <h3>4.2 搜索运营</h3>
+  <ul>
+    <li>页面：新增 <code>admin/src/views/ops/search-ops.vue</code>，含底纹词配置、热词排序、搜索干预、敏感词。</li>
+    <li>后端：新增 <code>AdminSearchOpsController</code>，提供底纹词/热词/干预的读写；敏感词<strong>复用</strong> <code>ContentAuditRulesService</code>，不新建词库。</li>
+    <li>库表：新增 <code>mp_search_keyword</code>（热词与底纹）、<code>mp_search_intervention</code>（置顶干预）。</li>
+    <li>迁移：<code>V114__search_ops_config.sql</code>。</li>
+    <li>小程序端：<code>pages/search/search.js</code> 将 <code>SEARCH_HOT</code> 改为接口下发，<strong>保留本地兜底</strong>以防后端未升级时白屏。搜索页已在主包，增量极小。</li>
+  </ul>
+
+  <div class="batch"><span class="p">P1</span><span class="n">营销活动收编 + 审核中心补齐</span><span class="e">以搬迁与补齐为主</span></div>
+
+  <h3>4.3 营销活动（收编）</h3>
+  <ul>
+    <li>页面：现有 <code>admin/src/views/activity/index.vue</code> 迁移为 <code>ops/campaigns.vue</code>，新增「营销活动」类型页签；原路径重定向。</li>
+    <li>后端：复用 <code>AdminActivityController</code>，扩展活动类型枚举（打卡营 / 邀请裂变 / 促销会场 / 专题活动）。</li>
+    <li>库表：<code>mp_activity.type</code> 扩枚举值，无需改结构。</li>
+    <li>迁移：<code>V115__campaign_type_enum.sql</code>（如仅注释变更则并入 V114）。</li>
+  </ul>
+
+  <h3>4.4 审核中心</h3>
+  <ul>
+    <li>页面：新增 <code>admin/src/views/ops/moderation.vue</code>，三类队列分页签：创作者入驻（已有）、内容人审（新）、举报处理（新）。</li>
+    <li>后端：扩展现有 <code>AdminComplianceController</code>（现仅 1 个只读接口），新增人审队列查询、通过/驳回、举报受理/驳回、封禁与违规记录接口。</li>
+    <li>库表：新增 <code>mp_moderation_task</code>（统一审核任务）、<code>mp_user_ban_record</code>（封禁与违规记录）；复用 <code>mp_copyright_complaint</code> 承接举报。</li>
+    <li>迁移：<code>V116__moderation_center.sql</code>。</li>
+  </ul>
+
+  <div class="batch"><span class="p">P2</span><span class="n">资源位运营</span><span class="e">唯一影响小程序主包 · 单独立项</span></div>
+
+  <h3>4.5 资源位运营</h3>
+  <ul>
+    <li>页面：新增 <code>admin/src/views/ops/placements.vue</code>，含弹窗 / 开屏 / 悬浮挂件三类资源位，排期、频次、优先级、免打扰时段。</li>
+    <li>后端：新增 <code>AdminPlacementController</code> 与小程序端下发接口；新增冲突仲裁（同时段弹窗上限、优先级排序）。</li>
+    <li>库表：新增 <code>mp_placement</code>（资源位定义与排期）、<code>mp_placement_log</code>（曝光点击埋点归因）。</li>
+    <li>迁移：<code>V117__placement_ops.sql</code>。</li>
+    <li><strong>小程序端</strong>：全局弹窗 / 开屏 / 悬浮挂件须在 <code>app.js</code> 层挂载，是全部子模块中<strong>唯一显著增加主包体积</strong>的一项。须在动工前以 <code>cli preview</code> 的包体表格复核预算（现行约 1.5MB / 74%）。</li>
+  </ul>
+
+  <hr class="sep">
+
+  <h2>五、风险与约束</h2>
+
+  <div class="box danger">
+    <div class="bt">权限前缀不可落在 super_admin 专属域</div>
+    <p style="margin:4px 0"><code>SecurityConfig</code> 仅做 <code>hasRole</code> 校验，<code>mp_permission</code> 只控制菜单显隐、不控制接口。现有 super_admin 专属前缀为 <code>finance</code> / <code>agent</code> / <code>refunds</code> / <code>system</code> / <code>admin-users</code> / <code>roles</code> / <code>permissions</code>。</p>
+    <p style="margin:4px 0">运营中心面向 content_ops 开放，新增接口路径<strong>必须避开上述前缀</strong>，统一使用 <code>/api/v1/admin/ops/**</code>。历史上文件上传接口挂在 <code>system</code> 前缀下，导致 content_ops 全量 403。</p>
+  </div>
+
+  <div class="box danger">
+    <div class="bt">主包预算只认 cli preview 的包体表格</div>
+    <p style="margin:4px 0">P0 / P1 三项（活码、搜索配置、审核）对小程序主包几乎无增量，可先行。P2 资源位需在 <code>app.js</code> 挂载全局组件，属主包增量项，须单独立项并在构建后以 <code>cli preview</code> 实测为准，不得依据本地估算。</p>
+  </div>
+
+  <div class="box danger">
+    <div class="bt">已建成但未接线的能力，须先接线再配界面</div>
+    <p style="margin:4px 0"><code>mp_group_qrcode</code> 是典型样本：表、管理端 CRUD、C 端取码接口、每小时轮换定时任务一应俱全，唯独小程序端从未调用，装修器组件仍读内联二维码。
+    同类风险适用于全部子模块——<strong>动工前必须先确认「谁消费这份数据」，确认消费方存在再建界面</strong>，否则产出的是没有消费方的后台页。</p>
+    <p style="margin:4px 0">核查方法：用接口路径（而非表名）在小程序源码中检索调用点；检索无命中即视为未接线。</p>
+  </div>
+
+  <div class="box">
+    <div class="bt">命名冲突</div>
+    <p style="margin:4px 0">「活动管理」名称已被 <code>/activity</code> 占用。新目录下应命名为「<strong>营销活动</strong>」，原模块语义收窄为「线下活动」，避免运营在两处入口间混淆。</p>
+  </div>
+
+  <div class="box">
+    <div class="bt">菜单权限双边口径</div>
+    <p style="margin:4px 0">新增菜单需同时在 <code>router</code> 的 <code>meta.permissions</code> 与后端菜单权限表登记。只写一侧会导致菜单可见但接口 403，或接口可用但菜单不显示。</p>
+  </div>
+
+  <div class="box">
+    <div class="bt">迁移编号须双确认</div>
+    <p style="margin:4px 0">并行会话可能抢占编号（<code>INSERT IGNORE</code> 会静默不生效）。动工前须同时执行：本地 <code>ls migration | grep -E "^V1[0-9][0-9]__" | sort -V</code> 与线上 <code>SELECT version, script FROM schema_version ORDER BY 1 DESC LIMIT 5</code>，比对 script 名而非仅版本号。本文所列 V114–V117 为<strong>规划号</strong>，落地时需重新核实。</p>
+  </div>
+
+  <hr class="sep">
+
+  <h2>六、验收清单</h2>
+
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>项</th><th>验收方式</th><th>通过标准</th></tr></thead>
+    <tbody>
+      <tr><td>菜单可见性</td><td>以 content_ops 账号登录后台</td><td>「运营中心」及其子项可见且可进入</td></tr>
+      <tr><td>接口鉴权</td><td>content_ops 逐个调用 <code>/api/v1/admin/ops/**</code></td><td>无 403；super_admin 专属前缀未被触碰</td></tr>
+      <tr><td>活码轮换（后台）</td><td>后台配置 A/B 两张码并令 A 过期</td><td>列表正确显示 A 已停用、B 生效</td></tr>
+      <tr><td><strong>活码轮换（C 端）</strong></td><td>真机打开含加群组件的页面</td><td>展示的是 B 的二维码，<strong>而非装修器内联的 A</strong>；接口断开时回落内联值不空白</td></tr>
+      <tr><td>搜索热词下发</td><td>后台改序后重启小程序搜索页</td><td>顺序生效；后端异常时回落本地兜底不白屏</td></tr>
+      <tr><td>活动收编</td><td>访问旧路径与新路径</td><td>旧路径重定向成功，无重复入口</td></tr>
+      <tr><td>审核队列</td><td>提交一条创作者申请与一条举报</td><td>两类均进入对应队列并可完成审批</td></tr>
+      <tr><td>主包预算</td><td><code>cli preview</code> 包体表格</td><td>P2 上线后主包占比在上限内</td></tr>
+      <tr><td>变更登记</td><td>检查 <code>docs/CHANGELOG.md</code></td><td>每批次各有一行日期 + 一句话记录</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="foot">运营中心实施方案 · 2026-10-05 · 配套原型：prototypes-warm/admin-ops-center.html</div>
+</div>
+</body>
+</html>

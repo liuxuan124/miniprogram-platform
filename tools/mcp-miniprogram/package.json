@@ -1,0 +1,21 @@
+{
+  "name": "mcp-miniprogram",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WorkBuddy 连接器：连接小程序搭建运营平台后端，读取内容与资料、发布内容与页面",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "mcp-miniprogram": "src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node scripts/smoke.js"
+  }
+}

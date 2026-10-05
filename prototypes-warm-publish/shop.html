@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 商城</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .top { padding: 0 16px 16px; background: linear-gradient(180deg,#f7e0c3,#fbeeda 58%, var(--bg)); }
+  .top .status { padding: 15px 8px 0; }
+  .top .tt { display: flex; align-items: center; gap: 10px; padding: 6px 0 0; }
+  .top .tt h2 { font-size: 21px; font-weight: 780; letter-spacing: -.02em; }
+  .top .tt .ord { margin-left: auto; font-size: 11.5px; color: var(--ink-2); display: flex; align-items: center; gap: 4px; }
+  .top .search { margin-top: 13px; height: 40px; border-radius: 99px; background: rgba(255,255,255,.85); display: flex; align-items: center; gap: 8px; padding: 0 6px 0 14px; box-shadow: var(--shadow-s); }
+  .top .search em { flex: 1; font-style: normal; color: #b09a88; font-size: 12.5px; }
+  .top .search b { height: 30px; padding: 0 14px; border-radius: 99px; background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; font-size: 12px; display: grid; place-items: center; }
+
+  /* 会员条 */
+  .vipbar { margin: -6px 16px 0; border-radius: 16px; padding: 13px 15px; display: flex; align-items: center; gap: 10px;
+    background: linear-gradient(120deg,#3b2110,#5c3418); color: #f8e3c6; box-shadow: 0 12px 26px rgba(60,30,10,.25); }
+  .vipbar .ic { font-size: 20px; }
+  .vipbar h5 { font-size: 13px; font-weight: 760; color: #fbe3bc; }
+  .vipbar p { font-size: 10px; opacity: .72; margin-top: 3px; }
+  .vipbar b { margin-left: auto; font-size: 11.5px; color: #3b2110; background: linear-gradient(135deg,#fbd38d,#e0a355); padding: 7px 13px; border-radius: 99px; font-weight: 760; }
+
+  .cats { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; margin: 16px 10px 0; }
+  .cats a { text-align: center; font-size: 10.5px; color: var(--ink-2); font-weight: 640; }
+  .cats .ic { width: 42px; height: 42px; margin: 0 auto 6px; border-radius: 15px; display: grid; place-items: center; font-size: 19px; background: #fffaf3; box-shadow: 0 6px 14px rgba(140,80,30,.08); }
+
+  /* 限时 */
+  .flash { margin: 18px 16px 0; border-radius: 20px; overflow: hidden; background: var(--sheet); box-shadow: var(--shadow-s); }
+  .flash .hh { padding: 12px 15px 10px; display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg,#fdeedb,#fffaf3); }
+  .flash .hh h4 { font-size: 14.5px; font-weight: 790; }
+  .flash .hh .cd { margin-left: auto; display: flex; align-items: center; gap: 3px; font-size: 10.5px; color: var(--ink-2); }
+  .flash .hh .cd i { font-style: normal; background: #3b2110; color: #fbe3bc; padding: 2px 5px; border-radius: 4px; font-weight: 700; }
+  .flash .rail { display: flex; gap: 11px; overflow: auto; padding: 12px 15px 14px; }
+  .flash .rail::-webkit-scrollbar { display: none; }
+  .flash .it { flex: none; width: 96px; }
+  .flash .it .cv { height: 96px; border-radius: 12px; overflow: hidden; }
+  .flash .it h6 { margin-top: 8px; font-size: 11.5px; font-weight: 650; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .flash .it .pr { margin-top: 5px; font-size: 13px; font-weight: 820; color: var(--brand); }
+  .flash .it .pr s { font-size: 9.5px; color: var(--mute); font-weight: 500; margin-left: 3px; }
+
+  /* 主推电子书 */
+  .feat { margin: 18px 16px 0; border-radius: 20px; overflow: hidden; position: relative; color: #fff; box-shadow: var(--shadow); display: block; }
+  .feat .cv { height: 168px; position: relative; }
+  .feat .sc { position: absolute; inset: 0; background: linear-gradient(110deg, rgba(60,26,8,.88) 38%, rgba(60,26,8,.15)); }
+  .feat .bd { position: absolute; left: 0; top: 0; bottom: 0; width: 62%; padding: 18px 0 0 17px; }
+  .feat h3 { margin-top: 8px; font-size: 19px; line-height: 1.35; font-weight: 740; }
+  .feat p { margin-top: 8px; font-size: 10.5px; opacity: .8; line-height: 1.55; }
+  .feat .pr { position: absolute; left: 17px; bottom: 15px; display: flex; align-items: baseline; gap: 7px; }
+  .feat .pr b { font-size: 22px; font-weight: 820; }
+  .feat .pr b i { font-size: 13px; font-style: normal; }
+  .feat .pr s { font-size: 11px; opacity: .6; }
+
+  /* 商品网格 */
+  .gg { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; padding: 2px 16px 10px; }
+  .gd { background: var(--sheet); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-s); display: block; }
+  .gd .cv { height: 128px; position: relative; }
+  .gd .cv .tag { position: absolute; left: 8px; top: 8px; }
+  .gd .cv .fm { position: absolute; right: 7px; bottom: 7px; font-size: 9px; padding: 2px 6px; border-radius: 5px; background: rgba(40,18,6,.55); color: #fff; }
+  .gd .bd { padding: 10px 11px 11px; }
+  .gd h4 { font-size: 13px; font-weight: 700; line-height: 1.42; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .gd .sb { margin-top: 5px; font-size: 10px; color: var(--mute); }
+  .gd .pr { margin-top: 8px; display: flex; align-items: baseline; gap: 5px; }
+  .gd .pr b { font-size: 15.5px; font-weight: 820; color: var(--brand); }
+  .gd .pr b i { font-size: 10.5px; font-style: normal; }
+  .gd .pr s { font-size: 9.5px; color: var(--mute); }
+  .gd .pr span { margin-left: auto; font-size: 9.5px; color: var(--mute); }
+  .gd .vp { margin-top: 6px; font-size: 9.5px; color: #8a5a20; background: #fdf0d6; border-radius: 5px; padding: 3px 6px; display: inline-block; }
+
+  .end { text-align: center; font-size: 10.5px; color: var(--mute); padding: 14px 0 6px; letter-spacing: .1em; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+
+  <div class="scroll">
+    <section class="top">
+      <div class="status"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="tt">
+        <h2 class="serif">暖阁商城</h2>
+        <a class="ord" href="./mine.html">🧾 订单</a>
+        <a class="ord" href="./service-chat.html" style="margin-left:0">💬 客服</a>
+      </div>
+      <div class="search"><span>🔍</span><em>搜电子书、资料包、专栏…</em><b>搜索</b></div>
+    </section>
+
+    <a class="vipbar" href="./mine.html">
+      <span class="ic">🎫</span>
+      <div><h5>开通年度会员</h5><p>全站长文免费读 · 资料库全解锁 · 商品 8 折</p></div>
+      <b>¥168/年</b>
+    </a>
+
+    <nav class="cats">
+      <a href="./goods.html"><div class="ic">📘</div>电子书</a>
+      <a href="./resources.html"><div class="ic">🗂</div>资料包</a>
+      <a href="./column.html"><div class="ic">🎧</div>专栏课</a>
+      <a href="./planet.html"><div class="ic">🪐</div>星球</a>
+      <a href="./goods.html"><div class="ic">🎁</div>周边</a>
+    </nav>
+
+    <section class="flash">
+      <div class="hh">
+        <span style="font-size:16px">⚡️</span><h4>限时特惠</h4>
+        <span class="cd">距结束 <i>02</i>:<i>14</i>:<i>26</i></span>
+      </div>
+      <div class="rail">
+        <a class="it" href="./goods.html">
+          <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=200&h=200&fit=crop&q=80" alt="" /></div>
+          <h6>《内容生意手册》电子书</h6>
+          <div class="pr">¥39<s>¥79</s></div>
+        </a>
+        <a class="it" href="./resources.html">
+          <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=200&h=200&fit=crop&q=80" alt="" /></div>
+          <h6>选题库 Notion 模板包</h6>
+          <div class="pr">¥29<s>¥59</s></div>
+        </a>
+        <a class="it" href="./goods.html">
+          <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=200&h=200&fit=crop&q=80" alt="" /></div>
+          <h6>年度长文合集 PDF</h6>
+          <div class="pr">¥19<s>¥49</s></div>
+        </a>
+        <a class="it" href="./column.html">
+          <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=200&h=200&fit=crop&q=80" alt="" /></div>
+          <h6>从 0 搭一套私域</h6>
+          <div class="pr">¥149<s>¥259</s></div>
+        </a>
+      </div>
+    </section>
+
+    <a class="feat" href="./goods.html">
+      <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=900&h=460&fit=crop&q=80" alt="" /><div class="sc"></div></div>
+      <div class="bd">
+        <span class="tag soft">新书首发 · 虚拟商品</span>
+        <h3 class="serif">内容生意手册</h3>
+        <p>12 万字 · EPUB / PDF 双格式<br />购买后在小程序内直接阅读</p>
+      </div>
+      <div class="pr"><b><i>¥</i>39</b><s>¥79</s></div>
+    </a>
+
+    <div class="hd"><h3 class="serif">全部商品</h3><a>综合 ⌄</a></div>
+    <div class="gg">
+      <a class="gd" href="./order.html">
+        <div class="cv"><img class="ph" src="https://picsum.photos/seed/pay1/400/400" alt="" /><span class="tag gold">体验包</span><span class="fm">虚拟</span></div>
+        <div class="bd">
+          <h4>暖阁体验包 · 1元</h4>
+          <div class="sb">支付体验</div>
+          <div class="pr"><b><i>¥</i>1</b><s>¥9.9</s><span>已售 128</span></div>
+          <span class="vp">通路体验</span>
+        </div>
+      </a>
+      <a class="gd" href="./goods.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=400&fit=crop&q=80" alt="" /><span class="tag">电子书</span><span class="fm">EPUB / PDF</span></div>
+        <div class="bd">
+          <h4>内容生意手册：一个人也能跑通的 12 个模型</h4>
+          <div class="sb">12 万字 · 可试读前 2 章</div>
+          <div class="pr"><b><i>¥</i>39</b><s>¥79</s><span>已售 2,140</span></div>
+          <span class="vp">会员价 ¥31</span>
+        </div>
+      </a>
+      <a class="gd" href="./resources.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=400&fit=crop&q=80" alt="" /><span class="tag gold">资料包</span><span class="fm">Notion / Excel</span></div>
+        <div class="bd">
+          <h4>选题库模板包：3 张表管住全年选题</h4>
+          <div class="sb">7 个文件 · 终身更新</div>
+          <div class="pr"><b><i>¥</i>29</b><s>¥59</s><span>已售 1,806</span></div>
+          <span class="vp">会员免费</span>
+        </div>
+      </a>
+      <a class="gd" href="./goods.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=400&h=400&fit=crop&q=80" alt="" /><span class="tag">电子书</span><span class="fm">PDF</span></div>
+        <div class="bd">
+          <h4>暖阁年度长文合集 2026</h4>
+          <div class="sb">32 篇精选 · 268 页</div>
+          <div class="pr"><b><i>¥</i>19</b><s>¥49</s><span>已售 3,412</span></div>
+          <span class="vp">会员免费</span>
+        </div>
+      </a>
+      <a class="gd" href="./goods.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=400&fit=crop&q=80" alt="" /><span class="tag gold">周边</span><span class="fm">实物</span></div>
+        <div class="bd">
+          <h4>暖阁陶土杯垫 · 秋日限定</h4>
+          <div class="sb">需填写收货地址</div>
+          <div class="pr"><b><i>¥</i>68</b><span>已售 312</span></div>
+          <span class="vp">会员价 ¥54</span>
+        </div>
+      </a>
+      <a class="gd" href="./column.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=400&h=400&fit=crop&q=80" alt="" /><span class="tag">专栏课</span><span class="fm">音频 + 讲稿</span></div>
+        <div class="bd">
+          <h4>一个人的内容生意 · 32 讲</h4>
+          <div class="sb">含 90 天星球会员</div>
+          <div class="pr"><b><i>¥</i>199</b><s>¥399</s><span>已售 8,214</span></div>
+          <span class="vp">会员价 ¥159</span>
+        </div>
+      </a>
+      <a class="gd" href="./mine.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=400&fit=crop&q=80" alt="" /><span class="tag gold">社群</span><span class="fm">年卡</span></div>
+        <div class="bd">
+          <h4>暖阁星球 · 年度会员</h4>
+          <div class="sb">3,241 位球友 · 资料库全解锁</div>
+          <div class="pr"><b><i>¥</i>168</b><span>已售 3,241</span></div>
+          <span class="vp">老球友续费 8 折</span>
+        </div>
+      </a>
+    </div>
+
+    <div class="end">—— 虚拟商品一经购买不支持退款 ——</div>
+  </div>
+
+  <nav class="tabbar">
+    <a href="./home.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>首页</a>
+    <a href="./discover.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/></svg>发现</a>
+    <a href="./planet.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/></svg>星球</a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>商城</a>
+    <a href="./mine.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></svg>我的</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

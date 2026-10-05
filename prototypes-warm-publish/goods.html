@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 电子书详情</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .cover { position: relative; height: 300px; overflow: hidden; }
+  .cover .bgimg { position: absolute; inset: -20px; filter: blur(22px) saturate(.8) sepia(.2); opacity: .9; }
+  .cover .sc { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(60,26,8,.42), rgba(60,26,8,.2) 45%, rgba(253,246,236,.96)); }
+  .cover .bk { position: absolute; top: 56px; left: 14px; z-index: 5; width: 32px; height: 32px; border-radius: 99px; background: rgba(30,14,4,.34); backdrop-filter: blur(8px); display: grid; place-items: center; font-size: 20px; color: #fff; }
+  .cover .book { position: absolute; z-index: 3; left: 50%; transform: translateX(-50%); top: 96px; width: 136px; height: 186px; border-radius: 4px 12px 12px 4px; overflow: hidden;
+    box-shadow: 0 22px 46px rgba(60,30,10,.42), -6px 0 0 -2px rgba(255,255,255,.25) inset; }
+  .cover .book::before { content: ""; position: absolute; z-index: 2; left: 0; top: 0; bottom: 0; width: 9px; background: linear-gradient(90deg, rgba(0,0,0,.3), rgba(255,255,255,.16)); }
+
+  .tt { padding: 4px 20px 0; text-align: center; }
+  .tt h1 { font-size: 21px; line-height: 1.35; font-weight: 760; letter-spacing: -.02em; }
+  .tt .sb { margin-top: 8px; font-size: 11.5px; color: var(--mute); display: flex; justify-content: center; align-items: center; gap: 7px; }
+
+  .price { margin: 16px 16px 0; border-radius: 20px; padding: 15px 16px; background: linear-gradient(150deg,#fff6ea,#fffaf3); box-shadow: var(--shadow-s); }
+  .price .rw { display: flex; align-items: baseline; gap: 8px; }
+  .price .now { font-size: 28px; font-weight: 820; color: var(--brand); letter-spacing: -.02em; }
+  .price .now i { font-size: 15px; font-style: normal; }
+  .price s { font-size: 12px; color: var(--mute); }
+  .price .cd { margin-left: auto; font-size: 10.5px; color: var(--brand); font-weight: 720; }
+  .price .vipline { margin-top: 11px; padding-top: 11px; border-top: 1px dashed var(--line); display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+  .price .vipline .lb { background: linear-gradient(135deg,#fbd38d,#e0a355); color: #3b2110; font-weight: 780; padding: 3px 8px; border-radius: 5px; font-size: 10px; }
+  .price .vipline b { color: var(--brand); font-weight: 780; }
+  .price .vipline a { margin-left: auto; color: var(--brand); font-weight: 700; }
+
+  .spec { margin: 12px 16px 0; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); overflow: hidden; }
+  .spec .li { display: flex; align-items: center; gap: 10px; padding: 12px 15px; border-top: 1px solid var(--line); font-size: 12.5px; }
+  .spec .li:first-child { border: 0; }
+  .spec .k { color: var(--mute); width: 62px; flex: none; }
+  .spec .v { color: var(--ink); font-weight: 620; }
+  .spec .v em { font-style: normal; color: var(--brand); }
+
+  .tryread { margin: 12px 16px 0; border-radius: 18px; overflow: hidden; border: 1px solid #f0d3ad; }
+  .tryread .hh { padding: 11px 14px; background: linear-gradient(135deg,#fdeedb,#f8e2c8); display: flex; align-items: center; gap: 7px; }
+  .tryread .hh h5 { font-size: 13px; font-weight: 770; color: #8a5a20; }
+  .tryread .hh .cfg { margin-left: auto; font-size: 9.5px; color: #a1887a; }
+  .tryread .bd { background: #fffdf9; padding: 15px 16px 0; }
+  .tryread .bd h6 { font-size: 14px; font-weight: 740; font-family: "Songti SC","Noto Serif SC",serif; }
+  .tryread .bd p { margin-top: 9px; font-size: 13px; line-height: 1.82; color: #4a3526; }
+  .tryread .fade { height: 68px; margin-top: -34px; position: relative; background: linear-gradient(180deg, rgba(255,253,249,0), #fffdf9 72%); }
+  .tryread .bar { padding: 0 16px 14px; background: #fffdf9; text-align: center; }
+  .tryread .pgs { height: 5px; border-radius: 99px; background: #f3e3d0; overflow: hidden; }
+  .tryread .pgs i { display: block; height: 100%; width: 16%; border-radius: 99px; background: linear-gradient(90deg,var(--gold),var(--brand-2)); }
+  .tryread .pgt { margin-top: 8px; font-size: 10.5px; color: var(--mute); }
+  .tryread .btn { margin: 11px auto 0; height: 38px; font-size: 13px; }
+
+  .intro { padding: 6px 20px 0; }
+  .intro p { font-size: 15px; line-height: 1.88; color: #3a2a1c; margin-bottom: 14px; }
+  .intro .pic { height: 168px; border-radius: 16px; overflow: hidden; margin-bottom: 16px; }
+  .toc { margin: 0 16px; border-radius: 18px; background: var(--sheet); box-shadow: var(--shadow-s); padding: 4px 15px 8px; }
+  .toc .li { display: flex; align-items: center; gap: 11px; padding: 11px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .toc .li:first-child { border: 0; }
+  .toc .no { width: 22px; font-size: 12.5px; font-weight: 780; color: #d6b894; font-family: "Iowan Old Style", serif; }
+  .toc .nm { flex: 1; font-weight: 620; }
+  .toc .st { font-size: 10.5px; color: var(--mute); }
+  .toc .st.free { color: var(--gold); font-weight: 700; }
+
+  .notice { margin: 14px 16px 0; padding: 12px 14px; border-radius: 13px; border: 1px dashed #e3c9a8; background: #fffdf9; font-size: 11px; line-height: 1.75; color: var(--ink-2); }
+  .notice b { color: var(--brand); }
+
+  .sep { height: 8px; background: #f5e8d8; margin-top: 18px; }
+  .rv { padding: 2px 20px 0; }
+  .rv .it { padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .rv .hh { display: flex; align-items: center; gap: 9px; }
+  .rv .hh .av { width: 28px; height: 28px; }
+  .rv .hh .nm { font-size: 12px; font-weight: 700; }
+  .rv .hh .st { margin-left: auto; font-size: 11px; color: #e08b1f; }
+  .rv .tx { margin-top: 8px; font-size: 13.5px; line-height: 1.7; color: #3a2a1c; }
+
+  .actionbar .ic2 { width: 46px; text-align: center; font-size: 10px; color: var(--ink-2); }
+  .actionbar .ic2 span { display: block; font-size: 18px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+  <div class="status light" style="position:absolute;left:0;right:0;top:0;z-index:19"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+
+  <div class="scroll full">
+    <div class="cover">
+      <img class="bgimg ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=600&h=600&fit=crop&q=80" alt="" />
+      <div class="sc"></div>
+      <a class="bk" href="./shop.html">‹</a>
+      <div class="book"><img class="ph" src="https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=560&fit=crop&q=80" alt="" /></div>
+    </div>
+
+    <div class="tt">
+      <h1 class="serif">内容生意手册</h1>
+      <div class="sb"><span>墨白 著</span><i class="dot"></i><span>12 万字</span><i class="dot"></i><span>EPUB / PDF</span><i class="dot"></i><span>⭐️ 4.9</span></div>
+    </div>
+
+    <div class="price">
+      <div class="rw">
+        <span class="now"><i>¥</i>39</span>
+        <s>¥79</s>
+        <span class="cd">首发价剩余 02:14:26</span>
+      </div>
+      <div class="vipline">
+        <span class="lb">会员</span>
+        <span>会员价 <b>¥31</b>，另享资料库全解锁</span>
+        <a href="./mine.html">开通 ›</a>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="li"><span class="k">商品类型</span><span class="v">虚拟商品 · 电子书</span></div>
+      <div class="li"><span class="k">交付方式</span><span class="v">支付后立即到账，<em>在小程序内阅读</em>，不发实体</span></div>
+      <div class="li"><span class="k">可用格式</span><span class="v">在线阅读 / EPUB / PDF（转发保存）</span></div>
+      <div class="li"><span class="k">阅读期限</span><span class="v">永久有效 · 换手机登录同一微信可继续读</span></div>
+    </div>
+
+    <div class="tryread" id="tryread">
+      <a class="hh" href="./article.html?from=ebook-trial" style="text-decoration:none;color:inherit"><span style="font-size:15px">📖</span><h5>免费试读</h5><span class="cfg">试读范围由后台配置</span></a>
+      <div class="bd">
+        <h6>第 1 章　先想清楚你在卖什么</h6>
+        <p>我见过太多人把「涨粉」当成目标。粉丝数是一个结果指标，它会随着你做对的事情自然增长，但把它当成目标之后，你所有的动作都会开始变形——追热点、蹭话题、发标题党，最后留下一群不会为你付一分钱的人。</p>
+        <p>真正该问的问题只有一个：<b>谁会因为这篇东西，愿意把它转发给同事？</b>这个人就是你的核心读者，而你的产品，最终只卖给他和他身边的人。</p>
+      </div>
+      <div class="fade"></div>
+      <div class="bar">
+        <div class="pgs"><i></i></div>
+        <div class="pgt">已试读 2 / 12 章 · 约占全书 16%</div>
+        <a class="btn" href="./shop.html">购买后继续读</a>
+      </div>
+    </div>
+
+    <div class="hd"><h3 class="serif">关于这本书</h3></div>
+    <div class="intro">
+      <p>这不是一本教你涨粉的书。它讲的是当你只有一个人、没有团队也没有预算时，如何把写作变成一门能长期养活自己的生意。</p>
+      <div class="pic"><img class="ph" src="https://images.unsplash.com/photo-1456513080800-2a8d5e9b6c5d?w=800&h=420&fit=crop&q=80" alt="" /></div>
+      <p>全书 12 章，来自我三年里真实跑通和跑砸的实验：三次改版、两次定价失败、一次被平台限流到归零。每章末尾附一份可直接使用的表格。</p>
+    </div>
+
+    <div class="hd"><h3 class="serif">目录</h3><a>共 12 章 ›</a></div>
+    <div class="toc">
+      <div class="li"><span class="no">01</span><span class="nm">先想清楚你在卖什么</span><span class="st free">可试读</span></div>
+      <div class="li"><span class="no">02</span><span class="nm">找到你的 100 个真实读者</span><span class="st free">可试读</span></div>
+      <div class="li"><span class="no">03</span><span class="nm">内容产品的三层货架结构</span><span class="st">🔒</span></div>
+      <div class="li"><span class="no">04</span><span class="nm">选题库：我用了三年的那张表</span><span class="st">🔒</span></div>
+      <div class="li"><span class="no">05</span><span class="nm">定价：99 和 199 的真实差别</span><span class="st">🔒</span></div>
+    </div>
+
+    <div class="notice">
+      ⚠️ 虚拟商品说明：电子书为数字内容，<b>支付成功后立即开通阅读权限，不支持退款</b>。购买前请先使用免费试读确认内容是否适合你。发票可在「我的 - 订单与发票」申请。
+    </div>
+
+    <div class="sep"></div>
+    <div class="hd"><h3 class="serif">读者评价</h3><a>全部 826 ›</a></div>
+    <div class="rv">
+      <div class="it">
+        <div class="hh"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">阿桃</span><span class="st">★★★★★</span></div>
+        <div class="tx">第 4 章那张选题表我直接搬到 Notion 用了两个月，光这一张表就值回价格。</div>
+      </div>
+      <div class="it" style="border:0">
+        <div class="hh"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60&h=60&fit=crop&q=80" alt="" /></span><span class="nm">阿柚</span><span class="st">★★★★☆</span></div>
+        <div class="tx">很少见到把失败案例写这么细的。唯一遗憾是没有纸质版。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actionbar">
+    <a class="ic2" href="./service-chat.html"><span>💬</span>客服</a>
+    <a class="ic2" href="./share.html"><span>↗️</span>分享</a>
+    <a class="btn ghost" href="./article.html?from=ebook-trial">试读</a>
+    <a class="btn" style="flex:1" href="./order.html">¥39 立即购买</a>
+  </div>
+  <div class="home-indicator"></div>
+</div></div></div>
+</body>
+</html>

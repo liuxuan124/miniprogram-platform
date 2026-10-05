@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>暖阁 · 首页</title>
+<link rel="stylesheet" href="./warm.css" />
+<style>
+  .top { position: relative; padding: 0 18px 18px; background: linear-gradient(180deg, #f7e0c3 0%, #fbeeda 52%, var(--bg) 100%); }
+  .top .status { padding-left: 6px; padding-right: 6px; }
+  .greet { display: flex; align-items: center; gap: 12px; padding-top: 6px; }
+  .greet .av { width: 42px; height: 42px; }
+  .greet h2 { font-size: 20px; letter-spacing: -.02em; }
+  .greet p { font-size: 11px; color: var(--ink-2); margin-top: 3px; }
+  .bell { margin-left: auto; width: 36px; height: 36px; border-radius: 99px; background: rgba(255,255,255,.7); display: grid; place-items: center; font-size: 16px; position: relative; }
+  .bell i { position: absolute; top: 8px; right: 9px; width: 7px; height: 7px; border-radius: 99px; background: var(--brand-2); border: 1.5px solid #fbeeda; }
+
+  .search { margin-top: 16px; height: 44px; border-radius: 99px; background: rgba(255,255,255,.85); display: flex; align-items: center; gap: 9px; padding: 0 6px 0 16px; box-shadow: var(--shadow-s); }
+  .search em { flex: 1; font-style: normal; color: #b09a88; font-size: 13px; }
+  .search b { height: 32px; padding: 0 15px; border-radius: 99px; background: linear-gradient(135deg, var(--brand-2), var(--brand)); color: #fff; font-size: 12px; display: grid; place-items: center; }
+
+  .nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 20px; }
+  .nav a { text-align: center; font-size: 10.5px; color: var(--ink-2); font-weight: 650; }
+  .nav .ic { width: 44px; height: 44px; margin: 0 auto 7px; border-radius: 16px; display: grid; place-items: center; font-size: 20px; background: #fffaf3; box-shadow: 0 6px 14px rgba(140,80,30,.09); }
+
+  .authors { display: flex; gap: 14px; overflow: auto; padding: 4px 16px 6px; }
+  .authors::-webkit-scrollbar { display: none; }
+  .authors a { flex: none; width: 54px; text-align: center; }
+  .authors .av { display: block; width: 50px; height: 50px; margin: 0 auto 6px; border: 1.5px solid #f2dcc0; }
+  .authors .av.apply { display: grid; place-items: center; border: 1.5px dashed #ddbe98; color: #c79a6c; font-size: 19px; background: #fffaf3; border-radius: 99px; }
+  .authors b { display: block; font-size: 11px; font-weight: 680; }
+  .authors i { display: block; font-style: normal; font-size: 9px; color: var(--gold); margin-top: 2px; }
+
+  /* 今日精选 */
+  .feature { margin: 18px 16px 0; border-radius: 24px; overflow: hidden; position: relative; height: 210px; color: #fff; box-shadow: var(--shadow); }
+  .feature img { position: absolute; inset: 0; }
+  .feature .sc { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(60,26,8,.05) 18%, rgba(60,26,8,.82)); }
+  .feature .bd { position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 18px 16px; }
+  .feature h3 { font-size: 20px; line-height: 1.32; letter-spacing: -.02em; margin-top: 8px; }
+  .feature .mt { margin-top: 9px; font-size: 11px; opacity: .82; display: flex; align-items: center; gap: 7px; }
+
+  /* 专栏横滑 */
+  .rail { display: flex; gap: 12px; overflow: auto; padding: 2px 16px 6px; }
+  .rail::-webkit-scrollbar { display: none; }
+  .col { flex: none; width: 154px; }
+  .col .cv { height: 104px; border-radius: 16px; overflow: hidden; position: relative; }
+  .col .cv .bdg { position: absolute; top: 8px; left: 8px; }
+  .col h4 { font-size: 13.5px; font-weight: 700; margin-top: 9px; line-height: 1.38; }
+  .col p { font-size: 10.5px; color: var(--mute); margin-top: 4px; }
+  .col .pr { margin-top: 6px; font-size: 13px; font-weight: 800; color: var(--brand); }
+  .col .pr s { font-size: 10px; color: var(--mute); font-weight: 500; margin-left: 5px; }
+
+  /* 星球卡 */
+  .planet { margin: 6px 16px 0; border-radius: 22px; padding: 16px 16px 14px; color: #fff; position: relative; overflow: hidden;
+    background: linear-gradient(135deg, #7c2d12, #b45309 62%, #d97706); box-shadow: 0 16px 34px rgba(124,45,18,.28); }
+  .planet::after { content: ""; position: absolute; width: 170px; height: 170px; border-radius: 99px; right: -54px; top: -66px; background: rgba(255,255,255,.1); }
+  .planet .rw { display: flex; align-items: center; gap: 8px; position: relative; }
+  .planet h4 { font-size: 16px; font-weight: 750; }
+  .planet .num { margin-left: auto; font-size: 11px; opacity: .8; }
+  .planet .ls { margin-top: 12px; display: grid; gap: 8px; position: relative; }
+  .planet .li { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.14); border-radius: 13px; padding: 9px 11px; font-size: 12px; line-height: 1.45; display: flex; gap: 8px; }
+  .planet .li b { font-weight: 750; opacity: .9; flex: none; }
+  .planet .li span { opacity: .9; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+  .planet .go { margin-top: 12px; position: relative; height: 34px; border-radius: 99px; background: #fff; color: #9a3412; font-size: 12.5px; font-weight: 750; display: grid; place-items: center; }
+
+  /* tab 切换（页内筛选，不跳转） */
+  .segs { display: flex; gap: 18px; padding: 16px 18px 4px; }
+  .segs a, .segs button.seg {
+    font: inherit; border: 0; background: none; cursor: pointer; padding: 0 0 6px;
+    font-size: 15px; font-weight: 650; color: var(--mute); position: relative;
+  }
+  .segs a.on, .segs button.seg.on { color: var(--ink); font-weight: 800; font-size: 16px; }
+  .segs a.on::after, .segs button.seg.on::after {
+    content: ""; position: absolute; left: 0; bottom: 0; width: 20px; height: 3px;
+    border-radius: 3px; background: var(--brand-2);
+  }
+  .feed-empty { text-align: center; font-size: 12px; color: var(--mute); padding: 28px 16px 12px; }
+
+  /* 图文流 */
+  .post { display: flex; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .post .tx { flex: 1; min-width: 0; }
+  .post h4 { font-size: 15px; font-weight: 700; line-height: 1.42; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .post p { font-size: 11.5px; color: var(--ink-2); margin-top: 6px; line-height: 1.5; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .post .mt { margin-top: 9px; font-size: 10.5px; color: var(--mute); display: flex; align-items: center; gap: 6px; }
+  .post .im { width: 96px; height: 96px; border-radius: 14px; overflow: hidden; flex: none; }
+
+  .three { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .three .gg { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-top: 10px; }
+  .three .gg div { height: 78px; border-radius: 10px; overflow: hidden; }
+
+  .end { text-align: center; font-size: 10.5px; color: var(--mute); padding: 18px 0 6px; letter-spacing: .1em; }
+</style>
+</head>
+<body>
+<div class="stage"><div class="device"><div class="device-screen">
+  <div class="notch"></div>
+
+  <div class="scroll">
+    <section class="top">
+      <div class="status"><span>9:41</span><span>●●● ᯤ ▮</span></div>
+      <div class="greet">
+        <div class="av"><img class="ph" src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&h=120&fit=crop&q=80" alt="" /></div>
+        <div>
+          <h2 class="serif">午后好，林砚</h2>
+          <p>已连续阅读 <b>18</b> 天 · 今日更新 6 篇</p>
+        </div>
+        <div class="bell">🔔<i></i></div>
+      </div>
+      <div class="search"><span>🔍</span><em>搜索文章、笔记、专栏……</em><b>搜索</b></div>
+      <nav class="nav">
+        <a href="./list.html"><div class="ic">📚</div>长文</a>
+        <a href="./column.html"><div class="ic">🎧</div>专栏课</a>
+        <a href="./planet.html"><div class="ic">🪐</div>星球</a>
+        <a href="./shop.html"><div class="ic">🛍</div>商城</a>
+        <a href="./resources.html"><div class="ic">🗂</div>资料库</a>
+      </nav>
+    </section>
+
+    <div class="hd"><h3 class="serif">暖阁出品</h3><a href="./list.html">全部作者 ›</a></div>
+    <div class="authors">
+      <a href="./list.html"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=90&h=90&fit=crop&q=80" alt="" /></span><b>墨白</b><i>主理人</i></a>
+      <a href="./list.html"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=90&h=90&fit=crop&q=80" alt="" /></span><b>编辑部</b><i>官方</i></a>
+      <a href="./list.html"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=90&h=90&fit=crop&q=80" alt="" /></span><b>小满</b><i>特约</i></a>
+      <a href="./list.html"><span class="av"><img class="ph" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=90&h=90&fit=crop&q=80" alt="" /></span><b>老陈</b><i>特约</i></a>
+      <a href="./contribute.html"><span class="av apply">＋</span><b>投稿</b><i>招募中</i></a>
+    </div>
+
+    <a class="feature" href="./article.html">
+      <img class="ph" src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=900&h=700&fit=crop&q=80" alt="" />
+      <div class="sc"></div>
+      <div class="bd">
+        <span class="tag soft">今日精选 · 深度</span>
+        <h3 class="serif">当内容不再免费：<br />一个创作者的第 1000 天</h3>
+        <div class="mt"><span>墨白 · 主理人</span><i class="dot"></i><span>12 分钟阅读</span><i class="dot"></i><span>2.3 万阅读</span></div>
+      </div>
+    </a>
+
+    <div class="hd"><h3 class="serif">精品专栏</h3><a href="./column.html">全部 ›</a></div>
+    <div class="rail">
+      <a class="col" href="./column.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=500&h=340&fit=crop&q=80" alt="" /><span class="tag gold bdg">连载中</span></div>
+        <h4>一个人的内容生意</h4><p>32 讲 · 1.2 万人在学</p>
+        <div class="pr">¥199 <s>¥399</s></div>
+      </a>
+      <a class="col" href="./column.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=340&fit=crop&q=80" alt="" /><span class="tag bdg">口碑</span></div>
+        <h4>从 0 搭一套私域</h4><p>24 讲 · 8600 人在学</p>
+        <div class="pr">¥149 <s>¥259</s></div>
+      </a>
+      <a class="col" href="./column.html">
+        <div class="cv"><img class="ph" src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&h=340&fit=crop&q=80" alt="" /></div>
+        <h4>写作即复利</h4><p>18 讲 · 5400 人在学</p>
+        <div class="pr">¥99</div>
+      </a>
+    </div>
+
+    <div class="hd"><h3 class="serif">我的星球</h3><a href="./planet.html">进入 ›</a></div>
+    <a class="planet" href="./planet.html">
+      <div class="rw">
+        <span style="font-size:20px">🪐</span>
+        <h4>暖阁星球 · 内容创作者</h4>
+        <span class="num">3,241 位球友</span>
+      </div>
+      <div class="ls">
+        <div class="li"><b>热议</b><span>小红书新规之后，图文号还值得做吗？</span></div>
+        <div class="li"><b>精华</b><span>我用 3 个月把公众号做到 5000 付费</span></div>
+        <div class="li"><b>提问</b><span>知识付费定价 99 和 199 差别有多大？</span></div>
+      </div>
+      <div class="go">今日 27 条新动态 · 去看看</div>
+    </a>
+
+    <div class="segs" id="home-segs">
+      <button type="button" class="seg on" data-seg="rec">推荐</button>
+      <button type="button" class="seg" data-seg="article">长文</button>
+      <button type="button" class="seg" data-seg="note">笔记</button>
+      <button type="button" class="seg" data-seg="qa">问答</button>
+    </div>
+
+    <div id="home-feed">
+    <a class="post" data-seg="article" href="./article.html">
+      <div class="tx">
+        <h4>做内容的第三年，我终于承认「日更」是个伪命题</h4>
+        <p>把节奏交还给作品本身，比交给算法更稳。这篇聊聊我如何重建选题库与发布节奏。</p>
+        <div class="mt"><span class="tag">深度长文</span><span>墨白 · 主理人</span><i class="dot"></i><span>1.8 万阅读</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1455390582262-044cdead277a?w=400&h=400&fit=crop&q=80" alt="" /></div>
+    </a>
+
+    <a class="post" data-seg="note" href="./note.html">
+      <div class="tx">
+        <h4>我的书桌改造 ✨ 一个内容人的效率角落</h4>
+        <p>暖光 + 原木 + 一把好椅子，成本 2000 出头。附全部清单与踩坑。</p>
+        <div class="mt"><span class="tag gold">图文笔记</span><span>小满 · 特约</span><i class="dot"></i><span>❤ 4.2k</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&h=400&fit=crop&q=80" alt="" /></div>
+    </a>
+
+    <a class="three" data-seg="note" href="./note.html">
+      <div class="tx">
+        <h4 style="font-size:15px;font-weight:700;line-height:1.42">一周三餐记录｜在家做饭其实很省时间</h4>
+        <div class="gg">
+          <div><img class="ph" src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=300&h=300&fit=crop&q=80" alt="" /></div>
+          <div><img class="ph" src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300&h=300&fit=crop&q=80" alt="" /></div>
+          <div><img class="ph" src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=300&h=300&fit=crop&q=80" alt="" /></div>
+        </div>
+        <div class="mt" style="margin-top:10px;font-size:10.5px;color:var(--mute);display:flex;gap:6px;align-items:center">
+          <span class="tag">九宫格</span><span>暖阁编辑部</span><i class="dot"></i><span>❤ 1.9k</span>
+        </div>
+      </div>
+    </a>
+
+    <a class="post" data-seg="article" href="./article.html">
+      <div class="tx">
+        <h4>付费社群运营 SOP：从冷启动到第一个 100 人</h4>
+        <p>含欢迎语模板、周更节奏表、活跃度指标三张表，可直接抄作业。</p>
+        <div class="mt"><span class="tag">会员专享</span><span>老陈 · 特约</span><i class="dot"></i><span>9.4k 阅读</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=400&h=400&fit=crop&q=80" alt="" /></div>
+    </a>
+
+    <a class="post" data-seg="qa" href="./planet-post.html">
+      <div class="tx">
+        <h4>知识付费定价 99 和 199，差别到底有多大？</h4>
+        <p>星主答：差的不只是内容量，更是交付强度与社群陪伴。附我的三档定价表。</p>
+        <div class="mt"><span class="tag gold">星球问答</span><span>墨白 · 已解答</span><i class="dot"></i><span>864 围观</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=400&fit=crop&q=80" alt="" /></div>
+    </a>
+
+    <a class="post" data-seg="qa" href="./planet-post.html">
+      <div class="tx">
+        <h4>小红书新规之后，图文号还值得做吗？</h4>
+        <p>本周热议：仍值得，但要把「完播/收藏」换成「私域转化」来衡量。</p>
+        <div class="mt"><span class="tag">热议问答</span><span>编辑部整理</span><i class="dot"></i><span>27 条回复</span></div>
+      </div>
+      <div class="im"><img class="ph" src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&h=400&fit=crop&q=80" alt="" /></div>
+    </a>
+    </div>
+    <div class="feed-empty" id="home-feed-empty" hidden>该分类暂无内容</div>
+
+    <div class="end">—— 暖阁 · 慢一点，也很好 ——</div>
+  </div>
+
+  <nav class="tabbar">
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>首页</a>
+    <a href="./discover.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="m15 9-2 4-4 2 2-4z"/></svg>发现</a>
+    <a href="./planet.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="4" transform="rotate(-22 12 12)"/></svg>星球</a>
+    <a href="./shop.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4.5 8h15l-1.2 11.2a1 1 0 0 1-1 .8H6.7a1 1 0 0 1-1-.8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>商城</a>
+    <a href="./mine.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.9-6 7.5-6s6.7 2 7.5 6"/></svg>我的</a>
+  </nav>
+  <div class="home-indicator"></div>
+</div></div></div>
+<script>
+(function () {
+  var segs = document.getElementById('home-segs');
+  var feed = document.getElementById('home-feed');
+  var empty = document.getElementById('home-feed-empty');
+  if (!segs || !feed) return;
+  var items = Array.prototype.slice.call(feed.querySelectorAll('[data-seg]'));
+  function apply(key) {
+    segs.querySelectorAll('.seg').forEach(function (btn) {
+      btn.classList.toggle('on', btn.getAttribute('data-seg') === key);
+    });
+    var shown = 0;
+    items.forEach(function (el) {
+      var ok = key === 'rec' || el.getAttribute('data-seg') === key;
+      el.style.display = ok ? '' : 'none';
+      if (ok) shown += 1;
+    });
+    if (empty) empty.hidden = shown > 0;
+  }
+  segs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.seg');
+    if (!btn) return;
+    e.preventDefault();
+    apply(btn.getAttribute('data-seg') || 'rec');
+  });
+})();
+</script>
+</body>
+</html>

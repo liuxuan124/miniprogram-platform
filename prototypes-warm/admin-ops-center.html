@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>运营中心 · 后台原型 · 暖阁</title>
+<style>
+  :root {
+    --brand: #c2410c; --brand-2: #ea580c; --gold: #b45309;
+    --ink: #2a1c12; --ink-2: #6b5443; --mute: #a1897a;
+    --line: rgba(120,72,40,.12); --bg: #faf6f0; --sheet: #fff;
+    --ok: #15803d; --okbg: #dcfce7;
+    --warn: #b45309; --warnbg: #fef3c7;
+    --info: #1d4ed8; --infobg: #dbeafe;
+    --bad: #b91c1c; --badbg: #fee2e2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #e9ddcd; color: var(--ink); font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  .page { max-width: 1360px; margin: 0 auto; padding: 26px 20px 70px; }
+  .ptt { font-size: 12px; font-weight: 700; color: #7c4a1d; background: rgba(255,255,255,.6); padding: 6px 14px; border-radius: 99px; display: inline-block; margin-bottom: 12px; }
+  .pnote { margin: 10px 0 22px; font-size: 12.5px; line-height: 1.75; color: #6b5443; max-width: 900px; }
+  .pnote b { color: #9a3412; }
+
+  .app { display: flex; border-radius: 14px; overflow: hidden; background: var(--bg); box-shadow: 0 22px 50px rgba(90,50,20,.22); min-height: 760px; }
+
+  .side { width: 200px; flex: none; background: #33200f; color: #e7d3b8; padding: 16px 0 24px; overflow: auto; }
+  .side .lg { padding: 0 18px 16px; font-size: 15px; font-weight: 750; color: #fbe3bc; display: flex; align-items: center; gap: 8px; }
+  .side .grp { padding: 13px 18px 5px; font-size: 10px; letter-spacing: .16em; color: #8d7358; font-weight: 700; }
+  .side a { display: flex; align-items: center; gap: 9px; padding: 8px 18px; font-size: 12.5px; color: #cdb79a; cursor: default; }
+  .side a.on { background: linear-gradient(90deg, rgba(234,88,12,.9), rgba(234,88,12,.2)); color: #fff; font-weight: 650; }
+  .side a .ic { width: 15px; font-size: 12px; opacity: .85; }
+  .side a.parent { color: #f0dcc0; font-weight: 700; }
+  .side a.sub { padding-left: 34px; font-size: 12px; }
+  .side a.sub.on { background: rgba(234,88,12,.85); color: #fff; font-weight: 700; }
+  .side a .new { margin-left: auto; font-size: 9px; font-weight: 800; letter-spacing: .06em; background: #ea580c; color: #fff; padding: 2px 6px; border-radius: 99px; }
+  .side .blocknew { background: rgba(234,88,12,.14); border-left: 3px solid #ea580c; padding-bottom: 6px; }
+
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { height: 54px; background: var(--sheet); border-bottom: 1px solid var(--line); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex: none; }
+  .topbar h1 { font-size: 15px; font-weight: 740; }
+  .topbar .crumb { font-size: 11.5px; color: var(--mute); }
+  .topbar .me { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); }
+  .topbar .me .av { width: 26px; height: 26px; border-radius: 99px; background: linear-gradient(135deg,#d97706,#7c2d12); }
+  .body2 { padding: 18px 20px 30px; overflow: auto; }
+
+  .pg { display: none; }
+  .pg.on { display: block; }
+
+  .card { background: var(--sheet); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 16px; }
+  .card .ch { padding: 13px 16px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 9px; }
+  .card .ch h3 { font-size: 13.5px; font-weight: 740; }
+  .card .ch .sub { font-size: 11px; color: var(--mute); }
+  .card .ch .rt { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .card .cb { padding: 14px 16px; }
+
+  .btn { height: 31px; padding: 0 13px; border-radius: 7px; font-size: 12.5px; font-weight: 650; display: inline-flex; align-items: center; gap: 5px;
+    background: linear-gradient(135deg,var(--brand-2),var(--brand)); color: #fff; border: 0; cursor: pointer; }
+  .btn.gh { background: #fff; color: var(--ink-2); border: 1px solid var(--line); }
+  .btn.sm { height: 26px; padding: 0 9px; font-size: 11.5px; }
+  .btn.dg { background: #fff; color: #b91c1c; border: 1px solid #f3d0d0; }
+  .btn.gr { background: linear-gradient(135deg,#16a34a,#15803d); color: #fff; }
+  td:last-child { white-space: nowrap; }
+
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--sheet); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .stat .k { font-size: 11px; color: var(--mute); font-weight: 650; }
+  .stat .v { font-size: 23px; font-weight: 760; margin-top: 5px; letter-spacing: -.02em; }
+  .stat .d { font-size: 10.5px; color: var(--mute); margin-top: 3px; }
+  .stat.hl { border-color: rgba(234,88,12,.35); background: #fffaf5; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; font-size: 11px; color: var(--mute); font-weight: 650; padding: 9px 12px; background: #faf5ee; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border: 0; }
+  td span.nm { font-weight: 680; font-size: 12.5px; }
+  td span.sm { font-size: 10.5px; color: var(--mute); display: block; margin-top: 2px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--ink-2); }
+
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 10.5px; font-weight: 680; white-space: nowrap; }
+  .pill.ok { background: var(--okbg); color: var(--ok); }
+  .pill.warn { background: var(--warnbg); color: var(--warn); }
+  .pill.info { background: var(--infobg); color: var(--info); }
+  .pill.off { background: #f1ede8; color: #8a7866; }
+  .pill.bad { background: var(--badbg); color: var(--bad); }
+
+  .sw { width: 38px; height: 22px; border-radius: 99px; background: #e0d2c0; position: relative; display: inline-block; vertical-align: -5px; cursor: pointer; }
+  .sw.on { background: linear-gradient(135deg,var(--brand-2),var(--brand)); }
+  .sw i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 99px; background: #fff; transition: .15s; }
+  .sw.on i { left: auto; right: 2px; }
+
+  .ipt { height: 31px; border: 1px solid var(--line); border-radius: 7px; padding: 0 10px; font-size: 12.5px; background: #fff; display: inline-flex; align-items: center; color: var(--ink); max-width: 100%; }
+  .ipt.mute { color: var(--mute); }
+  .ipt.w200 { width: 200px; }
+  .ipt.w300 { width: 300px; }
+  .ipt.wfull { width: 100%; }
+
+  .seg { display: inline-flex; background: #f3ebe0; border-radius: 8px; padding: 3px; gap: 3px; }
+  .seg b { font-size: 11.5px; font-weight: 650; padding: 5px 12px; border-radius: 6px; color: var(--ink-2); cursor: pointer; }
+  .seg b.on { background: #fff; color: var(--brand); box-shadow: 0 1px 3px rgba(90,50,20,.14); }
+
+  .cols { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+  .fr { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px dashed var(--line); }
+  .fr:last-child { border: 0; }
+  .fr .lb { width: 104px; flex: none; font-size: 12.5px; font-weight: 640; padding-top: 6px; }
+  .fr .lb em { display: block; font-style: normal; font-size: 10.5px; color: var(--mute); font-weight: 400; margin-top: 3px; line-height: 1.5; }
+  .fr .ct { flex: 1; min-width: 0; }
+  .fr .hint { margin-top: 6px; font-size: 10.5px; color: var(--mute); line-height: 1.6; }
+  .fr .hint code { background: #f6efe6; padding: 1px 5px; border-radius: 4px; color: #9a3412; font-size: 10.5px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line); font-size: 12px; background: #fff; }
+  .chip b { font-weight: 680; }
+  .chip .x { color: var(--mute); font-size: 13px; cursor: pointer; }
+
+  .rank { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+  .rank:last-child { border: 0; }
+  .rank .no { width: 20px; height: 20px; border-radius: 6px; background: #f3ebe0; color: var(--ink-2); font-size: 11px; font-weight: 750; display: grid; place-items: center; flex: none; }
+  .rank .no.top { background: linear-gradient(135deg,#ea580c,#c2410c); color: #fff; }
+  .rank .tx { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 640; }
+  .rank .hd { font-size: 11px; color: var(--mute); width: 62px; text-align: right; }
+  .rank .op { display: flex; gap: 5px; }
+
+  .funnel { display: flex; flex-direction: column; gap: 8px; }
+  .fstep { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+  .fstep .fl { width: 68px; flex: none; color: var(--ink-2); }
+  .fstep .fb { flex: 1; height: 22px; border-radius: 5px; background: #f3ebe0; overflow: hidden; }
+  .fstep .fb i { display: block; height: 100%; background: linear-gradient(90deg,#ea580c,#f59e0b); }
+  .fstep .fv { width: 74px; text-align: right; font-weight: 680; font-size: 11.5px; }
+  .fstep .fr2 { width: 46px; text-align: right; font-size: 10.5px; color: var(--mute); }
+
+  .note { background: #fffaf5; border: 1px dashed rgba(234,88,12,.35); border-radius: 10px; padding: 12px 14px; font-size: 11.5px; line-height: 1.7; color: #7c4a1d; }
+  .note b { color: #9a3412; }
+  .empty { padding: 26px 0; text-align: center; font-size: 12px; color: var(--mute); }
+</style>
+</head>
+<body>
+<div class="page">
+  <span class="ptt">原型 · 运营中心（建议新增一级目录）</span>
+  <p class="pnote">
+    基于现有后台菜单与库表实测结果设计：<b>「运营中心」为横向运营动作的统一收口</b>，不重复承载垂直资产。
+    左侧 5 个子模块中，<b>私域引流</b>后端就绪但<b>小程序端未接线</b>（须两段同做）、<b>审核中心</b>后端半成品，
+    <b>活动管理</b>收编现有 <span class="mono">/activity</span> 并改名区分，<b>搜索运营 / 资源位运营</b>为全新建设。点击左侧橙标分组可切换页面。
+  </p>
+
+  <div class="app">
+    <aside class="side">
+      <div class="lg"><span>◆</span><span>暖阁运营台</span></div>
+
+      <a><span class="ic">◉</span><span>工作总览</span></a>
+
+      <div class="blocknew">
+        <a class="parent"><span class="ic">◆</span><span>运营中心</span><span class="new">NEW</span></a>
+        <a class="sub" data-pg="activity"><span class="ic">·</span><span>营销活动</span></a>
+        <a class="sub" data-pg="placement"><span class="ic">·</span><span>资源位运营</span></a>
+        <a class="sub" data-pg="search"><span class="ic">·</span><span>搜索运营</span></a>
+        <a class="sub" data-pg="private"><span class="ic">·</span><span>私域引流</span></a>
+        <a class="sub" data-pg="audit"><span class="ic">·</span><span>审核中心</span></a>
+      </div>
+
+      <a><span class="ic">▤</span><span>小程序</span></a>
+      <a><span class="ic">▤</span><span>内容管理</span></a>
+      <a><span class="ic">▤</span><span>商业变现</span></a>
+      <a><span class="ic">▤</span><span>用户管理</span></a>
+      <a><span class="ic">▤</span><span>会员管理</span></a>
+      <a><span class="ic">▤</span><span>社区管理</span></a>
+
+      <div class="grp">活动与预约</div>
+      <a><span class="ic">▤</span><span>线下活动</span></a>
+      <a><span class="ic">▤</span><span>预约管理</span></a>
+
+      <div class="grp">经营</div>
+      <a><span class="ic">▤</span><span>数据统计</span></a>
+      <a><span class="ic">▤</span><span>经营管理</span></a>
+      <a><span class="ic">▤</span><span>系统设置</span></a>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <h1 id="ttl">营销活动</h1>
+        <span class="crumb" id="crumb">运营中心 / 营销活动</span>
+        <div class="me"><span>运营 · content_ops</span><span class="av"></span></div>
+      </div>
+
+      <div class="body2">
+
+        <!-- 1 营销活动 -->
+        <section class="pg on" id="pg-activity">
+          <div class="stats">
+            <div class="stat hl"><div class="k">进行中</div><div class="v">3</div><div class="d">含 2 个自动续跑</div></div>
+            <div class="stat"><div class="k">待开始</div><div class="v">2</div><div class="d">最近 11-01 上线</div></div>
+            <div class="stat"><div class="k">已结束</div><div class="v">14</div><div class="d">本季累计</div></div>
+            <div class="stat"><div class="k">累计参与人次</div><div class="v">2,847</div><div class="d">去重后 1,932 人</div></div>
+          </div>
+
+          <div class="card">
+            <div class="ch">
+              <h3>活动列表</h3>
+              <span class="sub">按时间窗排序 · 到点自动启停</span>
+              <div class="rt">
+                <button class="btn gh sm">批量导出</button>
+                <button class="btn sm">+ 新建活动</button>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr><th>活动名称</th><th>类型</th><th>时间窗</th><th>关联资产</th><th>状态</th><th>参与</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="nm">秋日限定 · 共读打卡营</span><span class="sm">打卡 21 天瓜分通票</span></td>
+                  <td><span class="pill info">打卡营</span></td>
+                  <td class="mono">10-01 → 10-21</td>
+                  <td>星球 warm-read</td>
+                  <td><span class="pill ok">进行中</span></td>
+                  <td><b>412</b></td>
+                  <td><button class="btn gh sm">数据</button></td>
+                </tr>
+                <tr>
+                  <td><span class="nm">邀请有礼 · 好友进群各得 7 天会员</span><span class="sm">长期常驻</span></td>
+                  <td><span class="pill info">邀请裂变</span></td>
+                  <td class="mono">长期</td>
+                  <td>全站</td>
+                  <td><span class="pill ok">进行中</span></td>
+                  <td><b>1,286</b></td>
+                  <td><button class="btn gh sm">数据</button></td>
+                </tr>
+                <tr>
+                  <td><span class="nm">双十一 · 会员年卡 5 折</span><span class="sm">同步开屏公告与弹窗</span></td>
+                  <td><span class="pill info">促销会场</span></td>
+                  <td class="mono">11-01 → 11-11</td>
+                  <td>会员权益</td>
+                  <td><span class="pill warn">待开始</span></td>
+                  <td>—</td>
+                  <td><button class="btn gh sm">编辑</button></td>
+                </tr>
+                <tr>
+                  <td><span class="nm">星球通票体验周</span><span class="sm">已归档</span></td>
+                  <td><span class="pill info">专题活动</span></td>
+                  <td class="mono">09-15 → 09-30</td>
+                  <td>星球 warm-main</td>
+                  <td><span class="pill off">已结束</span></td>
+                  <td><b>733</b></td>
+                  <td><button class="btn gh sm">复盘</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="note">
+            <b>与现有 /activity 的边界：</b>现有模块管「线下沙龙/课程/展会的报名与核销」，本模块管「有时间窗、带动销与裂变的线上活动」。
+            两者共用报名/打卡底座（<span class="mono">mp_activity_signup</span> / <span class="mono">mp_activity_check_in</span>），但入口与语义分开，避免运营混淆。
+          </div>
+        </section>
+
+        <!-- 2 资源位运营 -->
+        <section class="pg" id="pg-placement">
+          <div class="stats">
+            <div class="stat hl"><div class="k">启用中资源位</div><div class="v">4</div><div class="d">弹窗 2 · 开屏 1 · 悬浮 1</div></div>
+            <div class="stat"><div class="k">今日曝光</div><div class="v">18,402</div><div class="d">去重 6,133 人</div></div>
+            <div class="stat"><div class="k">点击率</div><div class="v">7.4%</div><div class="d">较上周 +1.2pt</div></div>
+            <div class="stat"><div class="k">排期冲突</div><div class="v">0</div><div class="d">同时段仅 1 个弹窗</div></div>
+          </div>
+
+          <div class="cols">
+            <div>
+              <div class="card">
+                <div class="ch">
+                  <h3>全局资源位</h3>
+                  <span class="sub">不再依赖装修器发版</span>
+                  <div class="rt"><button class="btn sm">+ 新建资源位</button></div>
+                </div>
+                <table>
+                  <thead>
+                    <tr><th>名称</th><th>资源位</th><th>排期</th><th>频次</th><th>曝光</th><th>状态</th><th>启停</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="nm">新人礼包</span><span class="sm">注册后首启触发</span></td>
+                      <td><span class="pill info">全站弹窗</span></td>
+                      <td class="mono">常驻</td>
+                      <td>每用户 1 次</td>
+                      <td>3,204</td>
+                      <td><span class="pill ok">生效中</span></td>
+                      <td><span class="sw on"><i></i></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="nm">双十一大促</span><span class="sm">与活动管理联动</span></td>
+                      <td><span class="pill info">全站弹窗</span></td>
+                      <td class="mono">11-01 → 11-11</td>
+                      <td>每日 1 次</td>
+                      <td>—</td>
+                      <td><span class="pill warn">待上线</span></td>
+                      <td><span class="sw"><i></i></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="nm">系统维护公告</span><span class="sm">已到点自动下线</span></td>
+                      <td><span class="pill info">开屏公告</span></td>
+                      <td class="mono">10-05 02:00 → 04:00</td>
+                      <td>单次</td>
+                      <td>892</td>
+                      <td><span class="pill off">已下线</span></td>
+                      <td><span class="sw"><i></i></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="nm">企微客服悬浮球</span><span class="sm">全站右下角</span></td>
+                      <td><span class="pill info">悬浮挂件</span></td>
+                      <td class="mono">常驻</td>
+                      <td>不限</td>
+                      <td>11,046</td>
+                      <td><span class="pill ok">生效中</span></td>
+                      <td><span class="sw on"><i></i></span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="ch"><h3>曝光与冲突控制</h3></div>
+                <div class="cb">
+                  <div class="fr">
+                    <div class="lb">同屏弹窗上限<em>超出则按优先级取前 N</em></div>
+                    <div class="ct"><span class="ipt w200">1 个</span></div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">弹窗优先级<em>数字越大越优先</em></div>
+                    <div class="ct"><span class="ipt w200">按活动权重</span></div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">开屏最短间隔<em>防打扰</em></div>
+                    <div class="ct"><span class="ipt w200">4 小时</span></div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">免打扰时段<em>期间不弹</em></div>
+                    <div class="ct"><span class="ipt w200">23:00 → 07:00</span></div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">终端挂载<em>唯一增主包项</em></div>
+                    <div class="ct">
+                      <span class="pill warn">需 app.js 层挂载</span>
+                      <div class="hint">包体以 <code>cli preview</code> 表格为唯一判据，现行约 1.5MB / 74%。</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3 搜索运营 -->
+        <section class="pg" id="pg-search">
+          <div class="stats">
+            <div class="stat hl"><div class="k">今日搜索次数</div><div class="v">3,118</div><div class="d">较昨日 +6%</div></div>
+            <div class="stat"><div class="k">无结果率</div><div class="v">4.1%</div><div class="d">128 次空结果</div></div>
+            <div class="stat"><div class="k">点击数</div><div class="v">7,904</div><div class="d">人均 2.5 次</div></div>
+            <div class="stat"><div class="k">干预词生效</div><div class="v">3</div><div class="d">置顶 3 条内容</div></div>
+          </div>
+
+          <div class="cols">
+            <div>
+              <div class="card">
+                <div class="ch">
+                  <h3>热门搜索词</h3>
+                  <span class="sub">运营词优先，不足位由算法补</span>
+                  <div class="rt"><button class="btn gh sm">按算法重排</button><button class="btn sm">+ 添加词</button></div>
+                </div>
+                <div class="cb">
+                  <div class="rank">
+                    <span class="no top">1</span><span class="tx">跨境财税</span>
+                    <span class="pill info">运营</span><span class="hd">1,204</span>
+                    <span class="op"><button class="btn gh sm">↑</button><button class="btn gh sm">↓</button></span>
+                  </div>
+                  <div class="rank">
+                    <span class="no top">2</span><span class="tx">秋日共读</span>
+                    <span class="pill info">运营</span><span class="hd">876</span>
+                    <span class="op"><button class="btn gh sm">↑</button><button class="btn gh sm">↓</button></span>
+                  </div>
+                  <div class="rank">
+                    <span class="no top">3</span><span class="tx">会员权益</span>
+                    <span class="pill info">运营</span><span class="hd">733</span>
+                    <span class="op"><button class="btn gh sm">↑</button><button class="btn gh sm">↓</button></span>
+                  </div>
+                  <div class="rank">
+                    <span class="no">4</span><span class="tx">星球通票</span>
+                    <span class="pill off">算法</span><span class="hd">512</span>
+                    <span class="op"><button class="btn gh sm">↑</button><button class="btn gh sm">↓</button></span>
+                  </div>
+                  <div class="rank">
+                    <span class="no">5</span><span class="tx">黄精溯源</span>
+                    <span class="pill off">算法</span><span class="hd">388</span>
+                    <span class="op"><button class="btn gh sm">↑</button><button class="btn gh sm">↓</button></span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="ch">
+                  <h3>搜索结果干预</h3>
+                  <span class="sub">指定关键词的置顶内容</span>
+                  <div class="rt"><button class="btn sm">+ 新增干预</button></div>
+                </div>
+                <table>
+                  <thead><tr><th>触发词</th><th>置顶内容</th><th>位置</th><th>状态</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr><td class="mono">双十一</td><td>会员年卡 5 折 · 大促主会场</td><td>第 1 位</td><td><span class="pill ok">生效中</span></td><td><button class="btn gh sm">编辑</button></td></tr>
+                    <tr><td class="mono">共读</td><td>秋日限定 · 共读打卡营</td><td>第 1 位</td><td><span class="pill ok">生效中</span></td><td><button class="btn gh sm">编辑</button></td></tr>
+                    <tr><td class="mono">会员</td><td>会员权益全景说明</td><td>第 2 位</td><td><span class="pill ok">生效中</span></td><td><button class="btn gh sm">编辑</button></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="ch"><h3>底纹与合规</h3></div>
+                <div class="cb">
+                  <div class="fr">
+                    <div class="lb">搜索框底纹词<em>轮播展示，最多 3 条</em></div>
+                    <div class="ct">
+                      <div class="chips">
+                        <span class="chip"><b>跨境财税合规</b><span class="x">×</span></span>
+                        <span class="chip"><b>会员权益怎么用</b><span class="x">×</span></span>
+                        <span class="chip"><b>秋日共读报名</b><span class="x">×</span></span>
+                        <span class="chip">+ 添加</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">轮播间隔</div>
+                    <div class="ct"><span class="ipt w200">4 秒</span></div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">搜索敏感词<em>命中直接拦截，不返回结果</em></div>
+                    <div class="ct">
+                      <span class="ipt w200">赌博,色情,暴力</span>
+                      <div class="hint">复用内容审核规则 <code>ContentAuditRulesService</code>，避免两套词库。</div>
+                    </div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">空结果兜底<em>无结果时的推荐</em></div>
+                    <div class="ct"><span class="ipt w200">展示热门搜索词</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="note">
+                搜索页 <span class="mono">pages/search</span> 已在主包，本次仅新增配置拉取接口，<b>主包几乎不增</b>。
+                现状热词硬编码在 <span class="mono">miniapp/data/warm-source.js</span>，需改为接口下发。
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4 私域引流 -->
+        <section class="pg" id="pg-private">
+          <div class="stats">
+            <div class="stat hl"><div class="k">活码总数</div><div class="v">3</div><div class="d">2 个将到期</div></div>
+            <div class="stat"><div class="k">今日进群</div><div class="v">62</div><div class="d">较昨日 +18%</div></div>
+            <div class="stat"><div class="k">曝光→进群</div><div class="v">11.3%</div><div class="d">较上周 +2.4pt</div></div>
+            <div class="stat"><div class="k">企微好友</div><div class="v">1,847</div><div class="d">本月新增 236</div></div>
+          </div>
+
+          <div class="cols">
+            <div>
+              <div class="card">
+                <div class="ch">
+                  <h3>微信群活码</h3>
+                  <span class="sub">满员或过期自动切下一张</span>
+                  <div class="rt"><button class="btn gh sm">批量换码</button><button class="btn sm">+ 新建活码</button></div>
+                </div>
+                <table>
+                  <thead>
+                    <tr><th>群名称</th><th>当前二维码</th><th>有效期</th><th>人数</th><th>满员自动切</th><th>状态</th><th>启停</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><span class="nm">暖阁读者群 ①</span><span class="sm">主推 · 放置于落地页</span></td>
+                      <td class="mono">qr_reader_01_a.png</td>
+                      <td class="mono">10-18 到期</td>
+                      <td><b>187</b> / 200</td>
+                      <td><span class="pill ok">已开</span></td>
+                      <td><span class="pill ok">启用</span></td>
+                      <td><span class="sw on"><i></i></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="nm">暖阁读者群 ②</span><span class="sm">备用轮换</span></td>
+                      <td class="mono">qr_reader_02_a.png</td>
+                      <td class="mono">10-18 到期</td>
+                      <td><b>43</b> / 200</td>
+                      <td><span class="pill ok">已开</span></td>
+                      <td><span class="pill ok">启用</span></td>
+                      <td><span class="sw on"><i></i></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="nm">星球通票会员群</span><span class="sm">仅付费会员可见</span></td>
+                      <td class="mono">qr_vip_01.png</td>
+                      <td class="mono">长期有效</td>
+                      <td><b>96</b> / 200</td>
+                      <td><span class="pill off">未开</span></td>
+                      <td><span class="pill ok">启用</span></td>
+                      <td><span class="sw on"><i></i></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="nm">读者群 ③（旧）</span><span class="sm">码已失效，待换</span></td>
+                      <td class="mono">qr_reader_03_a.png</td>
+                      <td class="mono">10-04 已过期</td>
+                      <td>200 / 200</td>
+                      <td><span class="pill off">未开</span></td>
+                      <td><span class="pill bad">需换码</span></td>
+                      <td><span class="sw"><i></i></span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="card">
+                <div class="ch"><h3>企微客服分配</h3><span class="sub">加微好友的分配规则</span></div>
+                <div class="cb">
+                  <div class="fr">
+                    <div class="lb">分配方式<em>决定由哪个客服承接</em></div>
+                    <div class="ct">
+                      <span class="seg"><b class="on">轮询</b><b>按会员等级</b><b>指定单人</b></span>
+                      <div class="hint">轮询：3 位客服平均承接；按等级：年卡会员优先分配资深客服。</div>
+                    </div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">承接客服</div>
+                    <div class="ct">
+                      <div class="chips">
+                        <span class="chip"><b>客服A</b> · 已接 412<span class="x">×</span></span>
+                        <span class="chip"><b>客服B</b> · 已接 398<span class="x">×</span></span>
+                        <span class="chip"><b>客服C</b> · 已接 377<span class="x">×</span></span>
+                        <span class="chip">+ 添加</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="fr">
+                    <div class="lb">工作时间<em>非工作时间自动回复</em></div>
+                    <div class="ct"><span class="ipt w200">09:00 → 21:00</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="ch"><h3>导流转化漏斗</h3><span class="sub">近 7 天</span></div>
+                <div class="cb">
+                  <div class="funnel">
+                    <div class="fstep"><span class="fl">资源位曝光</span><span class="fb"><i style="width:100%"></i></span><span class="fv">11,046</span><span class="fr2">—</span></div>
+                    <div class="fstep"><span class="fl">点击</span><span class="fb"><i style="width:38%"></i></span><span class="fv">4,197</span><span class="fr2">38.0%</span></div>
+                    <div class="fstep"><span class="fl">弹出活码</span><span class="fb"><i style="width:26%"></i></span><span class="fv">2,872</span><span class="fr2">68.4%</span></div>
+                    <div class="fstep"><span class="fl">扫码</span><span class="fb"><i style="width:14%"></i></span><span class="fv">1,548</span><span class="fr2">53.9%</span></div>
+                    <div class="fstep"><span class="fl">进群成功</span><span class="fb"><i style="width:11%"></i></span><span class="fv">1,248</span><span class="fr2">80.6%</span></div>
+                  </div>
+                  <div class="hint" style="margin-top:10px;font-size:10.5px;color:var(--mute);line-height:1.6">
+                    第二步「点击 → 弹出活码」流失最大（31.6%），建议在活动管理中把「邀请有礼」入口前移。
+                  </div>
+                </div>
+              </div>
+
+              <div class="note">
+                <b>⚠ 实测修正：</b><code>mp_group_qrcode</code> 的后端（CRUD + 取码接口 + 每小时轮换定时任务）已全部就绪，
+                但小程序端<strong>从未调用</strong>过该接口 —— 装修器组件 <code>dsl-join-group</code> 的群列表来自页面 DSL 内联配置，
+                组件内零网络请求。<br>
+                <b>只补本页而不接通 C 端，运营配的活码在小程序上不会生效。</b>本子模块须「后台补页面 + C 端接线」两段同做。
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5 审核中心 -->
+        <section class="pg" id="pg-audit">
+          <div class="stats">
+            <div class="stat hl"><div class="k">待处理</div><div class="v">17</div><div class="d">3 类队列合计</div></div>
+            <div class="stat"><div class="k">今日已处理</div><div class="v">42</div><div class="d">平均耗时 1.4 分钟</div></div>
+            <div class="stat"><div class="k">超时未处理</div><div class="v">2</div><div class="d">已超 24 小时</div></div>
+            <div class="stat"><div class="k">机审拦截</div><div class="v">126</div><div class="d">本日自动拦截</div></div>
+          </div>
+
+          <div class="card">
+            <div class="ch">
+              <h3>审核队列</h3>
+              <div class="rt">
+                <span class="seg" id="auditSeg">
+                  <b class="on" data-q="creator">创作者入驻 · 4</b>
+                  <b data-q="content">内容人审 · 9</b>
+                  <b data-q="report">举报处理 · 4</b>
+                </span>
+                <button class="btn gh sm">批量通过</button>
+              </div>
+            </div>
+
+            <div class="qbox" data-q="creator">
+              <table>
+                <thead><tr><th>申请人</th><th>方向</th><th>提交时间</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="nm">林舟</span><span class="sm">已有 3 篇长文</span></td><td>跨境财税</td><td class="mono">10-05 01:12</td><td><span class="pill warn">待审核</span></td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                  <tr><td><span class="nm">苏见</span><span class="sm">外部邀请</span></td><td>产业观察</td><td class="mono">10-04 22:40</td><td><span class="pill warn">待审核</span></td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                  <tr><td><span class="nm">程野</span><span class="sm">UGC 投稿</span></td><td>药食同源</td><td class="mono">10-04 18:03</td><td><span class="pill warn">待审核</span></td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                  <tr><td><span class="nm">何一</span><span class="sm">超 24 小时未处理</span></td><td>溯源技术</td><td class="mono">10-03 09:26</td><td><span class="pill bad">已超时</span></td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="qbox" data-q="content" style="display:none">
+              <table>
+                <thead><tr><th>内容标题</th><th>类型</th><th>机审结果</th><th>作者</th><th>提交时间</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="nm">跨境收款账户合规清单</span></td><td><span class="pill info">长文</span></td><td><span class="pill warn">疑似敏感词</span></td><td>林舟</td><td class="mono">10-05 01:40</td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                  <tr><td><span class="nm">秋日共读第 3 天打卡</span></td><td><span class="pill info">动态</span></td><td><span class="pill ok">机审通过</span></td><td>苏见</td><td class="mono">10-05 00:18</td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                  <tr><td><span class="nm">黄精产品实测记录</span></td><td><span class="pill info">图文笔记</span></td><td><span class="pill warn">疑似广告</span></td><td>程野</td><td class="mono">10-04 21:55</td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                  <tr><td><span class="nm">星球通票使用体验</span></td><td><span class="pill info">动态</span></td><td><span class="pill ok">机审通过</span></td><td>何一</td><td class="mono">10-04 20:31</td><td><button class="btn gr sm">通过</button> <button class="btn dg sm">驳回</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="qbox" data-q="report" style="display:none">
+              <table>
+                <thead><tr><th>被举报对象</th><th>举报理由</th><th>举报人</th><th>时间</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td><span class="nm">动态 #8821</span><span class="sm">含外部引流链接</span></td><td>广告引流</td><td>匿名用户</td><td class="mono">10-05 01:02</td><td><span class="pill warn">待处理</span></td><td><button class="btn sm">处理</button> <button class="btn gh sm">忽略</button></td></tr>
+                  <tr><td><span class="nm">评论 #12903</span><span class="sm">人身攻击</span></td><td>恶意言论</td><td>苏见</td><td class="mono">10-04 23:14</td><td><span class="pill warn">待处理</span></td><td><button class="btn sm">处理</button> <button class="btn gh sm">忽略</button></td></tr>
+                  <tr><td><span class="nm">用户 10382</span><span class="sm">多次刷屏</span></td><td>垃圾信息</td><td>系统自动</td><td class="mono">10-04 19:47</td><td><span class="pill warn">待处理</span></td><td><button class="btn sm">处理</button> <button class="btn gh sm">忽略</button></td></tr>
+                  <tr><td><span class="nm">笔记 #6614</span><span class="sm">版权投诉</span></td><td>侵权</td><td>权利人</td><td class="mono">10-04 15:20</td><td><span class="pill info">已受理</span></td><td><button class="btn gh sm">查看</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="note">
+            <b>已有基础：</b>创作者申请审批链路已实现（<span class="mono">AdminCreatorController</span> + <span class="mono">mp_creator_application</span>）。
+            本模块需补的是：统一人审队列、举报处理（<span class="mono">mp_copyright_complaint</span> 已有表）、封禁与违规记录（<b>新表</b>）。
+            现有 <span class="mono">AdminComplianceController</span> 只有一个只读接口，需扩展。
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var titles = {
+    activity: ['营销活动', '运营中心 / 营销活动'],
+    placement: ['资源位运营', '运营中心 / 资源位运营'],
+    search: ['搜索运营', '运营中心 / 搜索运营'],
+    private: ['私域引流', '运营中心 / 私域引流'],
+    audit: ['审核中心', '运营中心 / 审核中心']
+  };
+
+  var subs = document.querySelectorAll('.side a.sub');
+  var pages = document.querySelectorAll('.pg');
+
+  function go(key) {
+    for (var i = 0; i < subs.length; i++) {
+      subs[i].classList.toggle('on', subs[i].getAttribute('data-pg') === key);
+    }
+    for (var j = 0; j < pages.length; j++) {
+      pages[j].classList.toggle('on', pages[j].id === 'pg-' + key);
+    }
+    if (titles[key]) {
+      document.getElementById('ttl').textContent = titles[key][0];
+      document.getElementById('crumb').textContent = titles[key][1];
+    }
+  }
+
+  for (var i = 0; i < subs.length; i++) {
+    subs[i].style.cursor = 'pointer';
+    subs[i].addEventListener('click', function () {
+      go(this.getAttribute('data-pg'));
+    });
+  }
+
+  var seg = document.querySelectorAll('#auditSeg b');
+  var boxes = document.querySelectorAll('.qbox');
+  for (var k = 0; k < seg.length; k++) {
+    seg[k].addEventListener('click', function () {
+      for (var m = 0; m < seg.length; m++) seg[m].classList.remove('on');
+      this.classList.add('on');
+      var q = this.getAttribute('data-q');
+      for (var n = 0; n < boxes.length; n++) {
+        boxes[n].style.display = boxes[n].getAttribute('data-q') === q ? '' : 'none';
+      }
+    });
+  }
+
+  var sws = document.querySelectorAll('.sw');
+  for (var p = 0; p < sws.length; p++) {
+    sws[p].addEventListener('click', function () { this.classList.toggle('on'); });
+  }
+
+  go('activity');
+})();
+</script>
+</body>
+</html>
