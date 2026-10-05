@@ -30,6 +30,8 @@
               <div style="flex:1;min-width:0">
                 <b>{{ t.whoName || '用户' }}</b>
                 <span v-if="t.planName" class="tag t-live" style="margin-left:6px">{{ t.planName }}</span>
+                <span v-if="t.source" class="tag" style="margin-left:6px">{{ sourceLabel(t.source) }}</span>
+                <span v-if="t.unread" class="tag t-pending" style="margin-left:4px">未回复</span>
                 <span class="tag" :class="t.status === 'open' ? 't-pending' : 't-draft'" style="margin-left:4px">
                   {{ t.status === 'open' ? '待回复' : '已完成' }}
                 </span>
@@ -47,6 +49,7 @@
             </div>
             <div v-else style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
               <button v-if="t.status === 'open'" type="button" class="btn sm primary" @click="startReply(t)">回复</button>
+              <button type="button" class="btn sm" @click="openDetail(t)">查看往来</button>
               <button
                 type="button"
                 class="btn sm"
@@ -102,6 +105,27 @@
         <button type="button" class="btn primary" style="align-self:flex-start" :disabled="svcSaving" @click="saveSvc">保存设置</button>
       </section>
     </div>
+
+    <!-- 完整往来消息 -->
+    <el-drawer v-model="detailVisible" title="会话往来" size="420px" :destroy-on-close="true">
+      <div v-if="detailTicket" class="detail-head">
+        <b>{{ detailTicket.whoName || '用户' }}</b>
+        <span class="faint">{{ detailTicket.phone || '未留手机号' }}</span>
+      </div>
+      <div v-loading="detailLoading" class="detail-body">
+        <el-empty v-if="!detailLoading && !detailMessages.length" description="没有消息记录" />
+        <div
+          v-for="m in detailMessages"
+          :key="m.id"
+          class="bubble"
+          :class="m.sender === 'admin' ? 'bubble--admin' : 'bubble--user'"
+        >
+          <div class="bubble__who">{{ m.sender === 'admin' ? '客服' : m.sender === 'system' ? '系统' : '用户' }}</div>
+          <div class="bubble__text">{{ m.content }}</div>
+          <div class="bubble__time">{{ shortDate(m.createTime) }}</div>
+        </div>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -111,13 +135,46 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { get, put } from '@/api/request'
 import {
   listSupportTickets,
+  listSupportTicketMessages,
   replySupportTicket,
   updateSupportTicketStatus,
   listFeedback,
   replyFeedback,
   type SupportTicket,
+  type SupportMessage,
   type FeedbackItem,
 } from '@/api/memberOps'
+
+const detailVisible = ref(false)
+const detailLoading = ref(false)
+const detailTicket = ref<SupportTicket | null>(null)
+const detailMessages = ref<SupportMessage[]>([])
+
+function sourceLabel(source: string) {
+  const map: Record<string, string> = {
+    chat: '在线咨询',
+    feedback: '意见反馈',
+    order: '订单咨询',
+    manual: '后台建单',
+  }
+  return map[source] || source
+}
+
+async function openDetail(t: SupportTicket) {
+  detailTicket.value = t
+  detailMessages.value = []
+  detailVisible.value = true
+  detailLoading.value = true
+  try {
+    const res: any = await listSupportTicketMessages(t.id)
+    const d = res?.data ?? res
+    detailMessages.value = Array.isArray(d) ? d : d?.records || []
+  } catch (e: any) {
+    ElMessage.error(e?.message || '消息记录加载失败')
+  } finally {
+    detailLoading.value = false
+  }
+}
 
 const loading = ref(false)
 const statusFilter = ref('open')
@@ -226,15 +283,19 @@ async function loadSvc() {
 async function saveSvc() {
   svcSaving.value = true
   try {
+    // phone / wecom / desc / rule 是 community_config 的字段名（真相源）。
+    // 同时带上 servicePhone/wecomUrl 等别名，让后端归一逻辑与旧读取方都拿到同一份值。
     await put('/api/v1/admin/community/config', {
       phone: svc.phone,
       wecom: svc.wecom,
       desc: svc.desc,
       rule: svc.rule,
       servicePhone: svc.phone,
+      service_phone: svc.phone,
       wecomUrl: svc.wecom,
       onlineDesc: svc.desc,
       groupRule: svc.rule,
+      onlineServiceHint: svc.desc,
     })
     ElMessage.success('已保存')
   } catch (e: any) {
@@ -253,3 +314,54 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style lang="scss" scoped>
+.detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line2, #eef0f4);
+  margin-bottom: 14px;
+}
+
+.detail-body {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bubble {
+  max-width: 82%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.bubble--user {
+  align-self: flex-start;
+  background: #f4f5f7;
+  color: #1f2430;
+}
+
+.bubble--admin {
+  align-self: flex-end;
+  background: #eaf3ff;
+  color: #1f2430;
+}
+
+.bubble__who {
+  font-size: 11px;
+  color: #8a8f9c;
+  margin-bottom: 4px;
+}
+
+.bubble__time {
+  font-size: 11px;
+  color: #a3a8b4;
+  margin-top: 4px;
+}
+</style>

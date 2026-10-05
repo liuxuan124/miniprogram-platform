@@ -1,4 +1,4 @@
-const { get, post } = require('../utils/request')
+const { get, post, put } = require('../utils/request')
 
 function listNotices() {
   return get('/api/v1/mp/notices')
@@ -16,9 +16,19 @@ function markAllRead() {
   return post('/api/v1/mp/notices/read-all', {}, { showError: false })
 }
 
+function getPreference() {
+  return get('/api/v1/mp/notices/preference')
+}
+
+function savePreference(pref) {
+  return put('/api/v1/mp/notices/preference', pref || {})
+}
+
 module.exports = {
   listNotices,
   unreadCount,
   markRead,
   markAllRead,
+  getPreference,
+  savePreference,
 }

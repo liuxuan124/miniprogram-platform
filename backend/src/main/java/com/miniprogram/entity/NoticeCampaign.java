@@ -11,25 +11,27 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("mp_support_ticket")
-public class SupportTicket implements Serializable {
+@TableName("mp_notice_campaign")
+public class NoticeCampaign implements Serializable {
     private static final long serialVersionUID = 1L;
+
     @TableId(type = IdType.AUTO)
     private Long id;
-    private Long userId;
-    private String whoName;
-    private String lastText;
+    private String title;
+    private String content;
+    private String scene;
+    private String link;
+    private String audience;
+    private Long segmentId;
+    private Integer targetCount;
+    private Integer sentCount;
+    private Integer readCount;
     private String status;
-    /** chat=端上在线咨询 / feedback=反馈同步 / order=订单咨询 / manual=后台手工建单 */
-    private String source;
-    private Long orderId;
-    /** 1=用户侧还有未读消息（后台回复后置 0） */
-    private Integer unread;
-    private String lastReply;
+    private Long createdBy;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @TableField("create_time")
     private LocalDateTime createTime;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @TableField("update_time")
-    private LocalDateTime updateTime;
+    @TableField("sent_time")
+    private LocalDateTime sentTime;
 }

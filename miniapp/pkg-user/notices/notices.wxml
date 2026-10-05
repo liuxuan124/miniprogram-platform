@@ -26,5 +26,10 @@
     </view>
   </block>
   <empty-state wx:elif="{{!loading}}" title="暂无消息" desc="支付开通、星球回复、会员提醒会出现在这里" />
+
+  <view class="pref-entry" wx:if="{{list.length}}" bindtap="goSettings">
+    <text>不想收某些通知？去设置里按类型关闭</text>
+    <text class="pref-entry__ar">›</text>
+  </view>
 </view>
 <login-sheet id="global-login-sheet" />

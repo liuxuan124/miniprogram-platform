@@ -59,4 +59,8 @@ Page({
     try { await noticeService.markAllRead() } catch (_) {}
     this._load()
   },
+
+  goSettings() {
+    wx.navigateTo({ url: '/pkg-user/settings/settings' })
+  },
 })

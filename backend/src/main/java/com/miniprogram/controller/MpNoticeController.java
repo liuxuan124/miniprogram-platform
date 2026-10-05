@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -43,6 +43,19 @@ public class MpNoticeController {
     @Operation(summary = "全部已读")
     public R<Void> markAllRead() {
         userNoticeService.markAllRead(SecurityUtils.getCurrentUserId());
+        return R.ok(null);
+    }
+
+    @GetMapping("/preference")
+    @Operation(summary = "我的通知偏好")
+    public R<Map<String, Object>> preference() {
+        return R.ok(new LinkedHashMap<>(userNoticeService.getUserPreference(SecurityUtils.getRequiredCurrentUserId())));
+    }
+
+    @PutMapping("/preference")
+    @Operation(summary = "保存我的通知偏好")
+    public R<Void> savePreference(@RequestBody Map<String, Boolean> body) {
+        userNoticeService.saveUserPreference(SecurityUtils.getRequiredCurrentUserId(), body);
         return R.ok(null);
     }
 }
