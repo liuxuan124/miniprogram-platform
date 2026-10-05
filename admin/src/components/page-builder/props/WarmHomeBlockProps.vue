@@ -85,7 +85,19 @@
       </el-form-item>
 
       <el-divider content-position="left">金刚区入口</el-divider>
-      <p class="ds-hint">写入首页全局配置，问候区会实时读取。建议 5 个，最多 8 个。</p>
+      <!--
+        🔴 2026-10-06 来源标识：让运营一眼知道现在编辑的是哪一份数据。
+        原来面板空白但画布有 8 个，就是因为面板没告诉他「画布那些读的是全局配置」。
+        现在直接写明：当前生效 = 全局首页配置 / 组件自定义 / 未配置。
+      -->
+      <div class="nav-source">
+        <span class="nav-source__label">当前生效</span>
+        <span class="nav-source__value" :class="`is-${navSourceKind}`">{{ navSourceLabel }}</span>
+        <span v-if="navSyncPending" class="nav-source__sync">同步中…</span>
+      </div>
+      <p class="ds-hint">
+        改动即时更新画布并自动同步到小程序端，无需再点保存。建议 5 个，最多 8 个。
+      </p>
       <div class="nav-list">
         <SubItemList
           :items="navs"
@@ -202,7 +214,12 @@
       </div>
       <div class="nav-actions">
         <el-button size="small" :disabled="navs.length >= 8" @click="addNav">+ 入口</el-button>
-        <el-button type="primary" size="small" :loading="navSaving" @click="saveNavs">保存到首页配置</el-button>
+        <!--
+          🔴 「保存到首页配置」按钮已移除（2026-10-06）：
+          它要求运营改完必须记得点，否则画布与真机都停在旧值 ——
+          这是「配了没生效」的主要来源。现在 commitNavs 即时 emit + 节流写全局。
+        -->
+        <span v-if="navs.length >= 8" class="nav-actions__tip">已达上限 8 个</span>
       </div>
 
       <el-alert title="连续阅读天数、头像、昵称来自当前登录用户，不能在这里填写。" type="info" :closable="false" show-icon style="margin-top: 12px" />
@@ -620,7 +637,7 @@
 
 import SubItemList from '../SubItemList.vue'
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowRight, Delete, Link } from '@element-plus/icons-vue'
 import { getConfigsSilent, updateConfigs } from '@/api/system'
@@ -635,6 +652,8 @@ import ColumnPickerModal from '../ColumnPickerModal.vue'
 import { COLUMN_SORT_OPTIONS, COLUMN_CONFIG_DEFAULTS } from '../columnConfig'
 import BrandAuthorPickerModal, { type PickedAuthor } from '../BrandAuthorPickerModal.vue'
 import { listAuthors, authorHomePath, type AuthorRecord, type AuthorAggregateItem } from '@/api/author'
+// 🔴 与画布 DslWarmBlock 用**同一个 Symbol**，保证面板与画布读同一份预览视图
+import { WARM_PREVIEW_VIEW_KEY } from '@/composables/useWarmHomePreview'
 
 /** 小程序端作者聚合列表接口（与后端 MpAuthorController 的 GET /api/v1/mp/authors 对齐） */
 const MpAuthorListApi = '/api/v1/mp/authors'
@@ -682,13 +701,7 @@ export type WarmAuthorItem = {
   key?: string
 }
 
-const DEFAULT_NAVS: WarmNavItem[] = [
-  { key: 'list', icon: '📚', label: '长文', url: '/pkg-content/content-list/content-list' },
-  { key: 'column', icon: '🎧', label: '专栏课', url: '/pkg-content/product-list/product-list?type=column' },
-  { key: 'planet', icon: '🪐', label: '星球', url: '/pages/planet/planet', tab: true },
-  { key: 'shop', icon: '🛍', label: '商城', url: '/pages/shop/shop', tab: true },
-  { key: 'resources', icon: '🗂', label: '资料库', url: '/pkg-content/resources/resources' },
-]
+
 
 const { props: data, type } = defineProps<{ props: Record<string, any>; type?: string }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
@@ -759,6 +772,14 @@ function onColumnIdsConfirm(ids: number[]) {
   })
 }
 
+/**
+ * 画布正在用的那份预览视图（provide/inject 同一实例）。
+ * 🔴 必须与 DslWarmBlock 拿的是**同一个 Symbol key**，
+ * 否则就是「面板读一份、画布读另一份」的老问题。
+ * 取不到时回落 null —— navs 会退到组件 props，不影响编辑。
+ */
+const warmView = inject<any>(WARM_PREVIEW_VIEW_KEY as any, null)
+
 const navDraft = ref<WarmNavItem[]>([])
 const navSaving = ref(false)
 const navHydrated = ref(false)
@@ -781,10 +802,48 @@ const feedStatsMode = computed(() => {
   return remoteFeedStatsMode.value
 })
 
-const navs = computed(() => {
+/**
+ * 🔴🔴 2026-10-06 修「已有 8 个入口但面板空白、无法编辑」
+ *
+ * 根因不是渲染坏了，是**面板与画布读的不是同一份数据**：
+ *   · 画布 DslWarmBlock 读 warmView（= 全局 warm_home_config.navs，
+ *     再由 mergeGreetFromBlocks 用组件 props.navs 覆盖）→ 能显示 8 个
+ *   · 面板原来只读组件 props.navs → 组件没配就是空数组 → 走空态分支
+ *   两者之间靠「保存到首页配置」按钮手动同步 → 平时永远不同步。
+ *
+ * 现在口径与 `mergeGreetFromBlocks` **完全一致**（组件 props 优先，
+ * 为空回落全局配置），并用 inject 拿画布正在用的那份 warmView，
+ * 保证「面板看到的 = 画布看到的 = 真机看到的」。
+ *
+ * ⚠️ 两者都为空时**保持空列表**，不回落假数据 ——
+ * 凭空写 5 条 DEFAULT_NAVS 进组件会被真机渲染出来，属于污染数据。
+ */
+const navs = computed<WarmNavItem[]>(() => {
   if (navDraft.value.length) return navDraft.value
-  if (Array.isArray(data.navs) && data.navs.length) return data.navs as WarmNavItem[]
-  return DEFAULT_NAVS
+  if (Array.isArray(data.navs) && data.navs.length) {
+    return data.navs.map((n: any, i: number) => normalizeNav(n, i))
+  }
+  // 回落画布同一数据源（全局 warm_home_config）
+  const fromView = warmView.value?.navs
+  if (Array.isArray(fromView) && fromView.length) {
+    return fromView.map((n: any, i: number) => normalizeNav(n, i))
+  }
+  return []
+})
+
+/** 当前生效来源：让运营一眼知道改的是哪一份（组件自定义 / 全局配置 / 未配置） */
+const navSourceKind = computed(() => {
+  if (navDraft.value.length) return 'block'
+  if (Array.isArray(data.navs) && data.navs.length) return 'block'
+  if (Array.isArray(warmView.value?.navs) && warmView.value!.navs!.length) return 'global'
+  return 'none'
+})
+
+const navSourceLabel = computed(() => {
+  if (navDraft.value.length) return '组件自定义'
+  if (Array.isArray(data.navs) && data.navs.length) return '组件自定义'
+  if (Array.isArray(warmView.value?.navs) && warmView.value!.navs!.length) return '全局首页配置'
+  return '未配置'
 })
 
 /** 金刚区图标：支持素材库图片或 emoji 二选一 */
@@ -1213,9 +1272,54 @@ function normalizeNav(n: any, i: number): WarmNavItem {
   }
 }
 
+/**
+ * 🔴 2026-10-06 改即时双向绑定。
+ *
+ * 原来必须点「保存到首页配置」才写全局 —— 改完画布不动、真机不动，
+ * 运营会以为「配了没生效」。现在：
+ *   1. 立刻 emit update → 画布即时变，且进撤销历史（emit 走 store 的 commitHistory）
+ *   2. 节流 600ms 异步写回 warm_home_config → 真机下次打开生效
+ *
+ * ⚠️ **节流是必需的**：拖拽排序 / 连续输入会高频触发，
+ * 不节流会打爆接口（且真机端与画布的最终态可能取到中间值）。
+ * ⚠️ **写全局失败不阻塞编辑**：真机同步是「稍后生效」，面板/画布已即时更新，
+ * 失败只提示一次即可，不能回滚用户的编辑。
+ */
+/** 节流定时器；null = 当前没有待同步任务 */
+let navSyncTimer: ReturnType<typeof setTimeout> | null = null
+/** 是否正在同步到小程序端（模板用来显示「同步中…」） */
+const navSyncPending = ref(false)
+
+function scheduleNavSync(list: WarmNavItem[]) {
+  if (navSyncTimer) clearTimeout(navSyncTimer)
+  navSyncTimer = setTimeout(async () => {
+    navSyncTimer = null
+    try {
+      const payload = list.map((n) => ({ ...n }))
+      const { hit, cfg } = await loadWarmHomeHit()
+      cfg.navs = payload
+      await updateConfigs([{
+        configKey: 'warm_home_config',
+        configValue: JSON.stringify(cfg),
+        configGroup: hit?.configGroup || hit?.config_group || 'miniapp',
+        description: hit?.description || '暖阁首页配置',
+      }])
+      navSyncPending.value = false
+    } catch (e: any) {
+      navSyncPending.value = false
+      // 🔴 只提示一次，不回滚：面板与画布已是新态，真机下次打开会重新拉
+      ElMessage.warning(e?.message || '已改到画布，但同步到小程序端失败，请稍后重试')
+    }
+  }, 600)
+}
+
 function commitNavs(next: WarmNavItem[]) {
   navDraft.value = next.map((n, i) => normalizeNav(n, i))
+  // 1) 即时更新画布（并派发撤销历史）
   emit('update', { navs: navDraft.value.map((n) => ({ ...n })) })
+  // 2) 节流写回全局配置（真机生效）
+  navSyncPending.value = true
+  scheduleNavSync(navDraft.value)
 }
 
 function patchNav(index: number, patch: Partial<WarmNavItem>) {
@@ -1276,37 +1380,18 @@ async function hydrateNavs() {
     if (remote.length) {
       navDraft.value = remote.map((n, i) => normalizeNav(n, i))
       emit('update', { navs: navDraft.value.map((n) => ({ ...n })) })
-    } else {
-      navDraft.value = DEFAULT_NAVS.map((n, i) => normalizeNav(n, i))
     }
+    // 🔴 2026-10-06：这里**不再**回落 DEFAULT_NAVS。
+    // 原来往 navDraft 塞 5 条假数据，会随下次 commit 一起写进组件 props，
+    // 真机上就出现「我没配过的入口」—— 凭空造数据属于污染。
+    // 现在：两者都空就保持空列表，面板给明确空态与「从全局导入」入口。
   } catch {
-    navDraft.value = DEFAULT_NAVS.map((n, i) => normalizeNav(n, i))
+    // 拉取失败保持空，不猜
   } finally {
     navHydrated.value = true
   }
 }
 
-async function saveNavs() {
-  navSaving.value = true
-  try {
-    const list = navs.value.map((n, i) => normalizeNav(n, i)).filter((n) => n.label || n.url)
-    emit('update', { navs: list.map((n) => ({ ...n })) })
-    const { hit, cfg } = await loadWarmHomeHit()
-    cfg.navs = list
-    await updateConfigs([{
-      configKey: 'warm_home_config',
-      configValue: JSON.stringify(cfg),
-      configGroup: hit?.configGroup || hit?.config_group || 'miniapp',
-      description: hit?.description || '暖阁首页配置',
-    }])
-    navDraft.value = list
-    ElMessage.success('快捷入口已写入首页配置')
-  } catch (e: any) {
-    ElMessage.error(e?.message || '保存失败')
-  } finally {
-    navSaving.value = false
-  }
-}
 
 async function onFeedStatsMode(v: string) {
   const mode = v === 'manual' ? 'manual' : 'auto'
@@ -1331,6 +1416,13 @@ watch(() => data.navs, (v) => {
   if (!navHydrated.value) return
   if (Array.isArray(v) && v.length) {
     navDraft.value = v.map((n: any, i: number) => normalizeNav(n, i))
+  }
+})
+
+onBeforeUnmount(() => {
+  if (navSyncTimer) {
+    clearTimeout(navSyncTimer)
+    navSyncTimer = null
   }
 })
 
@@ -1798,4 +1890,64 @@ onMounted(() => {
   gap: 8px;
   margin-top: 10px;
 }
+
+/* ---------------- 金刚区：来源标识 + 按钮区（2026-10-06） ---------------- */
+.nav-source {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+}
+
+.nav-source__label {
+  color: #a89c8d;
+  font-size: 11px;
+}
+
+.nav-source__value {
+  padding: 1px 7px;
+  font-size: 11px;
+  line-height: 1.6;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+/* 组件自定义 = 主色（可编辑的本组件级配置） */
+.nav-source__value.is-block {
+  color: var(--el-color-primary, #c08e6e);
+  background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 10%, #fff);
+  border-color: color-mix(in srgb, var(--el-color-primary, #c08e6e) 40%, #e8e2d9);
+}
+
+/* 全局配置 = 中性灰（提示这份改动会写到全局，影响所有首页） */
+.nav-source__value.is-global {
+  color: #64748b;
+  background: #f1f5f9;
+  border-color: #dfe5ec;
+}
+
+.nav-source__value.is-none {
+  color: #a89c8d;
+  background: #faf8f5;
+  border-color: #ece5db;
+}
+
+.nav-source__sync {
+  color: #a89c8d;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.nav-actions__tip {
+  color: #a89c8d;
+  font-size: 11px;
+}
+
 </style>

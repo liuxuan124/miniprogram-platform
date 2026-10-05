@@ -30,12 +30,15 @@
           :class="[`hot-news-item--${layout}`, { 'is-clickable': previewMode }]"
           @click.stop="onItemClick(item)"
         >
-          <template v-if="layout === 'number'">
-            <span class="hot-news-num">{{ index + 1 }}</span>
-            <div class="hot-news-item__title">{{ item.title || '文章标题' }}</div>
-          </template>
-          <template v-else-if="layout === 'star'">
-            <span class="hot-news-star">★</span>
+          <!--
+            前缀图标（2026-10-06）：由 `prefix_icon` 决定，不再写死 ★。
+            🔴 与旧 `layout` 的关系：layout 决定**卡片形态**（星标/卡片/序号整体样式），
+            prefix_icon 只改**每条前面的标记**，两者是不同维度；
+            所以 layout 仍为 star/number 时也读 prefix —— 运营想「卡片形态但用序号标记」能达成。
+          -->
+          <template v-if="layout !== 'card'">
+            <span v-if="prefixIcon === 'number'" class="hot-news-num">{{ index + 1 }}</span>
+            <span v-else-if="prefixIcon !== 'none'" class="hot-news-star" :class="`is-${prefixIcon}`">{{ prefixGlyph }}</span>
             <div class="hot-news-item__title">{{ item.title || '文章标题' }}</div>
           </template>
           <template v-else>
@@ -137,6 +140,11 @@ import { ElMessage } from 'element-plus'
 import type { ComponentInstance } from '@/types/page'
 import { resolvePreviewLinkAction, runPreviewLinkAction } from '@/utils/preview-link'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
+import {
+  applyEditorialOverrides,
+  normalizeHotNews,
+  HOT_NEWS_PREFIX_ICONS,
+} from '../hotNews/hotNewsSchema'
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
 
@@ -212,10 +220,20 @@ const itemGap = computed(() => {
   const n = Number(props.component.props?.item_gap)
   return Number.isFinite(n) ? clamp(n, 0, 32) : 10
 })
-const limit = computed(() => {
-  const n = Number(props.component.props?.limit)
-  return Number.isFinite(n) ? clamp(n, 1, 20) : 3
-})
+/**
+ * 🔴 limit / 前缀 / 形态 / 配色 / 干预一律走 hotNewsSchema 的归一化 ——
+ * 面板与渲染器共用同一份默认值与夹紧规则。
+ * 之前两边各写一套（面板 `Math.min(20, Math.max(1, ...))`、渲染器 `clamp(n,1,20)`），
+ * 下限不一致（1 vs 3）—— 面板配 1 条、画布按 1 条、但 Schema 回落 3，三处对不上。
+ */
+const hn = computed(() => normalizeHotNews(props.component.props))
+const limit = computed(() => hn.value.limit)
+
+/** 前缀图标与字形（从 Schema 取，避免面板与画布两处各写一份映射） */
+const prefixIcon = computed(() => hn.value.prefixIcon)
+const prefixGlyph = computed(
+  () => HOT_NEWS_PREFIX_ICONS.find((x) => x.value === hn.value.prefixIcon)?.label ?? '★',
+)
 
 const titleBoxStyle = computed(() => ({
   width: 'max-content',
@@ -253,7 +271,12 @@ const dateParts = computed(() => {
 })
 
 const displayItems = computed(() => {
-  const normalize = (list: any[]) => list.slice(0, limit.value).map((item: any, index: number) => {
+  // 🔴 干预顺序：排除 → 置顶 → 截断。与面板预览共用 applyEditorialOverrides，
+  // 保证「面板里看到什么，画布就是什么」。
+  const normalize = (list: any[]) =>
+    applyEditorialOverrides(list, hn.value.pinnedIds, hn.value.excludedIds)
+      .slice(0, limit.value)
+      .map((item: any, index: number) => {
     const id = item.id ?? item.contentId ?? item.content_id
     const link = String(item.link_url || item.linkUrl || '').trim()
       || (id != null && !String(id).startsWith('hot_')
@@ -588,4 +611,21 @@ function onItemClick(item: { id?: string | number; title?: string; meta?: string
   -webkit-box-orient: vertical;
   color: #3a3631;
 }
+
+/* ---------------- 前缀图标变体（2026-10-06） ----------------
+   🔴 火苗/圆点用 font-family 兜底而不是图片或 emoji 字体：
+   emoji 在不同系统/微信内核下渲染差异极大（有的变彩色、有的缺字），
+   符号类字符走 text presentation（加 U+FE0E）稳定得多。 */
+.hot-news-star.is-dot {
+  font-size: 10px;
+  color: currentColor;
+  opacity: 0.65;
+}
+.hot-news-star.is-fire {
+  font-size: 12px;
+  /* 不换 font-family —— 让它走 Apple Color / Segoe UI Emoji 的彩色字形，
+     多数端上「🔥」本身就是彩色火苗，比单色字符好看 */
+}
+.hot-news-star.is-none { display: none; }
+
 </style>

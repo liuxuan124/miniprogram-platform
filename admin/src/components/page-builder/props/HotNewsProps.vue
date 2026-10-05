@@ -11,123 +11,239 @@
     <el-tabs v-model="tab" class="hn-tabs" stretch>
       <!-- ==================== 内容 ==================== -->
       <el-tab-pane label="内容" name="content">
-        <el-form label-width="80px" size="small">
-          <el-form-item label="组件备注">
-            <span class="hn-note">顶部大促快讯条 · 单条带序号的资讯列表</span>
-          </el-form-item>
-
-          <el-divider content-position="left">标题与扩展</el-divider>
-
-          <el-form-item label="标题文案">
-            <el-input
+        <div class="hn-pane">
+          <!-- ==================== 标题与头部 ==================== -->
+          <StyleFoldGroup v-model:open="headOpen" title="标题与头部" :summary="headSummary">
+            <CompactTextRow
+              label="标题文案"
               :model-value="data.title || ''"
-              maxlength="20"
-              show-word-limit
               placeholder="今日跨境头条"
-              @input="(v: string) => emit('update', { title: v })"
+              :maxlength="20"
+              @update:model-value="(v: string) => emit('update', { title: v })"
             />
-          </el-form-item>
 
-          <el-form-item label="日期模式">
-            <BuilderSegmented
-              :model-value="dateMode"
-              :options="DATE_OPTIONS"
-              block
-              aria-label="日期模式"
-              @update:model-value="(v) => emit('update', { date_mode: v })"
-            />
-          </el-form-item>
-          <!-- 条件联动：仅「指定日期」展开选择器 -->
-          <el-form-item v-if="dateMode === 'fixed'" label="指定日期">
-            <el-date-picker
-              :model-value="data.header_date || ''"
-              type="date"
-              value-format="YYYY-MM-DD"
-              placeholder="选择日期"
-              style="width: 100%"
-              @change="(v: string | null) => emit('update', { header_date: v || '' })"
-            />
-          </el-form-item>
-          <el-form-item v-else-if="dateMode === 'today'" label="日期">
-            <span class="hn-hint">显示今天的日期与星期，随访问日自动变化</span>
-          </el-form-item>
-
-          <el-form-item label="纯文字标题">
-            <el-switch
-              :model-value="!!data.header_plain"
-              @change="(v: boolean) => emit('update', { header_plain: v })"
-            />
-            <FieldHint text="开启后标题在卡片内以普通文字展示，无渐变胶囊。关闭则用下方「标题样式」里的渐变配色。" />
-          </el-form-item>
-
-          <el-form-item label="查看更多">
-            <el-switch
-              :model-value="showMore"
-              @change="(v: boolean) => emit('update', { show_more: v })"
-            />
-            <FieldHint text="关闭后画布右上角的「查看更多」入口消失，相关的文案、链接与按钮配色一并失效。" />
-          </el-form-item>
-          <!-- 条件联动：showMore=false 时收起文案 + 链接 -->
-          <template v-if="showMore">
-            <el-form-item label="更多文案">
-              <el-input
-                :model-value="data.more_text || '查看更多 >'"
-                maxlength="10"
-                placeholder="全部 ›"
-                @input="(v: string) => emit('update', { more_text: v })"
+            <div class="hn-row">
+              <span class="hn-row__lab">
+                日期模式
+                <FieldHint text="「今天」= 显示访问当天的日期与星期；「指定日期」= 固定某一天；「不显示」= 整块隐藏。" placement="top" :show-after="200" />
+              </span>
+              <BuilderSegmented
+                :model-value="dateMode"
+                :options="DATE_OPTIONS"
+                block
+                aria-label="日期模式"
+                @update:model-value="(v) => emit('update', { date_mode: v })"
               />
-            </el-form-item>
-            <el-form-item label="跳转目标">
-              <!-- LinkPickerField 用 linkType/linkUrl 双 prop（见其 defineProps） -->
-              <LinkPickerField
-                :link-type="data.more_link_type || 'page'"
-                :link-url="data.more_link || DEFAULT_MORE_LINK"
-                @update:link-type="(v: string) => emit('update', { more_link_type: v })"
-                @update:link-url="(v: string) => emit('update', { more_link: v })"
+            </div>
+
+            <!-- 条件联动：仅「指定日期」展开选择器 -->
+            <div v-if="dateMode === 'fixed'" class="hn-row hn-row--stack">
+              <span class="hn-row__lab">指定日期</span>
+              <el-date-picker
+                :model-value="data.header_date || ''"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="选择日期"
+                size="small"
+                style="width: 100%"
+                @change="(v: string | null) => emit('update', { header_date: v || '' })"
               />
-            </el-form-item>
-          </template>
+            </div>
 
-          <el-divider content-position="left">数据筛选</el-divider>
+            <div class="hn-row">
+              <span class="hn-row__lab">
+                纯文字标题
+                <FieldHint text="开启后去掉标题的背景色块，以纯文字排版展示（日期与星期仍保留）。关闭则用下方「标题配色」的胶囊样式。" placement="top" :show-after="200" />
+              </span>
+              <el-switch
+                :model-value="!!data.header_plain"
+                @change="(v: boolean) => emit('update', { header_plain: v })"
+              />
+            </div>
 
-          <el-form-item label="内容分类">
-            <el-select
-              :model-value="queryParams.category_id ?? queryParams.categoryId ?? ''"
-              clearable
-              filterable
-              placeholder="全部分类"
-              style="width: 100%"
-              @change="(v: string | number) => patchQuery({ category_id: v || undefined, categoryId: v || undefined })"
-            >
-              <el-option label="全部分类" value="" />
-              <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="发布日期">
-            <el-date-picker
-              :model-value="queryParams.publish_date || ''"
-              type="date"
-              value-format="YYYY-MM-DD"
-              clearable
-              placeholder="不限日期"
-              style="width: 100%"
-              @change="(v: string | null) => patchQuery({ publish_date: v || undefined })"
+            <!-- 条件联动：纯文字时配色失效 -->
+            <template v-if="!data.header_plain">
+              <div class="hn-row">
+                <span class="hn-row__lab">
+                  标题配色
+                  <FieldHint text="「跟随主色」用页面品牌色（线上现状）；「自定义」可单独指定背景与文字色。" placement="top" :show-after="200" />
+                </span>
+                <BuilderSegmented
+                  :model-value="hn.badgeColorMode"
+                  :options="BADGE_COLOR_OPTIONS"
+                  block
+                  aria-label="标题配色"
+                  @update:model-value="(v: string | number) => emit('update', { badge_color_mode: String(v) })"
+                />
+              </div>
+              <div v-if="hn.badgeColorMode === 'custom'" class="hn-row hn-row--stack">
+                <span class="hn-row__lab">背景 / 文字</span>
+                <div class="hn-color-pair">
+                  <ColorFieldRow
+                    field="badge_bg"
+                    :value="hn.badgeBg"
+                    :fallback="DEFAULT_BADGE_BG"
+                    @update="(v) => emit('update', { field: v.field, value: v.value ?? DEFAULT_BADGE_BG })"
+                  />
+                  <ColorFieldRow
+                    field="badge_text"
+                    :value="hn.badgeText"
+                    :fallback="DEFAULT_BADGE_TEXT"
+                    @update="(v) => emit('update', { field: v.field, value: v.value ?? DEFAULT_BADGE_TEXT })"
+                  />
+                </div>
+              </div>
+            </template>
+            <p v-else class="hn-note-line">「纯文字标题」已开启，标题配色暂不生效</p>
+          </StyleFoldGroup>
+
+          <!-- ==================== 数据筛选 ==================== -->
+          <StyleFoldGroup v-model:open="filterOpen" title="数据筛选" :summary="filterSummary">
+            <!-- 🔴 本轮补上的关键入口：limit 渲染器早已支持，只是面板从没给过输入框 -->
+            <CompactSliderRow
+              label="展示条数"
+              hint="首屏展示的文章篇数。3 条最紧凑，10 条以上建议搭配「垂直滚动」形态。"
+              :model-value="hn.limit"
+              :min="HOT_NEWS_LIMIT_MIN"
+              :max="HOT_NEWS_LIMIT_MAX"
+              :step="1"
+              unit="篇"
+              @update:model-value="(v: number) => emit('update', { limit: v })"
             />
-          </el-form-item>
-          <el-form-item label="排序方式">
-            <el-select :model-value="sortBy" style="width: 100%" @change="onSortByChange">
-              <el-option label="最热（浏览量）" value="popular" />
-              <el-option label="最新发布" value="newest" />
-              <el-option label="推荐优先" value="recommended" />
-            </el-select>
-            <FieldHint text="支持自定义排序规则；未指定时按全站实时热度（浏览量）排序。" />
-          </el-form-item>
 
-          <div class="hn-preview">
+            <div class="hn-row hn-row--stack">
+              <span class="hn-row__lab">内容分类</span>
+              <el-select
+                :model-value="queryParams.category_id ?? queryParams.categoryId ?? ''"
+                clearable
+                filterable
+                placeholder="全部分类"
+                size="small"
+                style="width: 100%"
+                @change="(v: string | number) => patchQuery({ category_id: v || undefined, categoryId: v || undefined })"
+              >
+                <el-option label="全部分类" value="" />
+                <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </div>
+
+            <div class="hn-row hn-row--stack">
+              <span class="hn-row__lab">发布日期</span>
+              <el-date-picker
+                :model-value="queryParams.publish_date || ''"
+                type="date"
+                value-format="YYYY-MM-DD"
+                clearable
+                placeholder="不限日期"
+                size="small"
+                style="width: 100%"
+                @change="(v: string | null) => patchQuery({ publish_date: v || undefined })"
+              />
+            </div>
+
+            <div class="hn-row hn-row--stack">
+              <span class="hn-row__lab">
+                排序方式
+                <FieldHint text="未指定时按全站实时热度（浏览量）排序。" placement="top" :show-after="200" />
+              </span>
+              <el-select
+                :model-value="sortBy"
+                size="small"
+                style="width: 100%"
+                @change="onSortByChange"
+              >
+                <el-option label="最热（浏览量）" value="popular" />
+                <el-option label="最新发布" value="newest" />
+                <el-option label="推荐优先" value="recommended" />
+              </el-select>
+            </div>
+
+            <div class="hn-row">
+              <span class="hn-row__lab">
+                查看更多
+                <FieldHint text="关闭后画布上的「查看更多」入口消失，相关的文案、链接与按钮配色一并失效。" placement="top" :show-after="200" />
+              </span>
+              <el-switch
+                :model-value="showMore"
+                @change="(v: boolean) => emit('update', { show_more: v })"
+              />
+            </div>
+
+            <!-- 条件联动：showMore=true 时才配链接 -->
+            <template v-if="showMore">
+              <div class="hn-row hn-row--stack">
+                <span class="hn-row__lab">更多文案</span>
+                <el-input
+                  :model-value="data.more_text || '查看更多 >'"
+                  maxlength="10"
+                  size="small"
+                  placeholder="全部 ›"
+                  @input="(v: string) => emit('update', { more_text: v })"
+                />
+              </div>
+              <div class="hn-row hn-row--stack">
+                <span class="hn-row__lab">
+                  跳转目标
+                  <FieldHint text="可跳到已发布页面、内容分类，或手填小程序路径 / 外链。" placement="top" :show-after="200" />
+                </span>
+                <LinkPickerField
+                  :link-type="data.more_link_type || 'page'"
+                  :link-url="data.more_link || DEFAULT_MORE_LINK"
+                  @update:link-type="(v: string) => emit('update', { more_link_type: v })"
+                  @update:link-url="(v: string) => emit('update', { more_link: v })"
+                />
+              </div>
+            </template>
+          </StyleFoldGroup>
+
+          <!-- ==================== 列表形态 ==================== -->
+          <StyleFoldGroup v-model:open="displayOpen" title="列表形态" :summary="displaySummary">
+            <div class="hn-row">
+              <span class="hn-row__lab">
+                展示形态
+                <FieldHint text="「紧凑单列」静态平铺（线上现状）；「垂直滚动」单行无缝轮播，适合大促期强调。" placement="top" :show-after="200" />
+              </span>
+              <BuilderSegmented
+                :model-value="hn.layout"
+                :options="LAYOUT_OPTIONS"
+                block
+                aria-label="展示形态"
+                @update:model-value="(v: string | number) => emit('update', { scroll_layout: String(v) })"
+              />
+            </div>
+
+            <CompactSliderRow
+              v-if="hn.layout === 'ticker'"
+              label="滚动间隔"
+              hint="每条停留时长。太快看不清、太慢会像卡住。"
+              :model-value="hn.tickerInterval"
+              :min="TICKER_INTERVAL_MIN"
+              :max="TICKER_INTERVAL_MAX"
+              :step="500"
+              unit="ms"
+              @update:model-value="(v: number) => emit('update', { ticker_interval: v })"
+            />
+
+            <div class="hn-row">
+              <span class="hn-row__lab">
+                前缀图标
+                <FieldHint text="每条文章前面的标记。线上现状是五角星。" placement="top" :show-after="200" />
+              </span>
+              <BuilderSegmented
+                :model-value="hn.prefixIcon"
+                :options="PREFIX_OPTIONS"
+                block
+                aria-label="前缀图标"
+                @update:model-value="(v: string | number) => emit('update', { prefix_icon: String(v) })"
+              />
+            </div>
+          </StyleFoldGroup>
+
+          <!-- ==================== 展示哪些内容（运营干预） ==================== -->
+          <StyleFoldGroup v-model:open="previewOpen" title="展示哪些内容" :summary="previewSummary">
             <div class="hn-preview__head">
-              <span>展示哪些内容</span>
               <span class="hn-preview__count">
-                {{ liveLoading ? '读取中…' : `${liveItems.length} 篇` }}
+                {{ liveLoading ? '读取中…' : `将展示 ${effectiveItems.length} / ${liveItems.length} 篇` }}
               </span>
               <button
                 type="button"
@@ -139,24 +255,55 @@
                 <el-icon :size="12"><Refresh /></el-icon>
               </button>
             </div>
-            <div v-if="liveItems.length" class="hn-preview__list">
-              <!--
-                预览条数与画布严格一致（取 limit），原来硬编码 slice(0,3)
-                → limit 配 4 时画布显示 4 条、面板只列 3 条，运营以为少了一条。
-              -->
-              <div v-for="item in liveItems.slice(0, previewLimit)" :key="item.id || item.title" class="hn-chip">
-                <span class="hn-chip__idx">{{ liveItems.indexOf(item) + 1 }}</span>
-                <span class="hn-chip__title">{{ item.title }}</span>
+
+            <p class="hn-preview__tip">
+              点行内图标可<strong>置顶</strong>或<strong>隐藏</strong>某篇；被隐藏的会由下一篇自动补位
+            </p>
+
+            <div v-if="effectiveItems.length" class="hn-cards">
+              <div
+                v-for="(item, i) in effectiveItems"
+                :key="item.id || item.title"
+                class="hn-card"
+                :class="{ 'is-pinned': isPinned(item), 'is-excluded': isExcluded(item) }"
+              >
+                <span class="hn-card__idx">{{ i + 1 }}</span>
+                <span class="hn-card__title">{{ item.title }}</span>
+                <span v-if="item.views != null" class="hn-card__meta">{{ formatViews(item.views) }} 阅读</span>
+                <span class="hn-card__acts">
+                  <button
+                    type="button"
+                    class="hn-card__act"
+                    :class="{ 'is-on': isPinned(item) }"
+                    :title="isPinned(item) ? '取消置顶' : '置顶到第一位'"
+                    :aria-label="isPinned(item) ? '取消置顶' : '置顶'"
+                    @click="togglePin(item)"
+                  >
+                    <el-icon :size="12"><Top /></el-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="hn-card__act"
+                    :class="{ 'is-on': isExcluded(item) }"
+                    :title="isExcluded(item) ? '取消隐藏' : '隐藏这一篇'"
+                    :aria-label="isExcluded(item) ? '取消隐藏' : '隐藏'"
+                    @click="toggleExclude(item)"
+                  >
+                    <el-icon :size="12"><Hide /></el-icon>
+                  </button>
+                </span>
               </div>
             </div>
+
             <div v-else-if="!liveLoading" class="hn-preview__empty">
               当前筛选下没有已发布内容，试试放宽分类或日期
             </div>
-            <div v-if="liveItems.length > previewLimit" class="hn-preview__more">
-              还有 {{ liveItems.length - previewLimit }} 篇未列出（画布同样只展示前 {{ previewLimit }} 条）
-            </div>
-          </div>
-        </el-form>
+
+            <p v-if="effectiveItems.length < hn.limit" class="hn-preview__more">
+              可展示内容不足 {{ hn.limit }} 篇，剩余位置留空
+            </p>
+          </StyleFoldGroup>
+        </div>
       </el-tab-pane>
 
       <!-- ==================== 样式 ==================== -->
@@ -313,7 +460,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, Top, Hide } from '@element-plus/icons-vue'
 import { getCategoryList } from '@/api/content'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
@@ -322,6 +469,22 @@ import FieldHint from '../FieldHint.vue'
 import LinkPickerField from '../LinkPickerField.vue'
 import ColorFieldRow from './ColorFieldRow.vue'
 import NumSliderRow from './NumSliderRow.vue'
+import CompactSliderRow from '../CompactSliderRow.vue'
+import CompactTextRow from '../CompactTextRow.vue'
+import StyleFoldGroup from '../StyleFoldGroup.vue'
+import {
+  HOT_NEWS_LIMIT_MAX,
+  HOT_NEWS_LIMIT_MIN,
+  HOT_NEWS_BADGE_COLORS,
+  HOT_NEWS_LAYOUTS,
+  HOT_NEWS_PREFIX_ICONS,
+  DEFAULT_BADGE_BG,
+  DEFAULT_BADGE_TEXT,
+  TICKER_INTERVAL_MAX,
+  TICKER_INTERVAL_MIN,
+  applyEditorialOverrides,
+  normalizeHotNews,
+} from '../hotNews/hotNewsSchema'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
@@ -340,14 +503,103 @@ const DATE_OPTIONS: SegOption[] = [
   { value: 'none', label: '不显示' },
 ]
 
-/** 排列方式选项带语义化后缀，运营不必理解 star/card/number */
-const LAYOUT_OPTIONS: SegOption[] = [
+/**
+ * 旧的「列表形态」选项（星标 / 卡片 / 序号）—— 属样式 Tab 的内容渲染方式，
+ * 与新的「展示形态（单列 / 垂直滚动）」是两个维度，**不是同一个东西**。
+ * 🔴 命名必须区分：两处都叫 layout 极易在后续维护里被当成同一个字段改错。
+ */
+const ITEM_LAYOUT_OPTIONS: SegOption[] = [
   { value: 'star', label: '★ 星标' },
   { value: 'card', label: '▤ 卡片' },
   { value: 'number', label: '① 序号' },
 ]
 
 const tab = ref('content')
+
+/* ---------------- 内容 Tab 的折叠态与新能力 ---------------- */
+
+const headOpen = ref(true)
+const filterOpen = ref(false)
+const displayOpen = ref(false)
+const previewOpen = ref(false)
+
+/** 归一化后的新字段（默认值保证老页面零变化，见 hotNewsSchema.ts 顶部说明） */
+const hn = computed(() => normalizeHotNews(data))
+
+const PREFIX_OPTIONS = HOT_NEWS_PREFIX_ICONS.map((x) => ({ value: x.value, label: x.label, title: x.desc }))
+const LAYOUT_OPTIONS = HOT_NEWS_LAYOUTS.map((x) => ({ value: x.value, label: x.label, title: x.desc }))
+const BADGE_COLOR_OPTIONS = HOT_NEWS_BADGE_COLORS.map((x) => ({ value: x.value, label: x.label, title: x.desc }))
+
+/** 应用运营干预（排除 → 置顶）后的实际展示序列 —— 与渲染器共用同一纯函数 */
+const effectiveItems = computed(() =>
+  applyEditorialOverrides(liveItems.value as any[], hn.value.pinnedIds, hn.value.excludedIds),
+)
+
+function isPinned(item: any): boolean {
+  return hn.value.pinnedIds.includes(String(item?.id ?? ''))
+}
+
+function isExcluded(item: any): boolean {
+  return hn.value.excludedIds.includes(String(item?.id ?? ''))
+}
+
+function togglePin(item: any) {
+  const id = String(item?.id ?? '')
+  if (!id) return
+  const cur = hn.value.pinnedIds
+  // 置顶时按「点选先后」排序；再次点击取消。取消后不重排，保持其余相对顺序
+  emit('update', { pinned_ids: cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id] })
+}
+
+function toggleExclude(item: any) {
+  const id = String(item?.id ?? '')
+  if (!id) return
+  const cur = hn.value.excludedIds
+  const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]
+  // 隐藏的同时从置顶里摘掉，避免「置顶了一个看不见的东西」
+  emit('update', {
+    excluded_ids: next,
+    pinned_ids: next.includes(id) ? hn.value.pinnedIds.filter((x) => x !== id) : hn.value.pinnedIds,
+  })
+}
+
+/** 阅读量紧凑显示：12345 → 1.2万 */
+function formatViews(n: unknown): string {
+  const v = Number(n)
+  if (!Number.isFinite(v) || v <= 0) return '0'
+  if (v < 10000) return String(Math.round(v))
+  return `${(v / 10000).toFixed(1)}万`
+}
+
+const headSummary = computed(() => {
+  const t = String(data.title || '').trim() || '未命名'
+  return data.header_plain ? `${t} · 纯文字` : t
+})
+
+const filterSummary = computed(() => {
+  const parts = [`${hn.value.limit} 篇`]
+  if (sortBy.value !== 'popular') {
+    parts.push(sortBy.value === 'newest' ? '最新' : '推荐')
+  }
+  if (queryParams.value.category_id) parts.push('已选分类')
+  if (!showMore.value) parts.push('无「更多」')
+  return parts.join(' · ')
+})
+
+const displaySummary = computed(() => {
+  const parts = [hn.value.layout === 'ticker' ? '垂直滚动' : '紧凑单列']
+  const p = HOT_NEWS_PREFIX_ICONS.find((x) => x.value === hn.value.prefixIcon)
+  if (p && p.value !== 'none') parts.push(p.label)
+  return parts.join(' · ')
+})
+
+const previewSummary = computed(() => {
+  if (!hn.value.pinnedIds.length && !hn.value.excludedIds.length) return '未干预'
+  const parts: string[] = []
+  if (hn.value.pinnedIds.length) parts.push(`置顶 ${hn.value.pinnedIds.length}`)
+  if (hn.value.excludedIds.length) parts.push(`隐藏 ${hn.value.excludedIds.length}`)
+  return parts.join(' · ')
+})
 const categoryOptions = ref<{ id: number | string; name: string }[]>([])
 
 const feedComponent = computed<ComponentInstance>(() => ({
@@ -575,4 +827,146 @@ onMounted(async () => {
   color: #94a3b8;
   border-top: 1px dashed #e3e8f0;
 }
+
+/* ---------------- 内容 Tab 排版（2026-10-06 重构） ---------------- */
+
+.hn-pane { display: flex; flex-direction: column; }
+
+/* 单行：标签 80px + 控件自适应，与 CompactSliderRow 同一节奏 */
+.hn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 32px;
+}
+
+/* 纵向堆叠：控件较宽的（日期/下拉/链接）用「标签一行 + 控件一行」 */
+.hn-row--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.hn-row__lab {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  width: 80px;
+  min-width: 0;
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hn-row--stack .hn-row__lab { width: auto; }
+
+/* 「X 暂不生效」类提示：只保留这一种独占行用法 */
+.hn-note-line {
+  margin: 0 0 0 80px;
+  color: #a8b3c4;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.hn-color-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ---------------- 展示哪些内容：微卡片 ---------------- */
+
+.hn-preview__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+.hn-preview__count { color: #64748b; font-size: 12px; }
+.hn-preview__refresh {
+  display: grid; place-items: center;
+  width: 20px; height: 20px; padding: 0;
+  color: #94a3b8; background: transparent;
+  border: 1px solid transparent; border-radius: 5px; cursor: pointer;
+}
+.hn-preview__refresh:hover:not(:disabled) { color: #64748b; background: #f1f5f9; border-color: #e2e8f0; }
+.hn-preview__refresh:disabled { opacity: 0.5; cursor: wait; }
+
+.hn-preview__tip {
+  margin: 2px 0 4px;
+  color: #a8b3c4;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.hn-preview__tip strong { color: #64748b; font-weight: 500; }
+
+.hn-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.hn-card {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 26px;
+  padding: 0 4px 0 5px;
+  background: #fbf9f6;
+  border: 1px solid #ece5db;
+  border-radius: 5px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.hn-card:hover { border-color: #d8cbb8; background: #fff; }
+
+/* 置顶：金黄左边条 + 淡黄底；隐藏：整体置灰 + 删除线 */
+.hn-card.is-pinned { border-color: #e8c877; background: #fffbef; }
+.hn-card.is-excluded { opacity: 0.5; }
+.hn-card.is-excluded .hn-card__title { text-decoration: line-through; }
+
+.hn-card__idx {
+  flex: none;
+  display: grid; place-items: center;
+  width: 14px; height: 14px;
+  color: #94a3b8; font-size: 10px;
+  background: #f1f5f9; border-radius: 3px;
+}
+.hn-card.is-pinned .hn-card__idx { color: #b45309; background: #fde68a; }
+
+.hn-card__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #475569;
+  font-size: 11.5px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hn-card__meta {
+  flex: none;
+  color: #a8b3c4;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 操作按钮：常态隐藏，hover 行才浮现 —— 减少静态视觉噪音 */
+.hn-card__acts { display: flex; align-items: center; gap: 1px; flex: none; }
+.hn-card__act {
+  display: grid; place-items: center;
+  width: 20px; height: 20px; padding: 0;
+  color: #c2c9d4; background: transparent;
+  border: 0; border-radius: 4px; cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.hn-card:hover .hn-card__act { color: #94a3b8; }
+.hn-card__act:hover { color: #64748b; background: #f1f5f9; }
+.hn-card__act.is-on { color: #b45309; background: #fef3c7; }
+
 </style>

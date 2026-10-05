@@ -72,7 +72,7 @@
         </div>
 
         <div class="article-info">
-          <div v-if="cfg.show_source_tag && item.source && isOverlayCard(index)" class="article-kicker">{{ item.source }}</div>
+          <div v-if="cfg.show_source_tag && item.source && isOverlayCard(index)" class="article-kicker">{{ resolveSourceTag(item).text }}</div>
 
           <!-- 专栏 / 话题胶囊 -->
           <span v-if="cfg.show_column_tag && item.columnName" class="article-column">{{ item.columnName }}</span>
@@ -96,7 +96,12 @@
               <span class="article-author__name">{{ item.authorName }}</span>
               <span v-if="item.authorVerified" class="article-author__v" title="认证主理人">V</span>
             </span>
-            <span v-if="cfg.show_source_tag && item.source && !isOverlayCard(index)">{{ item.source }}</span>
+            <span
+              v-if="cfg.show_source_tag && item.source && !isOverlayCard(index)"
+              class="article-source"
+              :class="{ 'is-tagged': resolveSourceTag(item).colored }"
+              :style="sourceTagStyle(item)"
+            >{{ resolveSourceTag(item).text }}</span>
             <span v-if="cfg.show_date && item.meta">{{ item.meta }}</span>
             <!-- 互动热度：按勾选的维度展示 -->
             <span v-if="cfg.show_metrics.length" class="article-metrics">
@@ -147,10 +152,23 @@ import {
   normalizeArticleFeedProps,
   hidesCoverInLayout,
   FEED_BADGE_TEXT,
+  SOURCE_COLOR_PRESETS,
   type ArticleFeedProps,
   type FeedBadgeKey,
   type FeedMetricKey,
 } from '../articleFeed/articleFeedSchema'
+
+/**
+ * 固定渠道的默认文案。
+ * ⚠️ 与端上 `miniapp/utils/dsl-source-tag.js` 的 DEFAULTS **逐字一致** ——
+ * 两端不一致会表现为「预览显示公众号、真机显示订阅号」。
+ */
+const SOURCE_DEFAULTS: Record<string, string> = {
+  wechat_mp: '公众号',
+  xiaohongshu: '小红书',
+  qa: '问答',
+  original: '原创',
+}
 
 type ArticleItem = {
   id?: number | string
@@ -233,6 +251,57 @@ function visibleBadges(item: ArticleItem): string[] {
 
 function badgeText(key: string): string {
   return FEED_BADGE_TEXT[key as FeedBadgeKey] || key
+}
+
+/**
+ * 🔴 来源标签解析（2026-10-06）—— 与端上 `miniapp/utils/dsl-source-tag.js` **同规则**。
+ *
+ * 修复前的问题：面板能配「渠道 → 展示文案 / 配色」，但画布渲染的是文章原始的
+ * `item.source`，**后台配的文案与配色在预览里完全看不到**；端上更是算了
+ * `sourceTagLabel` 却从未在 wxml 里用过。
+ *
+ * ⚠️ 两端口径必须一致（文案优先级 + 配色色值），否则会表现为
+ * 「预览是一种颜色、真机是另一种」，运营会以为配色没生效而反复重配。
+ */
+function resolveSourceTag(item: any) {
+  const raw = String(item?.source || '').trim()
+  const key = resolveSourceKey(item)
+  const map = (cfg.value.source_tag_map || []) as Array<{ key: string; label: string; color?: string }>
+  const row = key ? map.find((r) => String(r.key || '').trim() === key) : undefined
+  const labels = (cfg.value.source_labels || {}) as Record<string, string>
+  const text = String(
+    row?.label || (key ? labels[key] : '') || (key ? SOURCE_DEFAULTS[key] : '') || raw || '',
+  ).trim()
+  if (!text) return { text: '', bg: '', fg: '', colored: false }
+  const preset = row?.color ? SOURCE_COLOR_PRESETS[row.color] : undefined
+  return {
+    text,
+    bg: preset?.bg || '',
+    fg: preset?.fg || '',
+    colored: Boolean(preset),
+  }
+}
+
+/** 文章 → 渠道 key：显式 tag 优先 → 中文兜底 → 空串（无法归类不算错） */
+function resolveSourceKey(item: any): string {
+  const tag = String(item?.sourceTag || item?.source_tag || '').toLowerCase()
+  if (tag === 'wechat_mp' || tag === 'wechat') return 'wechat_mp'
+  if (tag === 'xiaohongshu' || tag === 'xhs') return 'xiaohongshu'
+  if (tag === 'qa') return 'qa'
+  if (tag === 'original') return 'original'
+  const src = String(item?.source || '')
+  if (src.indexOf('微信') >= 0 || src.indexOf('公众号') >= 0) return 'wechat_mp'
+  if (src.indexOf('小红书') >= 0) return 'xiaohongshu'
+  if (src.indexOf('问答') >= 0) return 'qa'
+  if (src === '原创' || src === '手动录入') return 'original'
+  return ''
+}
+
+/** 未配色时返回 null，让原有 .article-meta-row 继承色生效 */
+function sourceTagStyle(item: any): Record<string, string> | null {
+  const t = resolveSourceTag(item)
+  if (!t.colored) return null
+  return { background: t.bg, color: t.fg }
 }
 
 function hasMetric(key: FeedMetricKey): boolean {
@@ -1095,4 +1164,20 @@ function onTabsWheel(event: WheelEvent) {
   background: currentColor;
   opacity: 0.8;
 }
+
+/* ---------------- 来源标签配色态（2026-10-06） ----------------
+   🔴 配色态才加胶囊形状；未配色时保持原有的 meta 行灰字，
+   避免「所有文章都套底色」把信息层级压平。
+   ⚠️ 圆角与内距不可省：不给的话底色是一块方的色块直接贴在文字后面，像脏点。 */
+.article-source.is-tagged {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.6;
+  /* 🔴 与端上同口径：标签文字不折行。
+     「小红书」折成两行会把整行高度从 20px 撑到 37px，整张卡片排版被带歪。 */
+  white-space: nowrap;
+}
+
 </style>

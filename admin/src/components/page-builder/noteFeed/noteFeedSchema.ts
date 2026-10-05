@@ -51,6 +51,41 @@ export interface NoteFeedProps {
   tab_active_style: NoteTabActive
   tab_active_color: string
 
+  /* ---- 两层导航的容器与底色（2026-10-06 新增，此前全部硬编码） ----
+     ⚠️ 这两层此前在渲染器里写死，运营只能改「选中高亮形态 / 激活主色」，
+     底色、分割线、未选文字色、间距全都不给配 ——
+     截图里「包住导航的白底 + 红色胶囊」换主题时只能改代码。 */
+  /** 导航区整体底色（包住两层）；空 = 透明 */
+  nav_bg: string
+  /** 导航区圆角 px；0 = 直角 */
+  nav_radius: number
+  /** 首层（全部/笔记/长文/好物）底色；空 = 透明 */
+  tab_bar_bg: string
+  /** 首层底部分割线颜色；空字符串 = 不画分割线 */
+  tab_divider_color: string
+  /** 首层未选中文字色 */
+  tab_text_color: string
+  /** 首层字间距 px */
+  tab_gap: number
+
+  /* ---- 第二层（分类胶囊）样式 ---- */
+  /** 分类胶囊字号px */
+  sub_tab_font_size: number
+  /** 分类胶囊未选中文字色 */
+  sub_tab_text_color: string
+  /** 分类胶囊底色（未选中） */
+  sub_tab_bg: string
+  /** 分类胶囊选中底色 */
+  sub_tab_active_bg: string
+  /** 分类胶囊选中文字色 */
+  sub_tab_active_color: string
+  /** 分类胶囊圆角 px；999 = 全圆胶囊 */
+  sub_tab_radius: number
+  /** 分类胶囊水平内边距 px */
+  sub_tab_padding_x: number
+  /** 分类胶囊之间的间距 px */
+  sub_tab_gap: number
+
   /* ---- 数据 ---- */
   page_size: number
   filter_platform_codes: string[]
@@ -99,6 +134,15 @@ export const PAGE_SIZE = { min: 6, max: 30, step: 1, fallback: 10 } as const
 export const TITLE_SIZE = { min: 13, max: 18, step: 1, fallback: 15 } as const
 
 export const TAB_FONT_SIZE = { min: 14, max: 18, step: 1, fallback: 16 } as const
+
+/* ---- 两层导航的区间（2026-10-06 新增，与面板滑块共用） ----
+   fallback 一律取**渲染器原硬编码值**，保证老页面零视觉变化。 */
+export const NAV_RADIUS = { min: 0, max: 40, step: 1, fallback: 0 } as const
+export const TAB_GAP = { min: 0, max: 48, step: 1, fallback: 18 } as const
+export const SUB_TAB_FONT = { min: 10, max: 20, step: 1, fallback: 12 } as const
+export const SUB_TAB_RADIUS = { min: 0, max: 999, step: 1, fallback: 999 } as const
+export const SUB_TAB_PADDING = { min: 4, max: 32, step: 1, fallback: 14 } as const
+export const SUB_TAB_GAP_RANGE = { min: 0, max: 32, step: 1, fallback: 8 } as const
 export const ITEM_GAP = { min: 4, max: 16, step: 1, fallback: 10 } as const
 export const ITEM_RADIUS = { min: 0, max: 16, step: 1, fallback: 12 } as const
 export const PAGE_GUTTER = { min: 0, max: 16, step: 1, fallback: 0 } as const
@@ -177,6 +221,22 @@ export const NOTE_FEED_DEFAULT_PROPS: NoteFeedProps = {
   tab_font_size: TAB_FONT_SIZE.fallback,
   tab_active_style: 'bar',
   tab_active_color: '',
+
+  /* 两层导航：默认值 = 渲染器此前的硬编码值，逐字对齐，老页面零视觉变化 */
+  nav_bg: '',
+  nav_radius: NAV_RADIUS.fallback,
+  tab_bar_bg: '',
+  tab_divider_color: '#f0f1f5',
+  tab_text_color: '#727a8c',
+  tab_gap: TAB_GAP.fallback,
+  sub_tab_font_size: SUB_TAB_FONT.fallback,
+  sub_tab_text_color: '#727a8c',
+  sub_tab_bg: '#f5f6f9',
+  sub_tab_active_bg: '#ffedf1',
+  sub_tab_active_color: '#ec2f55',
+  sub_tab_radius: SUB_TAB_RADIUS.fallback,
+  sub_tab_padding_x: SUB_TAB_PADDING.fallback,
+  sub_tab_gap: SUB_TAB_GAP_RANGE.fallback,
 
   page_size: PAGE_SIZE.fallback,
   filter_platform_codes: [],
@@ -340,6 +400,25 @@ export function normalizeNoteFeedProps(raw: Record<string, any> | undefined | nu
     tab_font_size: clampNoteNumber(p.tab_font_size, TAB_FONT_SIZE.min, TAB_FONT_SIZE.max, 1, TAB_FONT_SIZE.fallback),
     tab_active_style: pickEnum(p.tab_active_style, ['bar', 'fill', 'ink'] as const, 'bar'),
     tab_active_color: String(p.tab_active_color || ''),
+
+    // ---- 两层导航（2026-10-06）----
+    // ⚠️ 归一化口径与原硬编码逐字一致：空串/缺省要回落到「原值」而不是空，
+    // 否则老页面加载后导航会突然变透明 / 分割线消失 —— 那是视觉突变。
+    nav_bg: String(p.nav_bg || ''),
+    nav_radius: clampNoteNumber(p.nav_radius, NAV_RADIUS.min, NAV_RADIUS.max, 1, NAV_RADIUS.fallback),
+    tab_bar_bg: String(p.tab_bar_bg || ''),
+    // 空串 = 不画分割线（运营可主动关掉），缺省才回落到 #f0f1f5
+    tab_divider_color: p.tab_divider_color === undefined ? '#f0f1f5' : String(p.tab_divider_color || ''),
+    tab_text_color: String(p.tab_text_color || '#727a8c'),
+    tab_gap: clampNoteNumber(p.tab_gap, TAB_GAP.min, TAB_GAP.max, 1, TAB_GAP.fallback),
+    sub_tab_font_size: clampNoteNumber(p.sub_tab_font_size, SUB_TAB_FONT.min, SUB_TAB_FONT.max, 1, SUB_TAB_FONT.fallback),
+    sub_tab_text_color: String(p.sub_tab_text_color || '#727a8c'),
+    sub_tab_bg: String(p.sub_tab_bg || '#f5f6f9'),
+    sub_tab_active_bg: String(p.sub_tab_active_bg || '#ffedf1'),
+    sub_tab_active_color: String(p.sub_tab_active_color || '#ec2f55'),
+    sub_tab_radius: clampNoteNumber(p.sub_tab_radius, SUB_TAB_RADIUS.min, SUB_TAB_RADIUS.max, 1, SUB_TAB_RADIUS.fallback),
+    sub_tab_padding_x: clampNoteNumber(p.sub_tab_padding_x, SUB_TAB_PADDING.min, SUB_TAB_PADDING.max, 1, SUB_TAB_PADDING.fallback),
+    sub_tab_gap: clampNoteNumber(p.sub_tab_gap, SUB_TAB_GAP_RANGE.min, SUB_TAB_GAP_RANGE.max, 1, SUB_TAB_GAP_RANGE.fallback),
 
     page_size: clampNoteNumber(p.page_size, PAGE_SIZE.min, PAGE_SIZE.max, 1, PAGE_SIZE.fallback),
     filter_platform_codes: Array.isArray(p.filter_platform_codes)

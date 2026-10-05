@@ -6,7 +6,10 @@
         <template #title>
           <span class="plp-grp-title">
             组件标题
-            <span class="plp-grp-badge">{{ cfg.show_title ? (cfg.title || '未命名') : '已隐藏' }}</span>
+            <!-- 🔴 2026-10-06 修正：原来写死「未命名」，
+                 改成动态读主标题输入值，为空才回落「未命名」——
+                 运营改了标题却看不到折叠标题变化，会以为没保存。 -->
+            <span class="plp-grp-badge">{{ titleBadge }}</span>
           </span>
         </template>
 
@@ -232,59 +235,64 @@
             <span v-else-if="!liveLoading" class="plp-match__sub">当前条件下无商品，画布显示空态</span>
           </div>
 
-          <div class="plp-field">
-            <label class="plp-label plp-label--sub">商品分类</label>
-            <el-select
-              :model-value="queryParams.category_id ?? ''"
-              clearable
-              filterable
-              placeholder="全部分类"
-              style="width: 100%"
-              @change="(v: string | number) => patchQuery({ category_id: v || undefined })"
-            >
-              <el-option label="全部分类" value="" />
-              <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
-            </el-select>
-          </div>
+          <!-- 🔴 2026-10-06 改 2 列栅格：原来四个下拉各占一整行（标签一行 + 控件一行），
+               四项就吃掉 ~280px。现在标签在上、控件在下、左右两列并排 → 高度砍半。
+               ⚠️ el-select 必须显式 width:100%，否则在 grid 里会被内容宽撑破。 -->
+          <div class="plp-grid2">
+            <div class="plp-grid2__cell">
+              <span class="plp-grid2__label">商品分类</span>
+              <el-select
+                :model-value="queryParams.category_id ?? ''"
+                clearable
+                filterable
+                placeholder="全部分类"
+                style="width: 100%"
+                @change="(v: string | number) => patchQuery({ category_id: v || undefined })"
+              >
+                <el-option label="全部分类" value="" />
+                <el-option v-for="item in categoryOptions" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </div>
 
-          <div class="plp-field">
-            <label class="plp-label plp-label--sub">商品类型</label>
-            <el-select
-              :model-value="queryParams.product_type || ''"
-              clearable
-              placeholder="全部类型"
-              style="width: 100%"
-              @change="(v: string) => patchQuery({ product_type: v || undefined })"
-            >
-              <el-option label="全部类型" value="" />
-              <el-option label="实物商品" value="physical" />
-              <el-option label="虚拟商品" value="digital" />
-              <el-option label="服务商品" value="service" />
-            </el-select>
-          </div>
+            <div class="plp-grid2__cell">
+              <span class="plp-grid2__label">商品类型</span>
+              <el-select
+                :model-value="queryParams.product_type || ''"
+                clearable
+                placeholder="全部类型"
+                style="width: 100%"
+                @change="(v: string) => patchQuery({ product_type: v || undefined })"
+              >
+                <el-option label="全部类型" value="" />
+                <el-option label="实物商品" value="physical" />
+                <el-option label="虚拟商品" value="digital" />
+                <el-option label="服务商品" value="service" />
+              </el-select>
+            </div>
 
-          <div class="plp-field">
-            <label class="plp-label plp-label--sub">排序方式</label>
-            <el-select :model-value="sortBy" style="width: 100%" @change="onSortByChange">
-              <el-option label="按销量排序" value="sales" />
-              <el-option label="最新上架" value="newest" />
-              <el-option label="价格从低到高" value="price_asc" />
-              <el-option label="价格从高到低" value="price_desc" />
-            </el-select>
-          </div>
+            <div class="plp-grid2__cell">
+              <span class="plp-grid2__label">排序方式</span>
+              <el-select :model-value="sortBy" style="width: 100%" @change="onSortByChange">
+                <el-option label="按销量排序" value="sales" />
+                <el-option label="最新上架" value="newest" />
+                <el-option label="价格从低到高" value="price_asc" />
+                <el-option label="价格从高到低" value="price_desc" />
+              </el-select>
+            </div>
 
-          <div class="plp-field">
-            <label class="plp-label plp-label--sub">价格区间</label>
-            <el-select :model-value="priceFilter" style="width: 100%" @change="onPriceFilterChange">
-              <el-option
-                v-for="opt in PRICE_FILTER_OPTIONS"
-                :key="opt.value"
-                :label="opt.label"
-                :value="opt.value"
-              />
-            </el-select>
-            <div class="plp-hint">{{ priceFilterHint }}</div>
+            <div class="plp-grid2__cell">
+              <span class="plp-grid2__label">价格区间</span>
+              <el-select :model-value="priceFilter" style="width: 100%" @change="onPriceFilterChange">
+                <el-option
+                  v-for="opt in PRICE_FILTER_OPTIONS"
+                  :key="opt.value"
+                  :label="opt.label"
+                  :value="opt.value"
+                />
+              </el-select>
+            </div>
           </div>
+          <div class="plp-hint plp-hint--row">{{ priceFilterHint }}</div>
 
           <template v-if="priceFilter === 'custom'">
             <div class="plp-two">
@@ -410,6 +418,7 @@
             :max="LIMIT.max"
             :step="LIMIT.step"
             :fallback="LIMIT.fallback"
+            unit="件"
             @update:model-value="(v: number) => patch({ limit: v })"
           />
         </div>
@@ -424,6 +433,31 @@
             :fallback="PAGE_SIZE_RANGE.fallback"
             @update:model-value="(v: number) => patch({ page_size: v })"
           />
+        </div>
+
+        <!-- ============ 空态兜底（2026-10-06 新增） ============ -->
+        <div class="plp-field">
+          <label class="plp-label">
+            无匹配商品时
+            <FieldHint text="筛选条件太严时可能一件都取不到 —— 选「隐藏组件」页面不留空位，选「显示缺省图文」则留一个占位提示防止下方内容塌上来。" />
+          </label>
+          <div class="plp-mode-cards">
+            <button
+              v-for="opt in EMPTY_OPTIONS"
+              :key="opt.value"
+              type="button"
+              class="plp-mode-card"
+              :class="{ 'is-on': cfg.empty_behavior === opt.value }"
+              @click="patch({ empty_behavior: opt.value })"
+            >
+              <span class="plp-mode-card__label">{{ opt.label }}</span>
+              <span class="plp-mode-card__desc">{{ opt.desc }}</span>
+            </button>
+          </div>
+          <!-- 当前无匹配时给即时反馈：运营改完筛选才发现「一件都没有」会以为坏了 -->
+          <p v-if="!liveLoading && liveItems.length === 0 && cfg.pick_mode === 'rule'" class="plp-warn">
+            当前筛选条件下已匹配 0 件 —— 保存后真机将{{ cfg.empty_behavior === 'hide' ? '不渲染该组件' : '显示缺省图文提示' }}。
+          </p>
         </div>
       </el-collapse-item>
     </el-collapse>
@@ -451,6 +485,7 @@ import {
   PRODUCT_BADGE_MODE_OPTIONS,
   PRODUCT_CTA_OPTIONS,
   PRODUCT_DISPLAY_ELEMENTS,
+  PRODUCT_LIST_EMPTY_OPTIONS,
   PRODUCT_LIST_LIMIT,
   PRODUCT_LIST_MANUAL_MAX,
   PRODUCT_LIST_PAGE_SIZE,
@@ -458,6 +493,7 @@ import {
   PRODUCT_PICK_MODE_OPTIONS,
   normalizeProductListProps,
   type DisplayElement,
+  type ProductListEmptyBehavior,
   type PickMode,
   type ProductCta,
   type ProductListProps as ProductConfig,
@@ -473,6 +509,19 @@ const props = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
 
 const DISPLAY_ELEMENTS = PRODUCT_DISPLAY_ELEMENTS
+/** 空态兜底选项（2026-10-06 新增） */
+const EMPTY_OPTIONS = PRODUCT_LIST_EMPTY_OPTIONS
+
+/**
+ * 🔴 折叠标题的动态副标（2026-10-06 修正）。
+ * 原来写死「未命名」—— 运营改了主标题却看不到折叠标题变化，会以为没保存。
+ * 口径：标题开关关 → 「已隐藏」；开 → 主标题值；空 → 「未命名」。
+ */
+const titleBadge = computed(() => {
+  if (!cfg.value.show_title) return '已隐藏'
+  return String(cfg.value.title || '').trim() || '未命名'
+})
+
 const CTA_OPTIONS = PRODUCT_CTA_OPTIONS
 const BADGE_OPTIONS = PRODUCT_BADGE_MODE_OPTIONS
 const PICK_OPTIONS = PRODUCT_PICK_MODE_OPTIONS
@@ -907,6 +956,32 @@ onMounted(async () => {
   border-radius: 7px;
 }
 
+/* 🔴 Checkable Tag 选中态（2026-10-06 修复）
+   原来只给了字号圆角，选中态完全依赖 Element Plus 默认样式 ——
+   而 EP 的 `el-checkbox-tag.is-checked` 背景是它的品牌蓝，
+   与本项目的香云纱主色不搭，截图里看起来就是「选了但不知道选了」。
+   这里显式覆盖为主色实底 + 白字，并补 hover 过渡。 */
+.plp-tag {
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+}
+
+.plp-tag:hover {
+  color: var(--el-color-primary, #c08e6e);
+  border-color: color-mix(in srgb, var(--el-color-primary, #c08e6e) 45%, #e8e2d9);
+}
+
+.plp-tag.is-checked {
+  color: #fff;
+  background-color: var(--el-color-primary, #c08e6e);
+  border-color: var(--el-color-primary, #c08e6e);
+}
+
+.plp-tag.is-checked:hover {
+  color: #fff;
+  background-color: color-mix(in srgb, var(--el-color-primary, #c08e6e) 88%, #000);
+  border-color: color-mix(in srgb, var(--el-color-primary, #c08e6e) 88%, #000);
+}
+
 /* ---------- 模式 ---------- */
 .plp-mode-cards {
   display: flex;
@@ -1201,4 +1276,49 @@ onMounted(async () => {
   font-size: 11px;
   color: #a89c8d;
 }
+
+/* ---------------- 2 列栅格（2026-10-06） ----------------
+   四个筛选下拉由「各占一整行」改为「标签在上 + 控件在下 + 左右并排」，
+   一屏能多看两个字段。
+   ⚠️ 必须 grid 而非 flex —— flex 里 el-select 会各自按内容宽伸缩，长短不齐。 */
+.plp-grid2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 8px;
+}
+
+.plp-grid2__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.plp-grid2__label {
+  color: #a89c8d;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* 栅格里 el-select 的触发器不能撑破格子宽度 */
+.plp-grid2__cell :deep(.el-select) {
+  width: 100%;
+}
+
+/* 栅格外的整行提示（价格区间说明）*/
+.plp-hint--row {
+  padding-left: 1px;
+}
+
+/* ---------------- 空态即时警告（2026-10-06） ---------------- */
+.plp-warn {
+  margin: 6px 0 0;
+  padding: 6px 8px;
+  color: #a2691f;
+  font-size: 11px;
+  line-height: 1.5;
+  background: #fdf6ec;
+  border-radius: 6px;
+}
+
 </style>

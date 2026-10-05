@@ -7,58 +7,97 @@
           <span class="csb__q" :aria-label="`${label} 说明`" role="button" tabindex="0">?</span>
         </el-tooltip>
       </span>
-      <button
-        type="button"
-        class="csb__lock"
-        :class="{ 'is-on': linked }"
-        :title="linked ? '已锁定：四向等比联动，点击解除' : '点击锁定四向等比联动'"
-        :aria-label="linked ? '已锁定四向等比，点击解除' : '点击锁定四向等比联动'"
-        :aria-pressed="linked"
-        @click="$emit('update:linked', !linked)"
-      >
-        <el-icon><component :is="linked ? Lock : Unlock" /></el-icon>
-      </button>
+      <span class="csb__tools">
+        <!-- 锁链：切「统一」态。四向相同时点它 = 直接进统一，省一次展开 -->
+        <button
+          type="button"
+          class="csb__lock"
+          :class="{ 'is-on': linked }"
+          :title="linked ? '已统一：四向同步，改一个即改全部' : '四向统一（改一个即改全部）'"
+          :aria-label="linked ? '已统一四向，点击解除' : '设为四向统一'"
+          :aria-pressed="linked"
+          @click="setLinked(!linked)"
+        >
+          <el-icon><component :is="linked ? Lock : Unlock" /></el-icon>
+        </button>
+        <!-- 展开箭头：切「独立」态。统一态下才需要 -->
+        <button
+          type="button"
+          class="csb__lock"
+          :class="{ 'is-on': !linked }"
+          :title="linked ? '展开四向，分别设置' : '已分别设置，点击收起'"
+          :aria-label="linked ? '展开四向设置' : '收起四向设置'"
+          :aria-pressed="!linked"
+          @click="setLinked(false)"
+        >
+          <el-icon><component :is="linked ? ArrowRight : ArrowDown" /></el-icon>
+        </button>
+      </span>
     </div>
 
-    <div class="csb__grid">
-      <label v-for="side in SIDES" :key="side.key" class="csb__cell">
-        <span class="csb__side">{{ side.label }}</span>
-        <el-input-number
-          class="csb__num"
-          :model-value="valueOf(side.key)"
-          :min="minOf(side.key)"
-          :max="max"
-          size="small"
-          :controls="false"
-          :disabled="disabled"
-          @change="(v: number | undefined) => onInput(side.key, v)"
-        />
-      </label>
+    <!--
+      统一态：一行一个数值，四向同步。省掉 4 个输入框，面板高度直接少 30px。
+      🔴 不用 v-if：保留四向那一行，展开/收起才只是高度变化，
+      不会让下方字段跳位。
+    -->
+    <div class="fold" :class="{ 'is-closed': linked }">
+      <div class="fold__inner">
+        <div class="csb__grid">
+          <label v-for="side in SIDES" :key="side.key" class="csb__cell">
+            <span class="csb__side">{{ side.arrow }}</span>
+            <el-input-number
+              class="csb__num"
+              :model-value="valueOf(side.key)"
+              :min="minOf(side.key)"
+              :max="max"
+              size="small"
+              :controls="false"
+              :disabled="disabled"
+              @change="(v: number | undefined) => onInput(side.key, v)"
+            />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="csb__unify" :class="{ 'is-closed': !linked }">
+      <el-input-number
+        class="csb__unify-num"
+        :model-value="unifiedValue"
+        :min="allowNegative ? -120 : 0"
+        :max="max"
+        size="small"
+        :controls="false"
+        :disabled="disabled"
+        @change="(v: number | undefined) => onUnifiedInput(v)"
+      />
+      <span class="csb__unit">px</span>
+      <span class="csb__unify-tag">四向统一</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Lock, Unlock } from '@element-plus/icons-vue'
+import { Lock, Unlock, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
 
 /**
- * 单行四联间距输入（2026-10-06 样式 Tab 降噪新增）。
+ * 间距输入：统一 / 独立双态（2026-10-06 样式 Tab 降噪新增 → 同日二次增强）。
  *
- * 🔴 为什么不用 2×2 的四宫格：四宫格每个格子带一个「上/下/左/右」文字标签，
- * 单格高度约 32px + 间距 → 整个块要 80px+；而外边距 + 内边距两块就是 160px，
- * 还没开始配就已把面板撑出一屏。
- * 改成**一行四个 56px 数字格**后，一个方向组只占 44px，
- * 上下两组共 88px —— **面板高度直接砍掉一半**。
+ * 🔴 为什么不一直平铺四宫格：四向各一个输入框 = 44px + 标题行，
+ * 外边距 + 内边距两组就是 ~100px，占掉侧栏近三分之一。
+ * 而绝大多数页面**四向就是同一个值**（外边距 0 / 20 这种），
+ * 让运营为「反正都填 20」去点四个框，是纯浪费。
+ * → 默认收起为**一行统一值**，标题右侧两个小按钮切「锁链（统一）/ 箭头（独立）」。
  *
  * 顺序刻意按 **上 右 下 左**（顺时针，与 Figma / CSS margin 速记一致），
- * 比「上 下 左 右」更好读；锁定后以「第一个非零方向」为基准四向等比。
+ * 比「上 下 左 右」更好读；独立态下以「最后编辑的那个方向」为基准。
  */
 const SIDES = [
-  { key: 'top' as const, label: '上' },
-  { key: 'right' as const, label: '右' },
-  { key: 'bottom' as const, label: '下' },
-  { key: 'left' as const, label: '左' },
+  { key: 'top' as const, label: '上', arrow: '↑' },
+  { key: 'right' as const, label: '右', arrow: '→' },
+  { key: 'bottom' as const, label: '下', arrow: '↓' },
+  { key: 'left' as const, label: '左', arrow: '←' },
 ]
 
 export type SpacingSide = (typeof SIDES)[number]['key']
@@ -108,22 +147,48 @@ function minOf(side: SpacingSide): number {
 }
 
 /**
- * 锁定时以「刚被编辑的那个方向」为基准同步四向 —— 不是固定取 top，
- * 否则运营先点左再点上，锁定语义就变成「永远跟左上」而不是「跟最后一次输入」。
+ * 独立态下编辑某一边：只改这一边。
+ * 🔴 **不联动** —— 独立态的语义就是「这四个不一样」，
+ * 若还自动同步四向，切到独立态就毫无意义。
  */
 function onInput(side: SpacingSide, v: number | undefined) {
   const next = Number.isFinite(Number(v)) ? Math.round(Number(v)) : 0
-  const patch: Record<string, number> = { [side]: next }
-  if (props.linked) {
-    SIDES.forEach((it) => {
-      if (it.key !== side) patch[it.key] = next
-    })
-  }
+  emit('update:modelValue', { [side]: next })
+}
+
+/** 统一态下的展示值：取 top（唯一可信的代表值） */
+const unifiedValue = computed(() => valueOf('top'))
+
+/** 统一态改一个数 → 四向全改 */
+function onUnifiedInput(v: number | undefined) {
+  const next = Number.isFinite(Number(v)) ? Math.round(Number(v)) : 0
+  const patch: Record<string, number> = {}
+  SIDES.forEach((it) => {
+    patch[it.key] = next
+  })
   emit('update:modelValue', patch)
 }
 
-const values = computed(() => SIDES.map((it) => valueOf(it.key)))
-void values
+/**
+ * 切换统一 / 独立。
+ * 🔴 从「独立」切回「统一」时**必须把四向抹平**，
+ * 只切 UI 不改值会出现「看着是统一态、实际四向不同」——
+ * 运营改一个数就发现另外三个跳变，比不做这个功能还糟。
+ * 反向（统一 → 独立）不改值：此时四向本来就一致，展开只是为了分别调。
+ */
+function setLinked(next: boolean) {
+  if (next === props.linked) return
+  if (next && !props.linked) {
+    // 独立 → 统一：抹平，以 top 为基准
+    const base = valueOf('top')
+    const patch: Record<string, number> = {}
+    SIDES.forEach((it) => {
+      patch[it.key] = base
+    })
+    emit('update:modelValue', patch)
+  }
+  emit('update:linked', next)
+}
 </script>
 
 <style scoped>
@@ -134,11 +199,18 @@ void values
 .csb__head {
   display: flex;
   align-items: center;
-  /* 🔴 用 inline-flex 而不是 space-between：四联网格是撑满整宽的，
-     space-between 会把锁定键推到面板最右边，离标题 300px 之远，
-     视觉上完全不像一组。改成标题占位 + 锁定键紧跟其后。 */
+  /* 🔴 用 inline-flex 而不是 space-between：右侧两个小按钮要贴着标题，
+     space-between 会把它们推到面板最右边，离标题 300px 远得像另一组。 */
   gap: 4px;
   margin-bottom: 4px;
+}
+
+/* 标题行右侧的工具组：锁链 + 展开箭头 */
+.csb__tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
 }
 
 .csb__title {
@@ -193,6 +265,52 @@ void values
   color: var(--el-color-primary, #c08e6e);
   background: color-mix(in srgb, var(--el-color-primary, #c08e6e) 10%, #fff);
   border-color: color-mix(in srgb, var(--el-color-primary, #c08e6e) 40%, #fff);
+}
+
+/* 统一 / 独立的折叠过渡：max-height 而非 v-if，保留内部实例不闪 */
+.fold,
+.csb__unify {
+  overflow: hidden;
+  max-height: 34px;
+  opacity: 1;
+  transition: max-height 0.2s ease, opacity 0.16s ease;
+}
+.fold.is-closed,
+.csb__unify.is-closed {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 统一态：标题 + 一个数字框 + 单位 + 状态标签，一行搞定 */
+.csb__unify {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 6px;
+  background: #fbf9f6;
+  border: 1px solid #e2d8cc;
+  border-radius: 5px;
+  transition: max-height 0.2s ease, opacity 0.16s ease, border-color 0.15s, background 0.15s;
+}
+.csb__unify:focus-within {
+  background: #fff;
+  border-color: var(--el-color-primary, #c08e6e);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--el-color-primary, #c08e6e) 14%, transparent);
+}
+.csb__unify-num { flex: 1 1 auto; min-width: 0; }
+.csb__unify-tag {
+  flex: none;
+  color: #a8b3c4;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.csb__unit {
+  flex: none;
+  color: #a8b3c4;
+  font-size: 11px;
 }
 
 /* 四联：等宽一行，grid 而非 flex —— flex 里 el-input-number 会各自按内容宽伸缩，长短不齐 */

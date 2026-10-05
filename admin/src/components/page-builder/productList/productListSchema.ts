@@ -33,6 +33,16 @@
 /** 布局模式（新增 scroll 横向滑动） */
 export type ProductListLayout = 'grid' | 'row' | 'waterfall' | 'scroll'
 
+/**
+ * 无匹配商品时的兜底行为（2026-10-06 新增）。
+ * - `hide`：整个组件不渲染（默认）—— 首页位没商品时留个空框比不渲染更难看
+ * - `placeholder`：渲染缺省图文提示，保留版式高度避免页面塌陷
+ *
+ * ⚠️ 默认 `hide` 与改前的实际行为一致（端上无商品时渲染空列表 = 视觉上等于不渲染），
+ * 老页面加载后零视觉变化。
+ */
+export type ProductListEmptyBehavior = 'hide' | 'placeholder'
+
 /** 卡片风格 */
 export type ProductCardStyle = 'shadow' | 'outline' | 'flat'
 
@@ -87,6 +97,9 @@ export interface ProductListProps {
   /** grid 模式列数（2 / 3）；row / waterfall / scroll 忽略 */
   columns: number
 
+  /* 数据：空态兜底（2026-10-06 新增） */
+  empty_behavior: ProductListEmptyBehavior
+
   /* 样式：度量 */
   item_gap: number
   item_border_radius: number
@@ -129,6 +142,16 @@ export const PRODUCT_LIST_LAYOUT_OPTIONS: Array<{
   { value: 'row', label: '横向单列', desc: '一行一个，横向大卡' },
   { value: 'waterfall', label: '双列瀑布流', desc: '两列错落，弱化网格感' },
   { value: 'scroll', label: '横向滑动', desc: '一行放不下时左右滑' },
+]
+
+/** 空态兜底选项（2026-10-06 新增） */
+export const PRODUCT_LIST_EMPTY_OPTIONS: Array<{
+  value: ProductListEmptyBehavior
+  label: string
+  desc: string
+}> = [
+  { value: 'hide', label: '隐藏组件', desc: '整块不渲染，页面不留空位' },
+  { value: 'placeholder', label: '显示缺省图文', desc: '留一个占位提示，防止页面塌陷' },
 ]
 
 export const PRODUCT_LIST_COLUMN_OPTIONS = [
@@ -211,6 +234,7 @@ export const PRODUCT_LIST_DEFAULT_PROPS: ProductListProps = {
 
   layout: 'grid',
   columns: 2,
+  empty_behavior: 'hide',
 
   item_gap: PRODUCT_LIST_GAP.fallback,
   item_border_radius: PRODUCT_LIST_CARD_RADIUS.fallback,
@@ -257,6 +281,15 @@ function clampNumber(value: unknown, min: number, max: number, step = 1, fallbac
  * 另：旧数据常写 `layout: 'grid' + columns: 1`，那是单列宫格 —— 归一化到 row
  * 更符合「横向单列」的语义，但**列数仍按grid 存**，避免老页面突然变形。
  */
+/**
+ * 空态兜底归一。
+ * 🔴 缺省回落 `hide` 而不是 `placeholder` —— 改前端上无商品时渲染空列表，
+ * 视觉上等于不渲染，回落 hide 才能保证老页面零视觉变化。
+ */
+export function normalizeEmptyBehavior(raw: unknown): ProductListEmptyBehavior {
+  return raw === 'placeholder' ? 'placeholder' : 'hide'
+}
+
 export function normalizeProductLayout(rawLayout: unknown, rawColumns: unknown): ProductListLayout {
   const layout = String(rawLayout ?? '').trim()
   if (layout === 'scroll') return 'scroll'
@@ -378,6 +411,7 @@ export function normalizeProductListProps(raw: Record<string, any> | undefined |
     page_size: clampNumber(p.page_size, PRODUCT_LIST_PAGE_SIZE.min, PRODUCT_LIST_PAGE_SIZE.max, PRODUCT_LIST_PAGE_SIZE.step, PRODUCT_LIST_PAGE_SIZE.fallback),
 
     layout,
+    empty_behavior: normalizeEmptyBehavior(p.empty_behavior),
     columns: Number(p.columns) === 3 ? 3 : 2,
 
     // ⚠️ 三个度量字段的缺省值**随布局走**（与旧渲染器一致）：
@@ -509,6 +543,7 @@ export const PRODUCT_LIST_PROPS_SCHEMA = {
     page_size: { type: 'number', minimum: PRODUCT_LIST_PAGE_SIZE.min, maximum: PRODUCT_LIST_PAGE_SIZE.max, default: 10 },
 
     layout: { type: 'string', enum: ['grid', 'row', 'waterfall', 'scroll'], default: 'grid' },
+    empty_behavior: { type: 'string', enum: ['hide', 'placeholder'], default: 'hide' },
     layout_mode: { type: 'string', description: '旧/别名字段' },
     columns: { type: 'number', enum: [2, 3], default: 2 },
 

@@ -7,7 +7,14 @@
     ]"
     :style="containerStyle"
   >
-    <div v-if="showTypeTabs" class="type-tabs" @mousedown.stop @pointerdown.stop @touchstart.stop>
+    <!-- 导航容器：2026-10-06 新增，包住两层导航，承载 nav_bg / nav_radius。
+         ⚠️ 只在「有任一层要显示」时才包，避免空容器占位。 -->
+    <div
+      v-if="showTypeTabs || (showCategoryTabs && categoryTabs.length)"
+      class="note-feed__nav"
+      :style="navWrapStyle"
+    >
+    <div v-if="showTypeTabs" class="type-tabs" :style="typeTabsStyle" @mousedown.stop @pointerdown.stop @touchstart.stop>
       <div class="type-tabs__list" :style="tabListStyle">
         <button
           v-for="(t, i) in typeTabs"
@@ -15,6 +22,7 @@
           type="button"
           class="type-tab"
           :class="{ active: activeType === i }"
+          :style="typeTabStyle"
           @click.stop="activeType = i"
         >
           {{ t.label }}
@@ -26,6 +34,7 @@
     <div
       v-if="showCategoryTabs && categoryTabs.length"
       class="feed-tabs"
+      :style="[feedTabsStyle, subTabActiveVars]"
       @mousedown.stop
       @pointerdown.stop
       @touchstart.stop
@@ -36,10 +45,12 @@
         type="button"
         class="feed-tab"
         :class="{ active: activeTabId === String(tab.id) }"
+        :style="feedTabStyle"
         @click.stop="activeTabId = String(tab.id)"
       >
         {{ tab.name }}
       </button>
+    </div>
     </div>
     <div v-if="showFailState" class="preview-data-empty preview-data-fail">
       {{ failMessage }}
@@ -191,7 +202,76 @@ const titleStyle = computed<Record<string, string>>(() => {
   return style
 })
 /** Tab 字号 */
-const tabListStyle = computed<Record<string, string>>(() => ({ fontSize: `${tabFontSize.value}px` }))
+const tabListStyle = computed<Record<string, string>>(() => ({
+  fontSize: `${tabFontSize.value}px`,
+  // 2026-10-06：首层字间距（原硬编码 gap:18px，现可配）
+  gap: `${cfg.value.tab_gap}px`,
+}))
+
+/* ================================================================
+ * 两层导航样式（2026-10-06 新增，此前全部硬编码）
+ * ================================================================ */
+
+/** 导航区包裹底色 + 圆角。空色不输出 background，避免写成 `background:` 空值。 */
+const navWrapStyle = computed<Record<string, string>>(() => {
+  const c = cfg.value
+  const st: Record<string, string> = {}
+  if (c.nav_bg) st.background = c.nav_bg
+  if (c.nav_radius > 0) st.borderRadius = `${c.nav_radius}px`
+  return st
+})
+
+/**
+ * 首层导航（全部 / 笔记 / 长文 / 好物）。
+ * ⚠️ 分割线：`tab_divider_color` 为空串 = 运营主动关掉，不画线。
+ * 用 borderColor 而非 border —— 写 border 会把 1px 的线补回来，关不掉。
+ */
+const typeTabsStyle = computed<Record<string, string>>(() => {
+  const c = cfg.value
+  const st: Record<string, string> = {}
+  if (c.tab_bar_bg) st.background = c.tab_bar_bg
+  if (c.tab_divider_color) {
+    st.borderBottom = `1px solid ${c.tab_divider_color}`
+  } else {
+    st.borderBottom = '1px solid transparent'
+  }
+  return st
+})
+
+/** 首层未选中文字色（选中色走原有 tab_active_color，两条通道不打架） */
+const typeTabStyle = computed<Record<string, string>>(() => ({
+  color: cfg.value.tab_text_color,
+}))
+
+/** 次层分类胶囊容器：间距（字号/底色等在 .feed-tab 上） */
+const feedTabsStyle = computed<Record<string, string>>(() => ({
+  gap: `${cfg.value.sub_tab_gap}px`,
+}))
+
+/** 次层选中态色（也做成可配；用 CSS 变量下发，避免与内联常态色打架） */
+const subTabActiveVars = computed<Record<string, string>>(() => {
+  const c = cfg.value
+  return {
+    '--nt-active-color': c.sub_tab_active_color,
+    '--nt-active-bg': c.sub_tab_active_bg,
+  }
+})
+
+/**
+ * 次层单个胶囊：底色 / 圆角 / 内边距 / 字号 / 未选中文字色。
+ * ⚠️ 选中态（.active）由 CSS 类负责，这里只给常态 ——
+ * 两处都写会因优先级打架，出现「选了没变色」。
+ */
+const feedTabStyle = computed<Record<string, string>>(() => {
+  const c = cfg.value
+  return {
+    fontSize: `${c.sub_tab_font_size}px`,
+    color: c.sub_tab_text_color,
+    background: c.sub_tab_bg,
+    borderRadius: `${c.sub_tab_radius}px`,
+    padding: `6px ${c.sub_tab_padding_x}px`,
+  }
+})
 const typeTabs = computed(() =>
   (Array.isArray(props.component.props.type_tabs) ? props.component.props.type_tabs : [])
     .map((t: any) => {
@@ -420,16 +500,27 @@ watch(liveItems, (items) => {
   width: 100%;
 }
 
+/* ⚠️ 2026-10-06：以下三处的底色/分割线/字间距/文字色已改为**可配置**
+   （nav_bg / tab_bar_bg / tab_divider_color / tab_gap / tab_text_color），
+   实际值由模板上的内联 style 给出（优先级高于此处 class）。
+   CSS 里保留同值的兜底，作用是：
+     ① 内联 style 缺失时（如 SSR/首帧）视觉不塌；
+     ② 后人读 CSS 时能一眼看到「默认值是多少」。
+   ⚠️ 改默认值时**必须三处同步**（Schema 默认 / 此处 CSS / 面板占位提示），
+   只改一处会出现「面板显示 18、实际 12」这类对不上。 */
 .type-tabs {
   display: flex;
   align-items: center;
   margin-bottom: 10px;
+  /* 兜底：透明底 + #f0f1f5 分割线（内联 style 会覆盖） */
+  background: transparent;
   border-bottom: 1px solid #f0f1f5;
 }
 
 .type-tabs__list {
   display: flex;
   flex: 1;
+  /* 兜底 18px，内联 style 覆盖 */
   gap: 18px;
   overflow-x: auto;
 }
@@ -438,6 +529,7 @@ watch(liveItems, (items) => {
   position: relative;
   flex-shrink: 0;
   padding: 8px 0 10px;
+  /* 兜底未选色 #727a8c，内联 style 覆盖 */
   color: #727a8c;
   font-size: 14px;
   background: none;
@@ -480,8 +572,13 @@ watch(liveItems, (items) => {
   transform: translate(5px, 5px) rotate(45deg);
 }
 
+/* ⚠️ 2026-10-06：次层胶囊的底色/圆角/内边距/字号/未选色已改为可配置
+   （sub_tab_bg / sub_tab_radius / sub_tab_padding_x / sub_tab_font_size /
+     sub_tab_text_color / sub_tab_gap），实际值由模板内联 style 给出。
+   此处保留同值兜底，理由同首层。 */
 .feed-tabs {
   display: flex;
+  /* 兜底 8px，内联 style 覆盖 */
   gap: 8px;
   margin-bottom: 10px;
   overflow-x: auto;
@@ -489,6 +586,7 @@ watch(liveItems, (items) => {
 
 .feed-tab {
   flex-shrink: 0;
+  /* 兜底：padding 6px 14px / 12px / #727a8c / #f5f6f9 / 全圆，内联 style 覆盖 */
   padding: 6px 14px;
   color: #727a8c;
   font-size: 12px;
@@ -498,10 +596,14 @@ watch(liveItems, (items) => {
   cursor: pointer;
 }
 
+/* 选中态：用 CSS 变量下发（由模板 style 注入），不写死色值。
+   ⚠️ 必须 !important：常态色走**内联 style**，内联优先级高于 class，
+   不加的话选中态会被内联常态色盖掉 → 表现为「点了没变化」。
+   变量给默认值，万一变量没注入也能看到原效果。 */
 .feed-tab.active {
-  color: #ec2f55;
+  color: var(--nt-active-color, #ec2f55) !important;
   font-weight: 700;
-  background: #ffedf1;
+  background: var(--nt-active-bg, #ffedf1) !important;
 }
 
 .note-masonry {
@@ -747,4 +849,13 @@ watch(liveItems, (items) => {
 .preview-data-fail {
   color: #e2564a;
 }
+
+/* ---------------- 导航容器（2026-10-06） ----------------
+   只负责承载 nav_bg / nav_radius，本身不做布局。
+   ⚠️ 不用 overflow:hidden —— 胶囊横向滚动条需要溢出可见，
+   否则会把滚动条裁掉（次层分类多时必然出现）。 */
+.note-feed__nav {
+  box-sizing: border-box;
+}
+
 </style>

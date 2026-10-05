@@ -43,6 +43,26 @@ export type FeedBadgeKey =
   | 'original' | 'deep_report' | 'audio' | 'video'
   | 'member_only' | 'free_limited'
 
+/** 来源标签映射表的一行 */
+export interface SourceTagRow {
+  /** 端上取值字段，如 wechat_mp / xiaohongshu / qa / original */
+  key: string
+  /** 面板与端上展示的文案 */
+  label: string
+  /** 预设配色 key（见 SOURCE_COLOR_PRESETS）；不填走端上默认 */
+  color?: string
+}
+
+/** 来源标签预设配色（柔和底 + 深字，B 端侧栏里不刺眼） */
+export const SOURCE_COLOR_PRESETS: Array<{ value: string; label: string; bg: string; fg: string }> = [
+  { value: 'gray', label: '中性灰', bg: '#f1f5f9', fg: '#475569' },
+  { value: 'green', label: '微信绿', bg: '#e7f7ed', fg: '#1a7f4b' },
+  { value: 'orange', label: '暖橙', bg: '#fdf0e6', fg: '#b45309' },
+  { value: 'blue', label: '品牌蓝', bg: '#e8f0fe', fg: '#1a56db' },
+  { value: 'pink', label: '小红书红', bg: '#fdecef', fg: '#c2264a' },
+  { value: 'purple', label: '专栏紫', bg: '#f1ecfd', fg: '#5b3fb8' },
+]
+
 /** 可勾选的状态角标全集（面板按此渲染 checkbox 组） */
 export const FEED_BADGE_OPTIONS: Array<{ key: FeedBadgeKey; label: string; hint: string }> = [
   { key: 'pinned', label: '置顶', hint: '系统状态' },
@@ -104,8 +124,18 @@ export interface ArticleFeedProps {
   /* ---- 加载与分页 ---- */
   load_mode: FeedLoadMode
   page_size: number
-  /** 0 = 不限 */
+  /**
+   * 最大篇数。**0 = 不限**（历史约定，渲染端已按此判定，勿改）。
+   * 🔴 不要用它表达「未设置」—— 面板上「输入 0 显示『篇 不限』」这种歧义
+   * 正是需求方要求解掉的问题。面板改用独立的 `max_unlimited` 勾选框表达「不限」，
+   * 本字段只承载具体数字。
+   */
   max_count: number
+  /**
+   * 是否不限制篇数（2026-10-06 新增，需求「最大条数与『不限』逻辑解耦」）。
+   * 缺省时**从 max_count 推导**（0 → true），所以老页面不需要迁移。
+   */
+  max_unlimited?: boolean
   load_more_text: string
 
   /* ---- 版式 ---- */
@@ -163,6 +193,14 @@ export interface ArticleFeedProps {
   source_tag_position: 'title' | 'meta' | 'cover'
   source_filter: string[]
   source_labels: Record<string, string>
+  /**
+   * 来源标签的动态映射表（2026-10-06 新增，需求「死板写死的输入框升级为动态 Tag 映射表」）。
+   * - 每一项 = 一个渠道：key（端上取值字段）+ label（展示文案）+ color（预设配色 key）
+   * - 缺省时从历史 `source_labels` + 固定四渠道推导 → 老页面零变化
+   * ⚠️ `source_labels` 保留是为了兼容已发布的小程序端（它只认这个字段），
+   * 新增渠道时**两个字段都要写**，否则端上取不到文案。
+   */
+  source_tag_map?: SourceTagRow[]
 }
 
 /* ------------------------------------------------------------------ */
@@ -374,6 +412,42 @@ function toStringArray(value: unknown): string[] {
  * 归一化整个文章流 props。
  * **纯函数**：不改传入对象，返回全新对象。
  */
+/**
+ * 来源标签映射表归一化。
+ * 🔴 老兼容要点：已发布的小程序端**只认 `source_labels`**（key→文案 的扁平字典），
+ * 所以映射表新增/改名渠道时必须**同步写 source_labels**，否则后台看得到、真机不显示。
+ * 这里做双向兜底：
+ *   · 有 map → 把它摊平成 source_labels（保证端上能取到）
+ *   · 无 map → 从 source_labels 的键 + 固定四渠道默认值构造（保证后台能显示）
+ */
+export function normalizeSourceTagMap(
+  raw: unknown,
+  legacyLabels: Record<string, string> | undefined,
+): SourceTagRow[] {
+  const legacy = legacyLabels && typeof legacyLabels === 'object' ? legacyLabels : {}
+  const DEFAULTS: Array<{ key: string; label: string }> = [
+    { key: 'wechat_mp', label: '公众号' },
+    { key: 'xiaohongshu', label: '小红书' },
+    { key: 'qa', label: '问答' },
+    { key: 'original', label: '原创' },
+  ]
+  if (Array.isArray(raw) && raw.length) {
+    return raw
+      .filter((it) => it && String(it.key || '').trim())
+      .map((it) => ({
+        key: String(it.key).trim(),
+        label: String(it.label ?? legacy[String(it.key)] ?? it.key).trim(),
+        color: it.color ? String(it.color) : undefined,
+      }))
+  }
+  // 无 map：用历史文案覆盖默认值，键集合 = 固定四渠道 ∪ 历史键
+  const keys = Array.from(new Set([...DEFAULTS.map((d) => d.key), ...Object.keys(legacy)]))
+  return keys.map((key) => {
+    const d = DEFAULTS.find((x) => x.key === key)
+    return { key, label: String(legacy[key] ?? d?.label ?? key) }
+  })
+}
+
 export function normalizeArticleFeedProps(raw: Record<string, any> | undefined | null): ArticleFeedProps {
   const p = raw && typeof raw === 'object' ? raw : {}
 
@@ -414,6 +488,15 @@ export function normalizeArticleFeedProps(raw: Record<string, any> | undefined |
     load_mode: pickEnum(p.load_mode, ['infinite', 'button', 'pager'] as const, 'infinite'),
     page_size: clampFeedNumber(p.page_size, PAGE_SIZE.min, PAGE_SIZE.max, PAGE_SIZE.step, PAGE_SIZE.fallback),
     max_count: clampFeedNumber(p.max_count, MAX_COUNT.min, MAX_COUNT.max, MAX_COUNT.step, MAX_COUNT.fallback),
+    // 「不限制篇数」与 max_count 保持双向一致：
+    //   · 勾选时 max_count 归 0（沿用渲染端「0 = 不限」的既有判定，不动端上）
+    //   · 未勾选时给一个正整数下限，避免出现「未勾选但 max_count=0」= 意外不限
+    // 来源标签映射表：缺省时从历史 source_labels + 固定四渠道推导 → 老页面零变化
+    source_tag_map: normalizeSourceTagMap(p.source_tag_map, p.source_labels),
+    max_unlimited:
+      typeof p.max_unlimited === 'boolean'
+        ? p.max_unlimited
+        : clampFeedNumber(p.max_count, MAX_COUNT.min, MAX_COUNT.max, MAX_COUNT.step, MAX_COUNT.fallback) === 0,
     load_more_text: String(p.load_more_text || ARTICLE_FEED_DEFAULT_PROPS.load_more_text),
 
     layout,

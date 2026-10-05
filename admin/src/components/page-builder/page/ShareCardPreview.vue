@@ -1,17 +1,34 @@
 <template>
   <div class="shp">
-    <!-- 🔴 高保真模拟微信转发卡片：圆角白卡 + 5:4 封面 + 标题/描述/来源行。
-         刻意做成「所见即所得」——运营填完就能确认分享出去长什么样，
-         不用先发布再转发一次才知道效果。 -->
+    <!--
+      🔴 比例切换是**需求硬要求**：微信聊天转发用 5:4，
+      朋友圈 / 网页卡片是 1:1。运营经常只配了其中一张，
+      不给切换就只能靠猜 —— 猜错的结果是「分享出去发现封面被裁」。
+    -->
+    <div class="shp__tabs" role="tablist">
+      <button
+        v-for="t in TABS"
+        :key="t.value"
+        type="button"
+        role="tab"
+        class="shp__tab"
+        :class="{ 'is-on': ratio === t.value }"
+        :aria-selected="ratio === t.value"
+        @click="emit('update:ratio', t.value)"
+      >
+        {{ t.label }}
+      </button>
+    </div>
+
     <div class="shp__card">
       <div class="shp__cover" :style="coverStyle">
-        <img v-if="config.image" :src="config.image" alt="" class="shp__cover-img" />
+        <img v-if="activeImage" :src="activeImage" alt="" class="shp__cover-img" />
         <div v-else class="shp__cover-empty">
-          <span class="shp__cover-ratio">{{ RATIO.label }}</span>
+          <span class="shp__cover-ratio">{{ ratioLabel }}</span>
           <span class="shp__cover-text">未设置封面</span>
         </div>
-        <!-- 5:4 裁剪指引框：封面图设成别的比例时，一眼看出会被裁掉哪部分 -->
-        <div v-if="config.image" class="shp__ratio-frame" aria-hidden="true"></div>
+        <!-- 裁剪指引框：封面图设成别的比例时，一眼看出会被裁掉哪部分 -->
+        <div v-if="activeImage" class="shp__ratio-frame" aria-hidden="true"></div>
       </div>
 
       <div class="shp__body">
@@ -23,12 +40,12 @@
       <div class="shp__foot">
         <span class="shp__dot"></span>
         <span class="shp__source">{{ sourceText }}</span>
+        <span class="shp__mini">小程序</span>
       </div>
     </div>
 
-    <p class="shp__hint">
-      实时预览 · 标题留空时继承页面名称
-      <template v-if="overLimit"> · 标题超 {{ RATIO.titleMax }} 字将自动截断</template>
+    <p v-if="fallbackUsed" class="shp__note">
+      未设置朋友圈封面，正在用聊天封面代替
     </p>
   </div>
 </template>
@@ -37,33 +54,55 @@
 import { computed } from 'vue'
 import { SHARE_IMAGE_RATIO, SHARE_TITLE_MAX, type PageShareConfig } from './pageConfigSchema'
 
-/**
- * 分享卡片微型预览（2026-10-06 新增）。
- *
- * 卡片比例按微信转发卡片的视觉特征做**等比缩小**（不是直接缩放真图）：
- * 封面固定 5:4，其余按同一比例推导，保证「看起来就是那个卡片」。
- * 描述超长时按真机 2 行截断，避免预览里塞一大段而真机只显示两行。
- */
-const props = defineProps<{
-  config: PageShareConfig
-  /** 页面名称：分享标题留空时继承它 */
-  pageName?: string
-  /** 来源行（默认「小程序名」由父级传入真实值） */
-  sourceName?: string
-}>()
+/** 预览比例：5:4 = 微信聊天转发；1:1 = 朋友圈 / 网页卡片 */
+export type SharePreviewRatio = 'chat' | 'square'
 
-const RATIO = { ...SHARE_IMAGE_RATIO, titleMax: SHARE_TITLE_MAX, descMax: 50 }
+const TABS: Array<{ value: SharePreviewRatio; label: string }> = [
+  { value: 'chat', label: `微信聊天 (${SHARE_IMAGE_RATIO.w}:${SHARE_IMAGE_RATIO.h})` },
+  { value: 'square', label: '朋友圈/网页 (1:1)' },
+]
 
-const fallbackTitle = computed(() => String(props.pageName || '').trim())
+const props = withDefaults(
+  defineProps<{
+    config: PageShareConfig
+    pageName?: string
+    sourceName?: string
+    ratio?: SharePreviewRatio
+    /** 朋友圈封面（可选）；没配时回落到聊天封面并给出提示 */
+    squareImage?: string
+  }>(),
+  { ratio: 'chat', squareImage: '' },
+)
+
+const emit = defineEmits<{ 'update:ratio': [value: SharePreviewRatio] }>()
+
+const ratioLabel = computed(() =>
+  props.ratio === 'square' ? '1:1' : `${SHARE_IMAGE_RATIO.w}:${SHARE_IMAGE_RATIO.h}`,
+)
+
+/** 当前比例该显示哪张图；没配朋友圈封面时回落到聊天封面 */
+const activeImage = computed(() => {
+  if (props.ratio === 'square') return props.squareImage || props.config.image
+  return props.config.image
+})
+
+const fallbackUsed = computed(
+  () => props.ratio === 'square' && !props.squareImage && !!props.config.image,
+)
+
+const coverStyle = computed(() => ({
+  aspectRatio:
+    props.ratio === 'square' ? '1 / 1' : `${SHARE_IMAGE_RATIO.w} / ${SHARE_IMAGE_RATIO.h}`,
+}))
 
 /** 标题：配置值优先（超长截断），留空则继承页面名称 —— 与真机回落链同规则 */
 const shownTitle = computed(() => {
   const t = String(props.config.title || '').trim()
-  if (t) return t.slice(0, RATIO.titleMax)
-  return fallbackTitle.value.slice(0, RATIO.titleMax)
+  if (t) return t.slice(0, SHARE_TITLE_MAX)
+  return String(props.pageName || '').trim().slice(0, SHARE_TITLE_MAX)
 })
 
-/** 描述按 2 行截断（与真机一致）：每行约 22 字，超出加省略号 */
+/** 描述按 2 行截断（与真机一致）：每行约 22 字 */
 const shownDesc = computed(() => {
   const d = String(props.config.desc || '')
   if (d.length <= 44) return d
@@ -71,14 +110,40 @@ const shownDesc = computed(() => {
 })
 
 const sourceText = computed(() => props.sourceName || '小程序')
-
-const coverStyle = computed(() => ({ aspectRatio: `${RATIO.w} / ${RATIO.h}` }))
-
-const overLimit = computed(() => String(props.config.title || '').length > RATIO.titleMax)
 </script>
 
 <style scoped>
-.shp { display: flex; flex-direction: column; gap: 5px; }
+.shp { display: flex; flex-direction: column; gap: 6px; }
+
+/* 预览比例切换 */
+.shp__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 2px;
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+.shp__tab {
+  padding: 4px 6px;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 11px;
+  /* ⚠️ 必须 nowrap：两个 tab 文案长短差异大，不锁会被挤到叠字 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.shp__tab.is-on {
+  color: #475569;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
 
 .shp__card {
   align-self: center;
@@ -91,45 +156,22 @@ const overLimit = computed(() => String(props.config.title || '').length > RATIO
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* 封面：按 5:4 固定比例，未设图时给占位提示 */
-.shp__cover {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  background: #f2f3f5;
-}
-
-.shp__cover-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.shp__cover { position: relative; width: 100%; overflow: hidden; background: #f2f3f5; }
+.shp__cover-img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
 .shp__cover-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  width: 100%;
-  height: 100%;
-  color: #a8acb3;
-  font-size: 11px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; width: 100%; height: 100%;
+  color: #a8acb3; font-size: 11px;
 }
-
 .shp__cover-ratio {
   padding: 1px 6px;
-  font-size: 10px;
-  font-weight: 500;
-  background: #e4e6eb;
-  border-radius: 999px;
+  font-size: 10px; font-weight: 500;
+  background: #e4e6eb; border-radius: 999px;
 }
 
-/* 裁剪指引框：四边 1px 虚线 + 内侧留白，直观表达「会按 5:4 裁」 */
 .shp__ratio-frame {
-  position: absolute;
-  inset: 4px;
+  position: absolute; inset: 4px;
   border: 1px dashed rgba(255, 255, 255, 0.75);
   border-radius: 3px;
   pointer-events: none;
@@ -140,48 +182,40 @@ const overLimit = computed(() => String(props.config.title || '').length > RATIO
 .shp__title {
   overflow: hidden;
   color: #1a1a1a;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.4;
+  font-size: 13px; font-weight: 500; line-height: 1.4;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
-
 .shp__desc {
   margin-top: 3px;
   overflow: hidden;
   color: #8a8f99;
-  font-size: 11px;
-  line-height: 1.45;
+  font-size: 11px; line-height: 1.45;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
-
 .shp__desc--empty { color: #b6bac1; font-style: italic; }
 
 .shp__foot {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  display: flex; align-items: center; gap: 4px;
   padding: 0 10px 9px;
   color: #a8acb3;
   font-size: 10.5px;
 }
+.shp__dot { width: 12px; height: 12px; background: #d5d8dd; border-radius: 3px; }
 
-.shp__dot {
-  width: 12px;
-  height: 12px;
-  background: #d5d8dd;
-  border-radius: 3px;
+/* 「小程序」微标：与真机转发卡片来源行同款 */
+.shp__mini {
+  margin-left: auto;
+  padding: 0 4px;
+  color: #b6bac1;
+  font-size: 9px;
+  line-height: 14px;
+  background: #f4f5f7;
+  border-radius: 2px;
 }
 
-.shp__hint {
-  margin: 0;
-  color: #a8acb3;
-  font-size: 11px;
-  line-height: 1.4;
-  text-align: center;
-}
+.shp__note { margin: 0; color: #a8acb3; font-size: 11px; line-height: 1.4; text-align: center; }
 </style>

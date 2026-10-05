@@ -115,20 +115,37 @@
               <FieldHint text="每页加载的文章篇数" />
             </el-form-item>
 
+            <!--
+              🔴 「最大限制」与「不限」逻辑解耦（2026-10-06）
+              原来是一个输入框 + 一个「不限」按钮：点「不限」把值置 0，
+              但输入框里仍显示 `0`，配上「篇」单位就是 `0 篇 不限` ——
+              到底是 0 篇还是不限？运营必须自己猜。
+              现在：独立的「不限制篇数」勾选框表达「不限」，
+              勾选时数字框禁用并显示 placeholder「不限」，底层落 0（沿用端上既有判定）。
+            -->
             <el-form-item label="最大限制">
               <div class="afp-inline">
                 <el-input-number
-                  :model-value="cfg.max_count"
+                  :model-value="maxUnlimited ? '' : cfg.max_count"
                   :min="MAX_COUNT.min"
                   :max="MAX_COUNT.max"
                   :controls="false"
                   size="small"
-                  @change="(v: number | undefined) => patch({ max_count: Number(v) })"
+                  :disabled="maxUnlimited"
+                  :placeholder="maxUnlimited ? '不限' : ''"
+                  @change="(v: number | undefined) => onMaxCountChange(v)"
                 />
                 <span class="afp-inline__unit">篇</span>
-                <el-button size="small" text @click="patch({ max_count: 0 })">不限</el-button>
+                <el-checkbox
+                  :model-value="maxUnlimited"
+                  @update:model-value="(v: boolean) => onMaxUnlimitedChange(Boolean(v))"
+                >不限制篇数</el-checkbox>
               </div>
-              <FieldHint text="例如首页限流只展示前 20 篇；填 0 表示不限" />
+              <FieldHint
+                text="例如首页限流只展示前 20 篇；勾选「不限制篇数」则不截断"
+              />
+              <!-- 需求点名的联动校验：最大限制必须 ≥ 单页条数，否则首屏都填不满 -->
+              <p v-if="maxCountWarning" class="afp-warn">{{ maxCountWarning }}</p>
             </el-form-item>
 
             <el-form-item label="触底文案">
@@ -161,13 +178,54 @@
                   @update:model-value="(v) => patch({ source_tag_position: v })"
                 />
               </el-form-item>
-              <el-form-item v-for="key in SOURCE_KEYS" :key="key" :label="SOURCE_LABEL_MAP[key]">
-                <el-input
-                  :model-value="cfg.source_labels[key] || ''"
-                  :placeholder="`默认：${SOURCE_LABEL_MAP[key]}`"
-                  @update:model-value="(v: string) => patchSourceLabel(key, v)"
-                />
-              </el-form-item>
+              <!--
+                🔴 来源标签由「写死四个输入框」升级为**动态映射表**（2026-10-06）
+                原来 SOURCE_KEYS 是硬编码常量（公众号/小红书/问答/原创），
+                想加「抖音」只能改代码发版；而且每个渠道只有文案可改，没有配色。
+                现在每一行 = 一个渠道（key + 展示文案 + 预设配色），可增删改。
+              -->
+              <div class="afp-tagmap">
+                <div v-for="row in sourceTagRows" :key="row.key" class="afp-tagmap__row">
+                  <el-input
+                    :model-value="row.label"
+                    size="small"
+                    class="afp-tagmap__label"
+                    placeholder="展示文案"
+                    @update:model-value="(v: string) => onSourceRowChange(row.key, { label: v })"
+                  />
+                  <el-select
+                    :model-value="row.color || ''"
+                    size="small"
+                    class="afp-tagmap__color"
+                    placeholder="配色"
+                    @update:model-value="(v: string) => onSourceRowChange(row.key, { color: v })"
+                  >
+                    <el-option
+                      v-for="c in SOURCE_COLOR_PRESETS"
+                      :key="c.value"
+                      :label="c.label"
+                      :value="c.value"
+                    >
+                      <span class="afp-tagmap__dot" :style="{ background: c.bg, color: c.fg }">Aa</span>
+                      <span class="afp-tagmap__opt">{{ c.label }}</span>
+                    </el-option>
+                  </el-select>
+                  <el-button
+                    text
+                    size="small"
+                    type="danger"
+                    aria-label="删除该渠道"
+                    title="删除该渠道"
+                    @click="onSourceRowRemove(row.key)"
+                  >删</el-button>
+                </div>
+
+                <el-button size="small" text type="primary" @click="onSourceRowAdd">+ 添加渠道</el-button>
+                <p class="afp-tagmap__tip">
+                  渠道 key 决定端上从文章的哪个字段取值（如 <code>wechat_mp</code> = 公众号），
+                  改 key 会导致该渠道不再命中，建议只改展示文案与配色
+                </p>
+              </div>
             </template>
           </el-form>
         </div>
@@ -523,6 +581,7 @@ import {
   ITEM_GAP,
   MAX_COUNT,
   PAGE_SIZE,
+  SOURCE_COLOR_PRESETS,
   SUBTITLE_FONT_SIZE,
   TITLE_FONT_SIZE,
   TITLE_SIZE_PRESETS,
@@ -600,6 +659,46 @@ function patch(partial: Record<string, unknown>) {
   emit('update', { ...partial })
 }
 
+/* ---- 最大限制 / 不限制篇数（2026-10-06 解耦） ---- */
+
+/** 勾选态优先读显式字段；老页面没这个字段时从 max_count=0 推导 */
+const maxUnlimited = computed(() => cfg.value.max_unlimited === true)
+
+function onMaxUnlimitedChange(next: boolean) {
+  if (next) {
+    // 勾选不限 → 数字框禁用，底层落 0（端上「0 = 不限」的判定不动）
+    patch({ max_unlimited: true, max_count: 0 })
+    return
+  }
+  // 取消勾选 → 给一个有意义的默认值，别留 0（那还是等于不限）
+  const fallback = Math.max(Number(cfg.value.page_size || 10), MAX_COUNT.min)
+  patch({ max_unlimited: false, max_count: fallback })
+}
+
+function onMaxCountChange(v: number | undefined) {
+  const n = Number(v)
+  if (!Number.isFinite(n) || n <= 0) {
+    // 输入框被清空/填 0 → 视为「不限」，并同步勾选态（避免两边说法不一致）
+    patch({ max_count: 0, max_unlimited: true })
+    return
+  }
+  patch({ max_count: Math.round(n), max_unlimited: false })
+}
+
+/**
+ * 联动校验（需求点名）：最大限制必须 ≥ 单页条数。
+ * 小于的话首屏都填不满，运营会以为「配了没生效」。
+ */
+const maxCountWarning = computed(() => {
+  if (maxUnlimited.value) return ''
+  const max = Number(cfg.value.max_count || 0)
+  const size = Number(cfg.value.page_size || 0)
+  if (max > 0 && size > 0 && max < size) {
+    return `最大限制（${max}）小于单页条数（${size}），首屏将加载不满`
+  }
+  return ''
+})
+
 /* ---- 6 大版式（preset ↔ 既有 layout 双向映射） ---- */
 const layoutPreset = computed<FeedLayoutPreset>(() => resolveLayoutPreset(cfg.value.layout))
 
@@ -627,6 +726,54 @@ function toggleBadge(key: FeedBadgeKey) {
   const next = cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]
   // 旧字段 show_badge 同步，保证未升级的端上仍能识别「原创」角标
   patch({ show_badges: next, show_badge: next.length > 0 })
+}
+
+/* ---- 来源标签动态映射表（2026-10-06） ---- */
+
+const sourceTagRows = computed(() => cfg.value.source_tag_map || [])
+
+/**
+ * 改一行 → 同时写 map 与 legacy source_labels。
+ * 🔴 两个字段必须同写：已发布的小程序端只读 source_labels，
+ * 只写 map 的话后台看得到、真机仍是旧文案（典型「配了没生效」）。
+ */
+function commitSourceRows(rows: Array<{ key: string; label: string; color?: string }>) {
+  const labels: Record<string, string> = {}
+  rows.forEach((r) => {
+    if (r.key) labels[r.key] = r.label
+  })
+  patch({ source_tag_map: rows, source_labels: labels })
+}
+
+function onSourceRowChange(key: string, partial: { label?: string; color?: string }) {
+  commitSourceRows(
+    sourceTagRows.value.map((r) =>
+      r.key === key
+        ? {
+            key: r.key,
+            label: partial.label ?? r.label,
+            color: partial.color ?? r.color,
+          }
+        : r,
+    ),
+  )
+}
+
+function onSourceRowAdd() {
+  // 新渠道默认给一个不冲突的占位 key，运营改文案即可用；
+  // key 决定端上取哪个字段，占位 key 不会命中任何数据（等于「先加行再填 key」）
+  let n = sourceTagRows.value.length + 1
+  let key = `custom_${n}`
+  const exists = new Set(sourceTagRows.value.map((r) => r.key))
+  while (exists.has(key)) {
+    n += 1
+    key = `custom_${n}`
+  }
+  commitSourceRows([...sourceTagRows.value, { key, label: '新渠道', color: 'gray' }])
+}
+
+function onSourceRowRemove(key: string) {
+  commitSourceRows(sourceTagRows.value.filter((r) => r.key !== key))
 }
 
 function patchSourceLabel(key: string, value: string) {
@@ -863,4 +1010,54 @@ onMounted(() => {
   border: 1px solid #efe6da;
   border-radius: 8px;
 }
+
+/* ---------------- 来源标签动态映射表 + 校验警告（2026-10-06） ---------------- */
+
+/* 联动校验警告：琥珀色一行字，不做成 alert 以免占高 */
+.afp-warn {
+  margin: 3px 0 0;
+  color: #b45309;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.afp-tagmap { display: flex; flex-direction: column; gap: 5px; }
+
+.afp-tagmap__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 26px;
+  gap: 5px;
+  align-items: center;
+}
+
+.afp-tagmap__label { min-width: 0; }
+.afp-tagmap__color { min-width: 0; }
+
+/* 配色下拉里的色样 */
+.afp-tagmap__dot {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 16px;
+  margin-right: 6px;
+  font-size: 10px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+.afp-tagmap__opt { vertical-align: middle; }
+
+.afp-tagmap__tip {
+  margin: 1px 0 0;
+  color: #a8b3c4;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.afp-tagmap__tip code {
+  padding: 0 3px;
+  color: #64748b;
+  font-size: 10.5px;
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
 </style>
