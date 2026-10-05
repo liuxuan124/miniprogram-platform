@@ -186,10 +186,13 @@ const AuthService = {
   /**
    * 绑定手机号（可同步昵称/头像）
    *
-   * V119：后端返回的是对象而非裸字符串 —— { phone, userId, merged }。
+   * V119：走 `/phone/v2`，返回 { phone, userId, merged }。
    * merged=true 表示这个手机号此前已属于另一个账号，本次已并入，
    * 端上需要重新 wxLogin 换一张属于主账号的 token（见 login-flow.js）。
    * 兼容处理：若后端仍是旧版返回字符串，就包成 { phone }。
+   *
+   * ⚠️ 不要改用老的 `/phone`（返回裸字符串那个）：那个端点是为已发布的
+   * 老版本保留的，返回值直接当 phone 存；只有新版本才拿得到 merged 信号。
    *
    * @param {string} code
    * @param {Object} [profile]
@@ -199,7 +202,7 @@ const AuthService = {
     const payload = { code }
     if (profile.nickname) payload.nickname = profile.nickname
     if (profile.avatarUrl) payload.avatarUrl = profile.avatarUrl
-    return post('/api/v1/mp/auth/phone', payload).then((res) => {
+    return post('/api/v1/mp/auth/phone/v2', payload).then((res) => {
       if (res && typeof res === 'object') {
         return { phone: res.phone, userId: res.userId, merged: !!res.merged }
       }
@@ -295,6 +298,10 @@ const AuthService = {
     const current = (app && app.globalData && app.globalData.userInfo) || AuthUtil.getUserInfo() || {}
     const token = (app && app.globalData && app.globalData.token) || AuthUtil.getToken()
     const { isTempLocalAvatar, isPersistedMediaUrl } = require('../utils/image-fallback')
+    // V119 防御：调用方（如 login-flow 的异常兜底分支）可能误传对象进来。
+    // 手机号一旦被当对象存下会显示成 [object Object]，且下单/优惠券等
+    // 依赖 phone 的功能会跟着出错 —— 这里只接受字符串，兜底回旧值。
+    const safePhone = typeof phone === 'string' ? phone : (current.phone || '')
     let nextAvatar = avatarUrl || current.avatarUrl || ''
     if (isTempLocalAvatar(nextAvatar) || !isPersistedMediaUrl(nextAvatar)) {
       // 临时路径不进会话持久字段；空则保留已有远程头像
@@ -302,7 +309,7 @@ const AuthService = {
     }
     const nextUserInfo = {
       ...current,
-      phone,
+      phone: safePhone,
       phoneBound: true,
       nickName: nickName || current.nickName || '',
       avatarUrl: nextAvatar,

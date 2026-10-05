@@ -149,7 +149,16 @@ public class WxAuthServiceImpl implements WxAuthService {
     }
 
     @Override
-    public WxPhoneBindVO bindPhone(Long userId, String code, String nickname, String avatarUrl) {
+    public String bindPhone(Long userId, String code, String nickname, String avatarUrl) {
+        return doBindPhone(userId, code, nickname, avatarUrl).getPhone();
+    }
+
+    @Override
+    public WxPhoneBindVO bindPhoneV2(Long userId, String code, String nickname, String avatarUrl) {
+        return doBindPhone(userId, code, nickname, avatarUrl);
+    }
+
+    private WxPhoneBindVO doBindPhone(Long userId, String code, String nickname, String avatarUrl) {
         // 1. 获取微信接口调用凭证（access_token）
         String accessToken = getAccessToken();
 
