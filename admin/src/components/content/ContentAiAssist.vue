@@ -107,7 +107,6 @@ let pollTimer: ReturnType<typeof setInterval> | null = null
 const typeHint = computed(() => {
   const t = props.contentType
   if (t === 'note') return '适合短图文：标题、话题与正文润色'
-  if (t === 'file') return '适合资料：标题、简介与目录摘要'
   if (t === 'video') return '适合视频：标题、简介与封面文案'
   if (t === 'moment') return '适合动态：短文与话题'
   return '适合长文：标题、大纲、初稿与摘要'
@@ -115,7 +114,6 @@ const typeHint = computed(() => {
 
 const placeholder = computed(() => {
   if (props.contentType === 'note') return '例如：语气轻松，300 字内，带 2 个话题'
-  if (props.contentType === 'file') return '例如：面向会员的 PDF 资料包说明'
   return '例如：面向新手的行业入门长文，分三节'
 })
 
@@ -127,13 +125,6 @@ const actions = computed<QuickAction[]>(() => {
       { key: 'draft', label: '写初稿', intent: '写一篇短笔记正文初稿', preferTask: 'topic_draft' },
       { key: 'polish', label: '润色正文', intent: '润色笔记正文，保持口语化', preferTask: 'content_refresh' },
       { key: 'summary', label: '生成摘要', intent: '生成一句摘要', preferTask: 'summary_seo' },
-    ]
-  }
-  if (t === 'file') {
-    return [
-      { key: 'title', label: '生成标题', intent: '为资料包生成简洁标题', preferTask: 'freeform' },
-      { key: 'draft', label: '写简介', intent: '写一段资料说明/使用指引（200 字内）', preferTask: 'topic_draft' },
-      { key: 'summary', label: '生成摘要', intent: '根据资料主题生成摘要', preferTask: 'summary_seo' },
     ]
   }
   if (t === 'moment') {
@@ -284,7 +275,7 @@ async function runTask(intent: string, preferTask?: string) {
       taskTypes,
       contentIds: hasId ? [Number(props.contentId)] : undefined,
       freeformPrompt: prompt,
-      targetFormat: props.contentType === 'file' ? 'moment' : props.contentType || 'article',
+      targetFormat: props.contentType || 'article',
     })
     const task = res.data
     if (!task?.id) {

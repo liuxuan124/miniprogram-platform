@@ -62,4 +62,20 @@ public interface StatisticsService {
      * @param reportDTO 上报数据
      */
     void reportPageAccess(Long userId, PageAccessReportDTO reportDTO);
+
+    /**
+     * 上报运行事件（错误 / 白屏 / Tab 切走，异步）
+     *
+     * @param userId   用户ID（可为空）
+     * @param reportDTO 上报数据
+     */
+    void reportRuntimeEvent(Long userId, RuntimeEventReportDTO reportDTO);
+
+    /**
+     * 运行健康指标（错误率 / 白屏率 / Tab 跳出率）
+     *
+     * 事件表为空时（小程序端还没开始上报），
+     * 三个率返回 null 且 eventReported=false，由管理端显示「待埋点」。
+     */
+    RuntimeHealthVO getRuntimeHealth(LocalDate startDate, LocalDate endDate);
 }

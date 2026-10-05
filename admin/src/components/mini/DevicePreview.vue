@@ -7,8 +7,8 @@
     <template v-if="!frameOnly">
       <div class="device-preview__head">
         <div class="device-preview__head-row">
-          <b class="device-preview__title">配置预览（非真机效果，以扫码为准）</b>
-          <div v-if="previewUrlLive" class="device-preview__modes" role="tablist">
+          <b class="device-preview__title">效果预览</b>
+          <div v-if="previewUrlLive && showModeSwitch" class="device-preview__modes" role="tablist">
             <button
               type="button"
               role="tab"
@@ -32,6 +32,7 @@
           </div>
         </div>
         <p v-if="hint" class="device-preview__hint faint">{{ hint }}</p>
+        <slot name="screen-picker" />
       </div>
     </template>
 
@@ -70,12 +71,15 @@ const props = withDefaults(
     frameOnly?: boolean
     /** 首次打开时展示的配置口径；概览无未同步改动时应直接展示线上。 */
     initialMode?: 'draft' | 'live'
+    /** 草稿与线上一致（无待同步改动）时传 false 隐藏切换器，避免误导 */
+    showModeSwitch?: boolean
   }>(),
   {
     hint: '',
     iframeKey: 'preview',
     frameOnly: false,
     initialMode: 'draft',
+    showModeSwitch: true,
   },
 )
 

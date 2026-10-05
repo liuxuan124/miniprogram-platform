@@ -2,6 +2,7 @@ package com.miniprogram.controller;
 
 import com.miniprogram.common.R;
 import com.miniprogram.dto.statistics.PageAccessReportDTO;
+import com.miniprogram.dto.statistics.RuntimeEventReportDTO;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.StatisticsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,6 +27,14 @@ public class MpStatisticsController {
     public R<Void> reportPageAccess(@Valid @RequestBody PageAccessReportDTO reportDTO) {
         Long userId = SecurityUtils.getCurrentUserId();
         statisticsService.reportPageAccess(userId, reportDTO);
+        return R.ok(null);
+    }
+
+    @PostMapping("/runtime-event")
+    @Operation(summary = "上报运行事件", description = "小程序端上报错误 / 白屏 / Tab 切走事件（公开接口，异步写入）")
+    public R<Void> reportRuntimeEvent(@Valid @RequestBody RuntimeEventReportDTO reportDTO) {
+        Long userId = SecurityUtils.getCurrentUserId();
+        statisticsService.reportRuntimeEvent(userId, reportDTO);
         return R.ok(null);
     }
 }

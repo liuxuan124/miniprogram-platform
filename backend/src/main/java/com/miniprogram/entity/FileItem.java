@@ -19,6 +19,9 @@ public class FileItem extends BaseEntity {
 
     private String summary;
 
+    /** 自定义图标 URL；空则端上按 file_type 回退色块 */
+    private String iconUrl;
+
     private Long groupId;
 
     /** 相对 uploadDir 的存储路径，如 protected/files/2026-08-22/xxx.pdf */

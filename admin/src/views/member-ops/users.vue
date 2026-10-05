@@ -28,8 +28,7 @@
       <div v-if="dupMode" class="hint dup-on">
         <MiniIcon name="merge" :size="16" />
         <span>当前正展示待合并的重复用户（共 {{ dupGroupCount }} 组 / {{ total }} 个账号，已清空角色、来源、会员与搜索条件）</span>
-        <button type="button" class="btn sm" @click="exitDupMode">退出重复模式</button>
-      </div>
+        <button type="button" class="btn sm" @click="exitDupMode">退出重复模式</button>      </div>
       <div v-else-if="dupHint" class="hint warn">
         <MiniIcon name="merge" :size="16" />
         <span>{{ dupHint }}</span>
@@ -352,12 +351,23 @@
         </section>
 
         <!-- V120：删除账号。高危，单独放最后并要求二次确认 -->
-        <section v-if="canDeleteUser" class="dsec">
+        <section class="dsec">
           <div class="dhead"><b>删除账号</b></div>
           <div class="faint" style="margin-bottom: 8px">
-            软删除（mp_user.deleted=1），用户立即无法登录。付费会员 / 后台配置 / 联调测试账号会被服务端拒绝。
+            <template v-if="canDeleteUser">
+              软删除（mp_user.deleted=1），用户立即无法登录。付费会员 / 后台配置 / 联调测试账号会被服务端拒绝。
+            </template>
+            <template v-else>
+              当前角色无「更新会员（member:update）」权限，删除入口已隐藏。需要删除请联系超级管理员。
+            </template>
           </div>
-          <button type="button" class="btn sm danger" :disabled="deletingId === drawer.id" @click="doDelete(drawer)">
+          <button
+            v-if="canDeleteUser"
+            type="button"
+            class="btn sm danger"
+            :disabled="deletingId === drawer.id"
+            @click="doDelete(drawer)"
+          >
             {{ deletingId === drawer.id ? '删除中…' : '删除该账号' }}
           </button>
         </section>
@@ -382,6 +392,46 @@
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button type="button" class="btn" @click="giftOpen = false">取消</button>
           <button type="button" class="btn primary" :disabled="giftSaving" @click="doGift">确认赠送</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- V120：合并重复账号 -->
+    <div v-if="mergeOpen" class="scrim" @click.self="mergeOpen = false">
+      <div class="card" style="width:460px;max-width:100%;display:flex;flex-direction:column;gap:12px">
+        <h2 class="h2">合并重复账号</h2>
+        <div class="faint">
+          选择要<b>保留的主账号</b>，其余勾中的账号会被合并进去（积分 / 角色标签 / 会员到期累加到主账号，
+          从账号软删）。此操作不可撤销。
+        </div>
+        <div v-if="mergeGroup.length" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto">
+          <label v-for="u in mergeGroup" :key="u.id" class="perk">
+            <input
+              type="radio"
+              name="mergeKeep"
+              :checked="mergeKeepId === u.id"
+              @change="mergeKeepId = u.id"
+            />
+            <span>
+              <b>保留这个</b> · {{ u.nickname || '未命名' }} · {{ u.points ?? 0 }} 积分
+              <span v-if="u.id === (drawer?.id)" class="faint">（当前查看）</span>
+            </span>
+            <input
+              type="checkbox"
+              :checked="mergeSelected.includes(u.id)"
+              :disabled="mergeKeepId === u.id"
+              style="margin-left:auto"
+              @change="toggleMergeSel(u.id)"
+            />
+            <span class="faint">并入</span>
+          </label>
+        </div>
+        <div v-else class="faint">未找到同手机号的其他账号，可能已被合并。</div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn" @click="mergeOpen = false">取消</button>
+          <button type="button" class="btn primary" :disabled="mergeBusy || !mergeKeepId || !mergeSelected.length" @click="doMerge">
+            {{ mergeBusy ? '合并中…' : `合并 ${mergeSelected.length} 个账号` }}
+          </button>
         </div>
       </div>
     </div>
@@ -548,6 +598,8 @@ const mergeOpen = ref(false)
 const mergeBusy = ref(false)
 const mergeKeepId = ref<number | null>(null)
 const mergeSelected = ref<number[]>([])
+/** V120：同手机号的账号全集（从 /users/duplicates 按 phone 反查） */
+const mergeGroup = ref<any[]>([])
 
 const segs = ref<MemberSegment[]>([])
 const segError = ref('')
@@ -915,6 +967,179 @@ async function openDetail(u: any) {
   } catch {
     drawer.value = u
     noteDraft.value = u.adminNote || ''
+  }
+  banReason.value = ''
+  await loadBanStatus(u.id)
+}
+
+/**
+ * V120：拉封禁状态。
+ *
+ * 走 ban-status 接口而不是直接读 drawer.status —— 后者只在用户列表 VO 里可能带，
+ * 且历史上出现过字段代际错位（V119 的 planName/levelName 事件），这里以专用接口为准。
+ * 拉失败静默降级成「正常」，不阻塞抽屉打开。
+ */
+async function loadBanStatus(userId: number) {
+  try {
+    const res: any = await getUserBanStatus(userId)
+    const d = res?.data ?? res ?? {}
+    drawerBanned.value = !!d.banned
+    // ban-status 的 reason 是给登录页看的整句提示（「账号已被封禁：xxx」），
+    // 这里只要原因本身，去掉前缀避免抽屉里出现「封禁原因：账号已被封禁：xxx」。
+    if (drawer.value) {
+      drawer.value.bannedReason = String(d.reason || '')
+        .replace(/^账号已被封禁[:：]\s*/, '')
+        .trim()
+    }
+  } catch {
+    drawerBanned.value = false
+  }
+}
+
+/** V120：封禁。失败时把服务端原因原样抛出（已是中文提示） */
+async function doBan() {
+  if (!drawer.value) return
+  banBusy.value = true
+  try {
+    await banUser(drawer.value.id, banReason.value.trim() || undefined)
+    ElMessage.success('已封禁，该用户已下线')
+    banReason.value = ''
+    await loadBanStatus(drawer.value.id)
+    await fetchUsers()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '封禁失败')
+  } finally {
+    banBusy.value = false
+  }
+}
+
+/** V120：解封 */
+async function doUnban() {
+  if (!drawer.value) return
+  banBusy.value = true
+  try {
+    await unbanUser(drawer.value.id)
+    ElMessage.success('已解除封禁')
+    await loadBanStatus(drawer.value.id)
+    await fetchUsers()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '解封失败')
+  } finally {
+    banBusy.value = false
+  }
+}
+
+/**
+ * V120：删除账号。
+ *
+ * 二次确认里写清后果：软删 + 立即下线 + 不可恢复。
+ * 删除成功后关闭抽屉并刷新列表 —— 留着抽屉会显示一个已经不存在的账号。
+ */
+async function doDelete(u: any) {
+  try {
+    await ElMessageBox.confirm(
+      `确定删除「${u.nickname || '未命名'}」？\n\n` +
+        `· 会软删除账号（mp_user.deleted=1），并立即吊销其已签发的登录凭证\n` +
+        `· 用户将无法再登录，历史订单/内容会保留但与该账号脱钩\n` +
+        `· 此操作不可撤销`,
+      '删除账号',
+      { type: 'warning', confirmButtonText: '确认删除', cancelButtonText: '取消' }
+    )
+  } catch {
+    return // 用户取消
+  }
+  deletingId.value = u.id
+  try {
+    await deleteUser(u.id, '后台手动删除')
+    ElMessage.success('已删除该账号')
+    if (drawer.value?.id === u.id) drawer.value = null
+    selectedIds.value = selectedIds.value.filter((x) => x !== u.id)
+    await fetchUsers()
+    await loadStats()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '删除失败')
+  } finally {
+    deletingId.value = null
+  }
+}
+
+/**
+ * V120：打开合并弹窗。
+ *
+ * 数据源用 /users/duplicates（按 phone 分组）反查，而不是在前端按 phone 过滤当前页 ——
+ * 当前页可能只加载了 50 条，同组另一个账号未必在页内，前端过滤会漏人。
+ */
+async function openMergeFor(u: any) {
+  mergeOpen.value = true
+  mergeBusy.value = false
+  mergeGroup.value = []
+  mergeKeepId.value = u.id
+  mergeSelected.value = []
+  try {
+    const res: any = await listDuplicateUsers()
+    const rows = res?.data ?? res ?? []
+    const list = Array.isArray(rows) ? rows : []
+    const phone = u.phone || ''
+    const g = list.find((x: any) => x && x.phone === phone)
+    const usersInGroup: any[] = Array.isArray(g?.users) ? g.users : []
+    // 补齐当前查看的账号（duplicates 只带 id/nickname/points，缺 phone 与其它字段）
+    const merged = usersInGroup.map((x: any) => ({ ...x, phone }))
+    if (!merged.some((x) => x.id === u.id)) {
+      merged.unshift({ id: u.id, nickname: u.nickname, points: u.points, phone })
+    }
+    merged.sort((a, b) => Number(a.id) - Number(b.id))
+    mergeGroup.value = merged
+    if (merged.length < 2) {
+      ElMessage.info('该手机号下只有这一个账号，无需合并')
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.message || '重复账号加载失败')
+    mergeOpen.value = false
+  }
+}
+
+function toggleMergeSel(id: number) {
+  if (mergeSelected.value.includes(id)) {
+    mergeSelected.value = mergeSelected.value.filter((x) => x !== id)
+  } else {
+    mergeSelected.value = [...mergeSelected.value, id]
+  }
+}
+
+async function doMerge() {
+  if (!mergeKeepId.value || !mergeSelected.value.length) return
+  const keepId = mergeKeepId.value
+  // 主账号不能同时被并入自己
+  const ids = mergeSelected.value.filter((x) => x !== keepId)
+  if (!ids.length) {
+    ElMessage.warning('请至少选择一个要并入的账号')
+    return
+  }
+  const keepName = mergeGroup.value.find((x) => x.id === keepId)?.nickname || `#${keepId}`
+  try {
+    await ElMessageBox.confirm(
+      `将 ${ids.length} 个账号并入「${keepName}」？\n\n` +
+        `从账号的积分、角色标签、会员到期会累加到主账号，从账号随后被软删。不可撤销。`,
+      '合并重复账号',
+      { type: 'warning', confirmButtonText: '确认合并', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  mergeBusy.value = true
+  try {
+    const res: any = await mergeUsers({ keepUserId: keepId, mergeUserIds: ids })
+    const n = Number(res?.data?.merged ?? res?.merged ?? ids.length)
+    ElMessage.success(`已合并 ${n} 个账号到「${keepName}」`)
+    mergeOpen.value = false
+    drawer.value = null
+    await fetchUsers()
+    await loadDups()
+    await loadStats()
+  } catch (e: any) {
+    ElMessage.error(e?.message || '合并失败')
+  } finally {
+    mergeBusy.value = false
   }
 }
 

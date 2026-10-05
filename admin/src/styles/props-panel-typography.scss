@@ -1,0 +1,94 @@
+/**
+ * 装修器属性面板（page-builder props-panel）排版基线
+ *
+ * 背景：右侧属性面板由 50 个 *Props.vue 组件拼成，每个组件各自写
+ * `label-width`（实测 56/70/72/78/80/84/88/90/92/96px 共 10 种）和各自的
+ * el-input-number 宽度（无一例外全吃 Element Plus 默认 150px）。
+ * 运营点不同组件时，label 竖线会左右跳一格、数字框行长短参差，观感割裂。
+ *
+ * 这里只做「排版对齐」，不改任何布局结构、不改任何业务逻辑：
+ *   1. 数字类输入统一 108px（3 位数 + 步进按钮刚好，超过 3 位再按需单独放开）；
+ *   2. 颜色选择器同宽，与数字框右边缘对齐；
+ *   3. label 字号/颜色统一走主题变量，两个主题各自协调；
+ *   4. 表单行间距统一 12px。
+ *
+ * ⚠️ 作用域严格限定 .props-panel —— 列表页/表单页/弹窗里同样的
+ * el-input-number 可能有业务自定义宽度（有的要 200px 放长文案），
+ * 一旦全局化会被误伤。
+ *
+ * ⚠️ 配色走主题变量（--wb-* / --color-* / --el-color-primary），
+ * 不硬编码色值 —— 与 props-switch.scss 同源纪律（warm 暖棕 / classic 冷灰蓝）。
+ *
+ * 例外口径：
+ *   - `label-width="0"` 的表单（如 budget.vue 的筛选条）不带 label，不受影响；
+ *   - 嵌套表单（FeatureCardsProps 内层 48px、ActivityListProps 内层 50px 等）
+ *     刻意比顶层窄，宽度写在各自的 scoped 样式里，本文件不覆盖 —— 只统一
+ *     顶层的字号/行距，嵌套层级的差异化保留。
+ */
+
+.props-panel {
+  /* 数字类输入统一窄宽，消除行长参差 */
+  .el-input-number {
+    width: 108px;
+  }
+
+  /* 颜色选择器与数字框同宽，右边缘对齐 */
+  .el-color-picker__trigger {
+    width: 108px;
+  }
+
+  /* 多行文本/富文本编辑器不该被压窄，宽度交还内容 */
+  .el-textarea,
+  .el-input,
+  .el-select,
+  .el-cascader {
+    min-width: 0;
+  }
+
+  /* label 统一：字号 12px、颜色走主题次要文字色、垂直居中对齐控件 */
+  .el-form-item__label {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary, #7b8798);
+  }
+
+  /* 行的垂直节奏统一，避免有的行贴很紧有的很松 */
+  .el-form-item {
+    margin-bottom: 12px;
+  }
+
+  /* 最后一个表单项不要多撑一段空白 */
+  .el-form-item:last-child {
+    margin-bottom: 0;
+  }
+
+  /* 说明文字统一：跟在控件下方的小字 */
+  .el-form-item__content .style-hint {
+    margin-top: 4px;
+  }
+
+  /* 例外：热区编辑行是 6 列窄网格（`28px repeat(4, 1fr)` + 跳转路径 + 删除按钮），
+     每格只有 ~55px，放 108px 会撑破整行。这里交回 1fr 让它跟着格子走。
+   * 全 props 目录只有这一处网格里塞数字框（WarmHomeBlockProps 的
+   * nav-item__grid / CategoryNavProps 的 icon-library 都不含 el-input-number）。 */
+  .spot-row {
+    .el-input-number {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+
+  /* 例外：话题条目行是「数字框 + 涨幅输入 + 下跌复选框」三件套 flex，
+     108px 会把后两件挤到换行。数字是次要字段，让它跟着内容走更合适。 */
+  .item-row {
+    .el-input-number {
+      width: 88px;
+      flex-shrink: 0;
+    }
+
+    .el-input {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+}

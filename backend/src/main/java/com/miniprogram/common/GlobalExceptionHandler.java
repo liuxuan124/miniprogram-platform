@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -43,21 +44,43 @@ public class GlobalExceptionHandler {
 
     /**
      * 根据业务错误码解析 HTTP 状态码
+     *
+     * <p><b>背景</b>：本项目错误码存在两套编码风格混用，且旧实现对「前缀直译风格」的码
+     * 全部算错——用 {@code (code/100)%100} 取「类型」位时，404001 算出 40 落进 default，
+     * 于是所有文件类错误都以 HTTP 200 返回。小程序 {@code wx.downloadFile} 只看状态码，
+     * 无法识别失败，把 JSON 错误体当 PDF 下载，页面只能显示无意义的「下载失败」。
+     *
+     * <p><b>做法</b>：不猜编码规则，改为<b>显式白名单</b> + 保留原有分段规则兜底。
+     * 白名单只收录经审计语义无歧义的码，未收录的码行为与改动前完全一致，零回归。
+     *
+     * <p><b>为什么不用「前 3 位即状态码」的通用规则</b>：文件等模块用 404001/403001，
+     * 但同为 6 位的 400401（内容不存在，应 404）、500401（商品不存在，应 404）、
+     * 500201（状态错误，应 422）的前缀是「模块号」而非状态码。通用规则会把它们
+     * 全部映射错（404→400、422→500），故只做白名单。
      */
     private int resolveHttpStatus(int code) {
         if (code == ErrorCode.PAGE_VERSION_CONFLICT.getCode()) {
             return 409;
         }
-        // 6位业务码: 模块(2位) + 类型(2位) + 序号(2位)
-        // 类型 04 = 不存在 -> 404
-        // 类型 02 = 状态错误 -> 422
-        // 类型 05 = 冲突/重复 -> 409
-        // 类型 01 = 认证(11xxxx) -> 401；通用参数(10xxxx) -> 400
-        int type = (code / 100) % 100;
-        int module = code / 10000;
+        Integer explicit = EXPLICIT_STATUS.get(code);
+        if (explicit != null) {
+            return explicit;
+        }
+        // 5000~5999：4 位历史码，统一按业务规则错误处理
         if (code >= 5000 && code < 6000) {
             return 422;
         }
+        // 6 位分段风格：模块(2) + 类型(2) + 序号(2)，类型位为第 3~4 字符（400201 → 02 → 422）
+        String s = String.valueOf(code);
+        if (s.length() == 6 || s.length() == 7) {
+            Integer mapped = TYPE_STATUS.get(Integer.parseInt(s.substring(2, 4)));
+            if (mapped != null) {
+                return mapped;
+            }
+        }
+        // 5 位（10001~99999）：沿用原判定
+        int type = (code / 100) % 100;
+        int module = code / 10000;
         if (module == 10 && type == 1) {
             return 400;
         }
@@ -69,6 +92,37 @@ public class GlobalExceptionHandler {
             default -> 200;  // 其他业务错误用200，通过code区分
         };
     }
+
+    /**
+     * 显式状态码白名单（键=业务码，值=HTTP 状态码）。
+     * 仅收录「前缀直译规则会算错、且语义经审计确认」的码；未收录的保持原有行为。
+     */
+    private static final Map<Integer, Integer> EXPLICIT_STATUS = Map.ofEntries(
+            // 文件模块：404001「文件不存在/未发布」、404401
+            Map.entry(404001, 404),
+            Map.entry(404401, 404),
+            // 403001「暂无下载权限」、403002「链接已过期/无效」、403004「次数超上限」
+            Map.entry(403001, 403),
+            Map.entry(403002, 403),
+            Map.entry(403003, 403),
+            Map.entry(403004, 403),
+            // 认证：401001「请先登录」
+            Map.entry(401001, 401),
+            // 参数错误：400001
+            Map.entry(400001, 400),
+            // 服务端异常：500001「无法生成试读文件/生成失败」、500002
+            Map.entry(500001, 500),
+            Map.entry(500002, 500)
+    );
+
+    /** 分段风格：类型位 → HTTP 状态 */
+    private static final Map<Integer, Integer> TYPE_STATUS = Map.of(
+            1, 401,
+            2, 422,
+            3, 400,
+            4, 404,
+            5, 409
+    );
 
     /**
      * 参数校验异常 - @Valid/@Validated

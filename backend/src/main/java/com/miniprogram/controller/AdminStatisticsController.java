@@ -69,4 +69,14 @@ public class AdminStatisticsController {
             @Parameter(description = "结束日期") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end_date) {
         return R.ok(statisticsService.getPageAccessStats(start_date, end_date));
     }
+
+    @GetMapping("/runtime-health")
+    @Operation(summary = "运行健康指标",
+            description = "近 N 日 PV/UV、错误率、白屏率、Tab 跳出率。小程序端尚未上报事件时，"
+                    + "三个率返回 null 且 eventReported=false，管理端应显示「待埋点」而非 0。")
+    public R<RuntimeHealthVO> getRuntimeHealth(
+            @Parameter(description = "开始日期") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate start_date,
+            @Parameter(description = "结束日期") @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end_date) {
+        return R.ok(statisticsService.getRuntimeHealth(start_date, end_date));
+    }
 }

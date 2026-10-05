@@ -9,7 +9,7 @@ import {
   noteHashTags,
 } from '@/utils/note-content'
 
-export type ContentPreviewType = 'article' | 'note' | 'moment' | 'rich' | 'video' | 'file'
+export type ContentPreviewType = 'article' | 'note' | 'moment' | 'rich' | 'video'
 
 export interface ContentPreviewAttachment {
   id?: string
@@ -35,6 +35,10 @@ export interface ContentPreviewModel {
   tags?: string[]
   source?: string
   isWechatNewspic?: boolean
+  /** 视频投稿：视频地址 / 时长（秒）/ 预览画面比例 */
+  videoUrl?: string
+  videoDuration?: number
+  videoRatio?: '3:4' | '1:1'
 }
 
 export function getPlainTextFromHtml(html: string): string {
@@ -82,7 +86,7 @@ export function buildPreviewFromDetail(data: Record<string, unknown>, categoryLa
       ? prepareArticleContentHtml(contentHtml, coverImage, String(data.title || ''))
       : contentHtml
   const shortBody =
-    contentType === 'note' || contentType === 'moment' || contentType === 'file'
+    contentType === 'note' || contentType === 'moment'
       ? extractNoteParagraphs(contentHtml).join('\n\n')
       : ''
   return {

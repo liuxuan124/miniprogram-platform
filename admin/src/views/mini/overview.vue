@@ -10,37 +10,81 @@
           :publisher-name="publisherDisplay"
           :pending-count="Number(site.pendingCount ?? pending.length ?? 0)"
         />
-        <div>
-          <h1 class="h1">概览</h1>
-          <div class="sub">只看状态，不做配置；改导航与配色请去「外观」</div>
+        <div class="head ov-head">
+          <div>
+            <h1 class="h1">小程序运行状态与发布中心</h1>
+            <div class="sub">
+              {{ envLabel }} · {{ healthLabel }}
+            </div>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn soft" @click="router.push('/mini/pages')">
+              <MiniIcon name="page" :size="15" />
+              页面
+            </button>
+            <button type="button" class="btn soft" @click="router.push('/mini/appearance')">
+              <MiniIcon name="palette" :size="15" />
+              外观
+            </button>
+            <button type="button" class="btn soft" @click="router.push('/mini/templates')">
+              <MiniIcon name="grid" :size="15" />
+              模板
+            </button>
+            <button type="button" class="btn soft" @click="router.push('/mini/pages/new-ai')">
+              <MiniIcon name="spark" :size="15" />
+              新建活动页
+            </button>
+          </div>
         </div>
 
-        <div class="ways">
-          <button type="button" class="way way-em" @click="editHomePage">
-            <MiniIcon name="page" :size="20" />
-            <span>
-              <b>改首页</b>
-              <span class="muted" style="font-size: 12.5px">进入底部导航绑定的首页装修</span>
-            </span>
-          </button>
-          <button type="button" class="way" @click="router.push('/mini/pages/new-ai')">
-            <MiniIcon name="spark" :size="20" />
-            <span>
-              <b>新建活动页</b>
-              <span class="muted" style="font-size: 12.5px">AI 或模板生成，再发布上线</span>
-            </span>
-          </button>
-          <button type="button" class="way" @click="router.push('/mini/appearance')">
-            <MiniIcon name="send" :size="20" />
-            <span>
-              <b>外观与导航</b>
-              <span class="muted" style="font-size: 12.5px">保存草稿后点「保存并同步」</span>
-            </span>
-          </button>
-        </div>
+        <!-- 待同步改动置顶：这是本模块唯一的发布决策入口 -->
+        <section class="card pending-card pending-card--top">
+          <div class="head">
+            <div>
+              <h2 class="h2">待同步改动</h2>
+              <div class="sub">{{ pendingCountText }}；点任一项可在右侧预览该页草稿</div>
+            </div>
+            <div class="actions">
+              <button
+                type="button"
+                class="btn sm primary"
+                :disabled="!(site.pendingCount ?? pending.length)"
+                :loading="syncing"
+                @click="openDiffDrawer"
+              >
+                查看并发布
+              </button>
+            </div>
+          </div>
+          <div v-if="pendingPreview.length" class="pending-list">
+            <button
+              v-for="item in pendingPreview"
+              :key="String(item.id || item.pageId || item.name)"
+              type="button"
+              class="list-row list-row--btn"
+              @click="focusPendingOnPage(item)"
+            >
+              <span :class="['tag', changeKindLabel(item) === '新增' ? 't-new' : 't-pending']">
+                {{ changeKindLabel(item) }}
+              </span>
+              <b style="font-weight: 500">{{ item.name || '未命名' }}</b>
+              <span class="faint pending-row__meta">
+                {{ pendingEditor(item) }} · {{ pendingTime(item) }}
+              </span>
+              <span class="faint pending-row__go">预览 ›</span>
+            </button>
+            <div v-if="pending.length > pendingPreview.length" class="faint" style="margin-top: 8px; font-size: 12px">
+              另有 {{ pending.length - pendingPreview.length }} 项，点「查看并发布」查看完整清单
+            </div>
+          </div>
+          <div v-else class="empty-mini">
+            <span class="muted">草稿与线上配置一致，没有待发布的改动。</span>
+            <button type="button" class="btn sm" @click="router.push('/mini/pages')">去改页面</button>
+          </div>
+        </section>
 
         <section class="card status-card">
-          <h2 class="h2">线上状态</h2>
+          <h2 class="h2">线上运行状态</h2>
           <div class="kv">
             <span class="muted">内容配置版本</span>
             <b>{{ site.liveReleaseNo != null ? `第 ${site.liveReleaseNo} 次同步` : '尚未同步' }}</b>
@@ -50,7 +94,11 @@
             <b>{{ wechatCodeDisplay }}</b>
           </div>
           <div class="kv">
-            <span class="muted">时间</span>
+            <span class="muted">审核状态</span>
+            <b>{{ reviewStatusLabel }}</b>
+          </div>
+          <div class="kv">
+            <span class="muted">发布时间</span>
             <b>{{ site.liveReleaseAt ? formatShort(site.liveReleaseAt) : '尚未发布' }}</b>
           </div>
           <div class="kv">
@@ -61,96 +109,54 @@
             <span class="muted">整店模板</span>
             <b>{{ templateLabel }}</b>
           </div>
-          <div class="kv">
-            <span class="muted">未同步</span>
-            <b>{{ pendingCountText }}</b>
-          </div>
-          <button type="button" class="link" style="margin-top: 8px" @click="router.push('/mini/appearance')">
-            外观设置（导航 / 配色）›
-          </button>
         </section>
 
         <section class="card visit-card">
-          <h2 class="h2">近 7 日访问</h2>
-          <div class="sub">来自小程序 page-access 上报；无数据说明近期还没有有效访问记录</div>
-          <div v-if="visitTop.length" style="margin-top: 10px">
+          <div class="head">
+            <div>
+              <h2 class="h2">近 7 日运行指标</h2>
+              <div class="sub">来自小程序端上报；未上报的指标显示「待埋点」而不是 0，避免把没数据误读成零故障</div>
+            </div>
+          </div>
+          <div class="metric-grid">
+            <div class="metric" v-for="m in healthMetrics" :key="m.key">
+              <span class="metric__label">{{ m.label }}</span>
+              <span class="metric__value" :class="{ 'metric__value--na': m.na }">{{ m.value }}</span>
+              <span class="metric__hint">{{ m.hint }}</span>
+            </div>
+          </div>
+          <div v-if="visitTop.length" class="visit-list">
+            <h3 class="h3">页面访问明细</h3>
             <div v-for="v in visitTop" :key="v.pagePath" class="list-row">
               <span class="faint" style="flex: 1; overflow: hidden; text-overflow: ellipsis">{{ v.pagePath }}</span>
               <b>{{ v.accessCount ?? 0 }} 次</b>
               <span class="faint">{{ v.visitorCount ?? 0 }} 人</span>
             </div>
           </div>
-          <div v-else class="faint" style="margin-top: 12px">还没有近 7 日的页面上报数据</div>
         </section>
 
-        <div class="row lower-row">
-          <section class="card pending-card">
-            <div class="head">
-              <div>
-                <h2 class="h2">尚未同步的改动</h2>
-                <div class="sub">{{ pendingCountText }}；须点「保存并同步」经校验后写入服务端（不表示所有用户已刷新小程序）</div>
-              </div>
-              <div class="actions">
-                <button
-                  type="button"
-                  class="btn sm primary"
-                  :disabled="!(site.pendingCount ?? pending.length)"
-                  :loading="syncing"
-                  @click="syncPending"
-                >
-                  保存并同步
-                </button>
-                <button type="button" class="link" @click="router.push('/mini/appearance')">去外观 ›</button>
-              </div>
+        <section class="card eco-card">
+          <h2 class="h2">代码与渠道（参考）</h2>
+          <div class="sub">代码包在本机微信开发者工具上传；此处不触发上传或审核</div>
+          <div style="margin-top: 10px">
+            <div class="kv">
+              <span class="muted">代码版本记录</span>
+              <b style="font-weight: 500">{{ wechatCodeDisplay }}</b>
             </div>
-            <div style="margin-top: 6px">
-              <div v-if="pendingPreview.length">
-                <div
-                  v-for="item in pendingPreview"
-                  :key="String(item.id || item.pageId || item.name)"
-                  class="list-row"
-                >
-                  <span :class="['tag', changeKindLabel(item) === '新增' ? 't-new' : 't-pending']">
-                    {{ changeKindLabel(item) }}
-                  </span>
-                  <b style="font-weight: 500">{{ item.name || '未命名' }}</b>
-                  <span class="faint" style="margin-left: auto; text-align: right">
-                    {{ item.summary || pendingTime(item) }}
-                  </span>
-                </div>
-              </div>
-              <div v-else class="empty-mini">
-                <span class="muted">草稿与线上配置一致。</span>
-                <button type="button" class="btn sm" @click="router.push('/mini/pages')">
-                  去改页面
-                </button>
-              </div>
+            <div class="kv">
+              <span class="muted">公众号菜单</span>
+              <b style="font-weight: 500">
+                <template v-if="mpMenuConfigured">已配置 AppID 等</template>
+                <template v-else>未配置</template>
+              </b>
             </div>
-          </section>
-
-          <section class="card eco-card">
-            <h2 class="h2">代码与渠道（参考）</h2>
-            <div class="sub">代码包在本机微信开发者工具上传；此处不触发上传或审核</div>
-            <div style="margin-top: 10px">
-              <div class="kv">
-                <span class="muted">代码版本记录</span>
-                <b style="font-weight: 500">{{ wechatCodeDisplay }}</b>
-              </div>
-              <div class="kv">
-                <span class="muted">公众号菜单</span>
-                <b style="font-weight: 500">
-                  <template v-if="mpMenuConfigured">已配置 AppID 等</template>
-                  <template v-else>未配置</template>
-                </b>
-              </div>
-            </div>
-            <p class="faint" style="margin: 10px 0 0; font-size: 12px; line-height: 1.5">
-              需要记录本地上传说明时，见
-              <button type="button" class="link" @click="router.push('/page-builder/wx-push')">开发者 · 代码版本说明</button>
-              （非日常运营入口）。
-            </p>
-          </section>
-        </div>
+          </div>
+          <p class="faint" style="margin: 10px 0 0; font-size: 12px; line-height: 1.5">
+            需要记录本地上传说明时，见
+            <button type="button" class="link" @click="router.push('/page-builder/wx-push')">开发者 · 代码版本说明</button>
+            （非日常运营入口）。
+          </p>
+        </section>
       </div>
 
       <DevicePreview
@@ -158,17 +164,48 @@
         :preview-url="previewUrl"
         :preview-url-live="previewUrlLive"
         :initial-mode="previewInitialMode"
+        :show-mode-switch="hasPending"
         :iframe-key="previewKey"
         @scan="qrVisible = true"
-      />
+      >
+        <template #screen-picker>
+          <el-select
+            v-if="previewTargets.length"
+            :model-value="previewScreen"
+            class="screen-picker"
+            placeholder="选择预览页面"
+            size="small"
+            filterable
+            @change="(v: string) => onPreviewScreenChange(String(v))"
+          >
+            <el-option-group
+              v-for="g in screenGroups"
+              :key="g.key"
+              :label="g.label"
+            >
+              <el-option
+                v-for="t in g.items"
+                :key="t.path"
+                :label="t.label"
+                :value="t.path"
+              />
+            </el-option-group>
+          </el-select>
+        </template>
+      </DevicePreview>
     </div>
 
     <MiniH5QrDialog
       v-model="qrVisible"
       mode="miniapp-draft"
       title="扫码在手机上看"
+      hint="扫码打开的是 H5 模拟预览（草稿口径）。真机效果请在微信开发者工具上传体验版后查看。"
     />
 
+    <DiffPublishDrawer
+      v-model="diffDrawerVisible"
+      @published="load()"
+    />
   </div>
 </template>
 
@@ -181,6 +218,7 @@ import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import DevicePreview from '@/components/mini/DevicePreview.vue'
+import DiffPublishDrawer from '@/components/mini/DiffPublishDrawer.vue'
 import {
   getMiniSite,
   getPendingChanges,
@@ -188,7 +226,7 @@ import {
   type PendingChangeItem,
 } from '@/api/miniSite'
 import { getPageList } from '@/api/page'
-import { getPageAccess } from '@/api/statistics'
+import { getPageAccess, getRuntimeHealth, type RuntimeHealth } from '@/api/statistics'
 import { getLatestRelease } from '@/api/version'
 import { getConfigByGroupSilent } from '@/api/system'
 import { refreshMiniPending } from '@/composables/useMiniPending'
@@ -239,17 +277,69 @@ const wechatCodeDisplay = computed(() => {
   return '未记录 · 请在本地上传后自行标注'
 })
 
+/**
+ * 预览目标页。旧实现锁死 tabBar[0]（只能看首页），这里改成可切换：
+ * 顶栏下拉选页、点待同步清单项也会改它。
+ */
+const previewScreen = ref('')
+
+/** 可预览的页面清单：底部导航入口 + 库表装修页，按导航优先排序 */
+const previewTargets = computed(() => {
+  const out: { path: string; label: string; group: string }[] = []
+  const seen = new Set<string>()
+  for (const t of site.value.tabBar || []) {
+    const p = String(t.pagePath || '').replace(/^\//, '')
+    if (!p || seen.has(p)) continue
+    seen.add(p)
+    out.push({ path: p, label: t.text || t.pageName || shortPath(p), group: '底部导航' })
+  }
+  for (const p of pageOptions.value) {
+    const path = String(p.path || '').replace(/^\//, '')
+    if (!path || seen.has(path)) continue
+    seen.add(path)
+    out.push({ path, label: p.name || shortPath(path), group: '装修页' })
+  }
+  return out
+})
+
+function shortPath(path: string) {
+  const parts = path.split('/').filter(Boolean)
+  return parts.length <= 2 ? path : `…/${parts.slice(-2).join('/')}`
+}
+
+/** 把扁平清单按「底部导航 / 装修页」分组，供下拉分组展示 */
+const screenGroups = computed(() => {
+  const order = ['底部导航', '装修页']
+  const map = new Map<string, { path: string; label: string; group: string }[]>()
+  for (const t of previewTargets.value) {
+    if (!map.has(t.group)) map.set(t.group, [])
+    map.get(t.group)!.push(t)
+  }
+  return order
+    .filter((k) => map.has(k))
+    .map((k) => ({ key: k, label: k, items: map.get(k)! }))
+})
+
+function onPreviewScreenChange(path: string) {
+  previewScreen.value = path
+  previewRevision.value += 1
+}
+
 function buildPreviewHref(source: 'draft' | 'live') {
   const query: Record<string, string> = { view: 'config', source, embed: '1' }
-  const firstPath = String((site.value.tabBar || [])[0]?.pagePath || '').replace(/^\//, '')
-  if (firstPath) query.screen = firstPath
+  const screen = previewScreen.value
+    || String((site.value.tabBar || [])[0]?.pagePath || '').replace(/^\//, '')
+  if (screen) query.screen = screen
   return router.resolve({ path: '/h5/miniapp-preview', query }).href
 }
 
 const previewUrl = computed(() => buildPreviewHref('draft'))
 const previewUrlLive = computed(() => buildPreviewHref('live'))
+const hasPending = computed(
+  () => Number(site.value.pendingCount ?? pending.value.length ?? 0) > 0,
+)
 const previewInitialMode = computed<'draft' | 'live'>(() =>
-  Number(site.value.pendingCount ?? pending.value.length ?? 0) > 0 ? 'draft' : 'live',
+  hasPending.value ? 'draft' : 'live',
 )
 
 const previewKey = computed(() => `${previewInitialMode.value}-${previewRevision.value}`)
@@ -261,19 +351,141 @@ const previewHintLine = computed(() => {
     return `尚有 ${n} 项未同步 · 右侧为草稿预览（线上配置版本 ${live ?? '—'}）`
   }
   return live != null
-    ? `线上配置版本 ${live} · 右侧可切换草稿/线上预览`
-    : '右侧可切换草稿/线上预览'
+    ? `线上配置版本 ${live} · H5 模拟预览，真机效果以扫码为准`
+    : 'H5 模拟预览，真机效果以扫码为准'
 })
 
-async function syncPending() {
-  const ok = await syncToLive({ includeSite: true })
-  if (ok) await load()
+const envLabel = computed(() => {
+  const n = site.value.liveReleaseNo
+  return n != null ? `生产环境 · 配置第 ${n} 版` : '生产环境 · 尚未同步'
+})
+
+const healthLabel = computed(() => {
+  const n = Number(site.value.pendingCount ?? pending.value.length ?? 0)
+  if (n > 0) return `${n} 项改动待发布`
+  return '草稿与线上一致'
+})
+
+/**
+ * 审核状态：后台拿不到微信审核回执，代码包由本机 CLI 上传。
+ * 因此只在有明确记录时给结论，否则明说「无平台回执」而不是编一个状态。
+ */
+const reviewStatusLabel = computed(() => {
+  if (!site.value.wechatCodeVersion && !wechatVerFallback.value) return '尚未上传代码包'
+  return `已上传${wechatVerFallback.value ? `（${wechatVerFallback.value}）` : ''} · 平台审核状态无回执`
+})
+
+/**
+ * 近 7 日指标卡。
+ * PV / UV / 活跃页面来自 page-access 与 runtime-health；
+ * 错误率 / 白屏率 / 跳出率依赖小程序端上报（V110 起），
+ * eventReported=false 或接口没上线时显示「待埋点」——
+ * 写 0 会被当成「零故障」，那是比没有更危险的误导。
+ */
+const health = ref<RuntimeHealth | null>(null)
+
+function percentText(v?: number | null) {
+  if (v == null) return '待埋点'
+  return `${(v * 100).toFixed(2)}%`
+}
+
+const healthMetrics = computed(() => {
+  const h = health.value
+  const rows = visitTop.value
+  const pv = h?.pageViews ?? rows.reduce((s, r) => s + Number(r.accessCount || 0), 0)
+  const uv = h?.uniqueVisitors ?? 0
+  const activePages = h?.activePages ?? rows.length
+  const reported = h?.eventReported === true
+  const hasAccess = pv > 0
+
+  return [
+    {
+      key: 'uv',
+      label: '访问 UV',
+      value: hasAccess ? String(uv) : '—',
+      hint: hasAccess ? '近 7 日去重访客' : '暂无上报',
+      na: !hasAccess,
+    },
+    {
+      key: 'pv',
+      label: '访问 PV',
+      value: hasAccess ? String(pv) : '—',
+      hint: hasAccess ? `人均 ${(h?.viewsPerVisitor ?? 0).toFixed(1)} 次` : '暂无上报',
+      na: !hasAccess,
+    },
+    {
+      key: 'pages',
+      label: '活跃页面',
+      value: hasAccess ? String(activePages) : '—',
+      hint: '近 7 日有访问的页面数',
+      na: !hasAccess,
+    },
+    {
+      key: 'error',
+      label: '错误率',
+      value: reported ? percentText(h?.errorRate) : '待埋点',
+      hint: reported ? `错误 ${h?.errorCount ?? 0} 次` : '小程序端未上报',
+      na: !reported,
+    },
+    {
+      key: 'blank',
+      label: '白屏率',
+      value: reported ? percentText(h?.blankRate) : '待埋点',
+      hint: reported ? `白屏 ${h?.blankCount ?? 0} 次` : '小程序端未上报',
+      na: !reported,
+    },
+    {
+      key: 'bounce',
+      label: 'Tab 跳出率',
+      value: reported ? percentText(h?.tabBounceRate) : '待埋点',
+      hint: reported ? `切走 ${h?.tabLeaveCount ?? 0} 次` : '需小程序端发版',
+      na: !reported,
+    },
+  ]
+})
+
+const diffDrawerVisible = ref(false)
+
+function openDiffDrawer() {
+  diffDrawerVisible.value = true
+}
+
+/** 点待同步清单里的某一项：右侧模拟器切到该页草稿预览 */
+function focusPendingOnPage(item: PendingChangeItem) {
+  const path = String((item as any).path || (item as any).pagePath || '')
+  if (path) {
+    previewScreen.value = path.replace(/^\//, '')
+    previewRevision.value += 1
+    return
+  }
+  const id = Number((item as any).pageId || (item as any).id || 0)
+  if (!id) {
+    ElMessage.info('这一项是站点级配置改动，右侧已显示最新草稿')
+    previewRevision.value += 1
+    return
+  }
+  const hit = pageOptions.value.find((p) => Number(p.id) === id)
+  if (hit?.path) {
+    previewScreen.value = String(hit.path).replace(/^\//, '')
+    previewRevision.value += 1
+    return
+  }
+  // 拿不到路径就给出直达入口，不让用户自己在列表里找
+  ElMessage.info('未能定位该页路径，可从「页面」列表打开对应页面')
+  router.push('/mini/pages')
 }
 
 function formatShort(t?: string | null) {
   if (!t) return ''
   const s = String(t).replace('T', ' ')
   return s.length >= 16 ? s.slice(5, 16) : s.slice(0, 16)
+}
+
+/** 后端 pendingChanges 未约定修改人字段，多个候选名都试一遍；都没有就明说「—」而不是留空 */
+function pendingEditor(item: PendingChangeItem) {
+  const raw = item as unknown as Record<string, unknown>
+  const name = raw.editorName || raw.operator || raw.editor || raw.publisherName || raw.modifier
+  return name ? String(name) : '—'
 }
 
 function pendingTime(item: PendingChangeItem) {
@@ -322,16 +534,20 @@ function last7DayRange() {
 }
 
 async function loadVisitTop() {
-  try {
-    const range = last7DayRange()
-    const res = await getPageAccess(range.start_date, range.end_date)
-    const rows = (res.data || []) as { pagePath: string; accessCount?: number; visitorCount?: number }[]
-    visitTop.value = [...rows]
-      .sort((a, b) => Number(b.accessCount || 0) - Number(a.accessCount || 0))
-      .slice(0, 8)
-  } catch {
-    visitTop.value = []
-  }
+  const range = last7DayRange()
+  // 两个接口互不依赖，并行拉；health 失败只降级不报错（后端未上 V110 时要能正常看页面）
+  const [accessRes, healthRes] = await Promise.all([
+    getPageAccess(range.start_date, range.end_date).catch(() => null),
+    getRuntimeHealth(range.start_date, range.end_date).catch(() => null),
+  ])
+  const rows = ((accessRes as { data?: { pagePath: string; accessCount?: number; visitorCount?: number }[] })?.data
+    || []) as { pagePath: string; accessCount?: number; visitorCount?: number }[]
+  visitTop.value = [...rows]
+    .sort((a, b) => Number(b.accessCount || 0) - Number(a.accessCount || 0))
+    .slice(0, 8)
+  health.value = (healthRes as { data?: RuntimeHealth } | null)?.data
+    || (healthRes as RuntimeHealth | null)
+    || null
 }
 
 async function load() {
@@ -482,6 +698,115 @@ onMounted(load)
 
 .visit-card {
   margin-bottom: 0;
+}
+
+/* 顶栏：标题 + 紧凑操作栏（原三大 way 卡片收拢后） */
+.ov-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.ov-head .actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ov-head .h1 {
+  margin: 0;
+}
+
+/* 待同步卡片置顶：加一条左侧强调色，和下方只读状态卡区分开 */
+.pending-card--top {
+  border-color: rgba(180, 67, 15, .28);
+  box-shadow: 0 1px 0 rgba(180, 67, 15, .06);
+}
+.pending-list { margin-top: 4px; }
+.list-row--btn {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line2);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background .12s;
+  &:hover { background: var(--soft); }
+  &:last-child { border-bottom: 0; }
+}
+.pending-row__meta {
+  margin-left: auto;
+  font-size: 11.5px;
+  text-align: right;
+  white-space: nowrap;
+}
+.pending-row__go {
+  font-size: 11.5px;
+  color: var(--acc);
+  white-space: nowrap;
+  flex: none;
+}
+
+/* 运行指标卡组 */
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 11px 12px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--soft);
+  min-width: 0;
+}
+.metric__label {
+  font-size: 11.5px;
+  color: var(--mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.metric__value {
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+}
+.metric__value--na {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mute);
+}
+.metric__hint {
+  font-size: 11px;
+  color: var(--mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.visit-list {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line2);
+  .h3 {
+    margin: 0 0 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--mute);
+  }
+}
+
+/* 预览页路由下拉 */
+.screen-picker {
+  width: 100%;
+  margin-top: 2px;
 }
 
 .theme-bar {

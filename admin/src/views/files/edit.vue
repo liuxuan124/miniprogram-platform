@@ -24,6 +24,21 @@
             <el-input v-model="form.summary" type="textarea" :rows="2" maxlength="500" show-word-limit />
           </el-form-item>
 
+          <el-form-item label="图标">
+            <div class="icon-field">
+              <img v-if="form.iconUrl" :src="form.iconUrl" class="icon-field__preview" alt="资料图标" />
+              <div v-else class="icon-field__placeholder">{{ fileTypeBadge }}</div>
+              <div class="icon-field__actions">
+                <input ref="iconInputRef" type="file" accept="image/*" style="display: none" @change="onPickIcon" />
+                <el-button size="small" :loading="iconUploading" @click="iconInputRef?.click()">
+                  {{ form.iconUrl ? '更换图标' : '上传图标' }}
+                </el-button>
+                <el-button v-if="form.iconUrl" size="small" text type="danger" @click="form.iconUrl = ''">移除</el-button>
+                <div class="hint">列表里的文件图标识别；不上传则按文件类型显示色块（PDF红/表格绿…）</div>
+              </div>
+            </div>
+          </el-form-item>
+
           <el-form-item label="分组">
             <el-select v-model="form.groupId" clearable placeholder="未分组" style="width: 240px">
               <el-option v-for="g in groups" :key="g.id" :label="g.name" :value="g.id" />
@@ -144,50 +159,80 @@
           </div>
         </template>
 
-        <div v-if="form.previewMode === 'none'" class="prev-block">
-          <div class="prev-title">完全不可见</div>
-          <div class="sheetbox sheetbox--empty">
-            <div class="lock-only">🔒 加入会员后可查看</div>
+        <!-- 真实渲染：编辑模式且配置了预览 → 服务端按当前表单页数渲染真实页面位图 -->
+        <template v-if="canRealPreview">
+          <div v-loading="realPreviewLoading" class="real-preview">
+            <template v-if="realPages.length">
+              <div v-for="p in realPages" :key="p.pageNo" class="real-page">
+                <img :src="resolveMediaUrl(p.imageUrl)" :alt="`第 ${p.pageNo} 页`" loading="lazy" />
+                <span class="real-page__no">{{ p.pageLabel }}</span>
+              </div>
+              <div v-if="lockedVisible" class="real-locked">
+                <div class="lock">🔒 {{ lockCta }}</div>
+                <div class="real-locked__hint">第 {{ realPages.length + 1 }} 页起会员可见 · 服务端裁切，完整文件不会下发</div>
+              </div>
+            </template>
+            <div v-else-if="realPreviewError" class="prev-fallback">
+              <p>{{ realPreviewError }}</p>
+              <el-button size="small" @click="loadRealPreview">重试</el-button>
+            </div>
+            <div v-else-if="!realPreviewLoading" class="prev-fallback">
+              <p>该文件类型不支持位图预览（仅 PDF），端上以「打开文件」方式呈现。</p>
+            </div>
           </div>
-        </div>
+          <p class="preview-hint">
+            预览图带「试读」水印示意；线上真实水印为用户昵称+手机后四位。改动配置后约 1 秒自动刷新。
+          </p>
+        </template>
 
-        <div v-else-if="form.previewMode === 'full'" class="prev-block">
-          <div class="prev-title">全文可预览</div>
-          <div class="sheetbox">
-            <div class="ln ln-title" />
-            <div class="ln" /><div class="ln w92" /><div class="ln w78" /><div class="ln w88" />
-            <div class="ln" /><div class="ln w70" />
+        <!-- 示意图兜底：新建未保存 / 不可预览 -->
+        <template v-else>
+          <div v-if="form.previewMode === 'none'" class="prev-block">
+            <div class="prev-title">完全不可见</div>
+            <div class="sheetbox sheetbox--empty">
+              <div class="lock-only">🔒 加入会员后可查看</div>
+            </div>
           </div>
-        </div>
 
-        <div v-else class="prev-grid">
-          <div class="prev-block">
-            <div class="prev-title">{{ freeRangeLabel }} · 完整可见</div>
+          <div v-else-if="form.previewMode === 'full'" class="prev-block">
+            <div class="prev-title">全文可预览</div>
             <div class="sheetbox">
               <div class="ln ln-title" />
               <div class="ln" /><div class="ln w92" /><div class="ln w78" /><div class="ln w88" />
+              <div class="ln" /><div class="ln w70" />
             </div>
           </div>
-          <div class="prev-block">
-            <div class="prev-title">{{ lockedRangeLabel }} · 遮罩</div>
-            <div class="sheetbox sheetbox--blur">
-              <div class="ln ln-title" />
-              <div class="ln" /><div class="ln w92" />
-            </div>
-            <div class="lock">🔒 {{ lockCta }}</div>
-          </div>
-        </div>
 
-        <p class="preview-hint">
-          务必由服务端裁切后再下发，不要把完整文件传到前端再遮挡。
-        </p>
+          <div v-else class="prev-grid">
+            <div class="prev-block">
+              <div class="prev-title">{{ freeRangeLabel }} · 完整可见</div>
+              <div class="sheetbox">
+                <div class="ln ln-title" />
+                <div class="ln" /><div class="ln w92" /><div class="ln w78" /><div class="ln w88" />
+              </div>
+            </div>
+            <div class="prev-block">
+              <div class="prev-title">{{ lockedRangeLabel }} · 遮罩</div>
+              <div class="sheetbox sheetbox--blur">
+                <div class="ln ln-title" />
+                <div class="ln" /><div class="ln w92" />
+              </div>
+              <div class="lock">🔒 {{ lockCta }}</div>
+            </div>
+          </div>
+
+          <p class="preview-hint">
+            {{ isEdit ? '当前文件类型暂无真实渲染预览。' : '保存后可查看真实渲染效果。' }}
+            务必由服务端裁切后再下发，不要把完整文件传到前端再遮挡。
+          </p>
+        </template>
       </el-card>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
@@ -195,12 +240,16 @@ import {
   createFile,
   getFileDetail,
   getFileGroups,
+  getFilePreviewImages,
   updateFile,
   uploadFileItem,
   type FileGroupItem,
   type FileItemPayload,
+  type FilePreviewPage,
 } from '@/api/files'
 import { getMemberLevelList } from '@/api/member'
+import { uploadFile } from '@/api/system'
+import { resolveMediaUrl } from '@/utils/media-url'
 
 const route = useRoute()
 const router = useRouter()
@@ -210,12 +259,16 @@ const saving = ref(false)
 const groups = ref<FileGroupItem[]>([])
 const levels = ref<Array<{ id: number; name: string }>>([])
 const pickedFile = ref<File | null>(null)
+const iconInputRef = ref<HTMLInputElement>()
+const iconUploading = ref(false)
+const fileTypeBadge = ref('F')
 const fileId = computed(() => Number(route.query.id || 0) || 0)
 const isEdit = computed(() => fileId.value > 0)
 
 const form = reactive<FileItemPayload>({
   name: '',
   summary: '',
+  iconUrl: '',
   groupId: undefined,
   storageKey: '',
   status: 'draft',
@@ -294,7 +347,59 @@ const lockedRangeLabel = computed(() => {
   return `第 ${n + 1} 页起`
 })
 
-const lockCta = computed(() => `加入会员查看全部 ${totalPages.value} 页`)
+const lockCta = computed(() => `加入会员查看全部 ${displayTotalPages.value} 页`)
+
+/** 真实渲染预览：服务端返回的真实总页数优先于表单里手填的总页数 */
+const displayTotalPages = computed(() => Number(realPages.value[0]?.totalPages) || totalPages.value)
+
+/* ---------- 端上效果实时预览（服务端位图渲染） ---------- */
+const realPages = ref<FilePreviewPage[]>([])
+const realPreviewLoading = ref(false)
+const realPreviewError = ref('')
+let realPreviewTimer: ReturnType<typeof setTimeout> | null = null
+
+/** 编辑模式且配置了预览模式 → 走服务端真实渲染；新建/不可预览 → 示意图兜底 */
+const canRealPreview = computed(() => isEdit.value && (form.previewMode || 'percent') !== 'none')
+
+async function loadRealPreview() {
+  if (!canRealPreview.value) {
+    realPages.value = []
+    realPreviewError.value = ''
+    return
+  }
+  realPreviewLoading.value = true
+  realPreviewError.value = ''
+  try {
+    const res = await getFilePreviewImages(fileId.value, freePages.value)
+    realPages.value = (((res as any)?.data ?? res) || []) as FilePreviewPage[]
+  } catch (e: any) {
+    realPages.value = []
+    realPreviewError.value = String(e?.message || '预览生成失败，请稍后重试')
+  } finally {
+    realPreviewLoading.value = false
+  }
+}
+
+/** 表单配置变化后防抖刷新（渲染有成本，别每个按键都打后端） */
+function scheduleRealPreview() {
+  if (!canRealPreview.value) return
+  if (realPreviewTimer) clearTimeout(realPreviewTimer)
+  realPreviewTimer = setTimeout(() => {
+    realPreviewTimer = null
+    void loadRealPreview()
+  }, 600)
+}
+
+watch(() => [form.previewMode, form.previewValue, form.previewPercent, form.pageCount], scheduleRealPreview)
+
+onBeforeUnmount(() => {
+  if (realPreviewTimer) clearTimeout(realPreviewTimer)
+})
+
+/** 遮罩块是否出现：服务端真实总页数 > 已展示的试读页数 */
+const lockedVisible = computed(() =>
+  realPages.value.length > 0 && realPages.value[0].totalPages > realPages.value.length,
+)
 
 const previewPercentHint = computed(() => {
   if (form.previewMode === 'none' || form.previewMode === 'full') return ''
@@ -321,6 +426,37 @@ function onPickFile(e: Event) {
   const file = input.files?.[0]
   pickedFile.value = file || null
   if (file && !form.name) form.name = file.name
+  updateTypeBadge(file?.name || form.name, file?.type)
+}
+
+/** 图标未配置时的兜底字母，与端上 FILE_STYLE 色块一致 */
+function updateTypeBadge(fileName?: string, mime?: string) {
+  const ext = String(fileName || '').split('.').pop()?.toLowerCase() || ''
+  if (ext === 'pdf') fileTypeBadge.value = 'PDF'
+  else if (['doc', 'docx'].includes(ext)) fileTypeBadge.value = 'W'
+  else if (['xls', 'xlsx', 'csv'].includes(ext)) fileTypeBadge.value = 'X'
+  else if (['ppt', 'pptx'].includes(ext)) fileTypeBadge.value = 'P'
+  else if (['zip', 'rar'].includes(ext)) fileTypeBadge.value = 'Z'
+  else if (mime?.startsWith('image/')) fileTypeBadge.value = 'IMG'
+  else fileTypeBadge.value = 'F'
+}
+
+async function onPickIcon(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  iconUploading.value = true
+  try {
+    const res = await uploadFile(file)
+    const url = (res as any)?.data?.url || ''
+    if (url) form.iconUrl = url
+    else ElMessage.error('图标上传失败')
+  } catch {
+    ElMessage.error('图标上传失败')
+  } finally {
+    iconUploading.value = false
+    if (iconInputRef.value) iconInputRef.value.value = ''
+  }
 }
 
 async function loadMeta() {
@@ -338,6 +474,7 @@ async function loadDetail() {
     Object.assign(form, {
       name: data.name,
       summary: data.summary,
+      iconUrl: data.iconUrl || '',
       groupId: data.groupId,
       storageKey: data.storageKey,
       mimeType: data.mimeType,
@@ -358,6 +495,7 @@ async function loadDetail() {
       downloadAudience: data.downloadAudience || 'all',
       minDownloadLevelId: data.minDownloadLevelId,
     })
+    updateTypeBadge(data.name || data.fileType, data.mimeType)
   } finally {
     loading.value = false
   }
@@ -390,6 +528,7 @@ async function handleSubmit() {
 onMounted(async () => {
   await loadMeta()
   await loadDetail()
+  if (isEdit.value) void loadRealPreview()
 })
 </script>
 
@@ -399,6 +538,29 @@ onMounted(async () => {
 .page-header h1 { margin: 0 0 4px; font-size: 20px; color: #002FA7; }
 .sub { margin: 0; color: #909399; font-size: 13px; }
 .hint { margin-top: 6px; color: #909399; font-size: 12px; }
+.icon-field { display: flex; align-items: center; gap: 12px; }
+.icon-field__preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+.icon-field__placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #64748b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.icon-field__actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 .edit-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -453,6 +615,39 @@ onMounted(async () => {
   z-index: 1;
 }
 .lock-only { color: #606266; font-size: 13px; }
+
+/* ---- 真实渲染预览 ---- */
+.real-preview { display: flex; flex-direction: column; gap: 10px; min-height: 160px; }
+.real-page {
+  position: relative;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+.real-page img { display: block; width: 100%; height: auto; }
+.real-page__no {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  font-size: 11px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.real-locked {
+  position: relative;
+  border: 1px dashed #dcdfe6;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(245, 247, 250, 0.6), #f5f7fa);
+  padding: 34px 12px 26px;
+  text-align: center;
+}
+.real-locked .lock { position: static; transform: none; display: inline-block; }
+.real-locked__hint { margin-top: 10px; font-size: 11px; color: #909399; }
+.prev-fallback { color: #909399; font-size: 12px; text-align: center; padding: 20px 0; }
+.prev-fallback p { margin: 0 0 8px; }
 .preview-hint { margin: 14px 0 0; font-size: 12px; color: #909399; line-height: 1.5; }
 @media (max-width: 1100px) {
   .edit-layout { grid-template-columns: 1fr; }

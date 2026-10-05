@@ -81,6 +81,9 @@ public class ContentDTO {
     /** 作者头像 URL */
     private String authorAvatar;
 
+    /** 关联作者档案ID；非空时后端按档案回填 author/author_avatar/author_role */
+    private Long authorId;
+
     /** 来源 */
     @Size(max = 128, message = "来源最长128个字符")
     private String source;

@@ -133,8 +133,12 @@ public class MpCreatorController {
         if (!StringUtils.hasText(title)) {
             title = content.length() > 40 ? content.substring(0, 40) : content;
         }
-        if (!List.of("article", "note", "moment").contains(contentType)) {
+        if (!List.of("article", "note", "moment", "video").contains(contentType)) {
             contentType = "note";
+        }
+        if ("video".equals(contentType)
+                && !(body != null && body.get("videoUrl") != null && StringUtils.hasText(String.valueOf(body.get("videoUrl"))))) {
+            throw new BusinessException(400001, "请上传视频");
         }
 
         List<String> images = new ArrayList<>();
@@ -151,11 +155,39 @@ public class MpCreatorController {
         boolean syncPlanet = body != null && Boolean.TRUE.equals(body.get("syncPlanet"));
         boolean memberOnly = body != null && Boolean.TRUE.equals(body.get("memberOnly"));
 
+        // 视频投稿字段（contentType=video）：视频地址 / 封面 / 时长（秒）
+        String videoUrl = body != null && body.get("videoUrl") != null ? String.valueOf(body.get("videoUrl")).trim() : "";
+        if (StringUtils.hasText(videoUrl) && !(videoUrl.startsWith("http") || videoUrl.startsWith("/uploads/"))) {
+            videoUrl = "";
+        }
+        String coverImage = body != null && body.get("coverImage") != null ? String.valueOf(body.get("coverImage")).trim() : "";
+        if (StringUtils.hasText(coverImage) && !(coverImage.startsWith("http") || coverImage.startsWith("/uploads/"))) {
+            coverImage = "";
+        }
+        Integer videoDuration = null;
+        if (body != null && body.get("videoDuration") != null) {
+            try {
+                videoDuration = (int) Math.round(Double.parseDouble(String.valueOf(body.get("videoDuration"))));
+            } catch (NumberFormatException ignored) { /* 非法时长忽略 */ }
+            if (videoDuration != null && (videoDuration < 0 || videoDuration > 3600)) {
+                videoDuration = null;
+            }
+        }
+
         ContentDTO dto = new ContentDTO();
         dto.setTitle(title);
         dto.setContent(content);
         dto.setContentType(contentType);
         dto.setImages(images);
+        if ("video".equals(contentType)) {
+            dto.setVideoUrl(videoUrl);
+            if (StringUtils.hasText(coverImage)) {
+                dto.setCoverImage(coverImage);
+            }
+            if (videoDuration != null) {
+                dto.setVideoDuration(videoDuration);
+            }
+        }
         dto.setAuditStatus("pending");
         dto.setAuthorRole("creator");
         dto.setSource("ugc");

@@ -242,6 +242,23 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         if (order == null || !order.getUserId().equals(userId)) {
             throw new BusinessException(600401, "订单不存在");
         }
+        doSyncPaidFromWechat(order);
+    }
+
+    /**
+     * 对账专用：跳过 userId 校验。供 PaymentReconcileJob 调用。
+     * 幂等：订单已是 paid/shipped/completed 时 markOrderPaid 内部直接 return。
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reconcilePaidOrder(Order order) {
+        if (order == null || !"pending_payment".equals(order.getStatus())) {
+            return;
+        }
+        doSyncPaidFromWechat(order);
+    }
+
+    private void doSyncPaidFromWechat(Order order) {
         if (!"pending_payment".equals(order.getStatus())) {
             return;
         }
@@ -255,6 +272,7 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
             String transactionId = (String) paymentData.get("transaction_id");
             verifyNotifyAmount(paymentData, order, order.getOrderNo());
             markOrderPaid(order, transactionId, paymentData);
+            log.info("对账补开通成功 orderNo={} tx={}", order.getOrderNo(), transactionId);
         } catch (BusinessException e) {
             throw e;
         } catch (Exception e) {
@@ -275,6 +293,8 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
                 payment.setPaidAt(LocalDateTime.now());
                 this.updateById(payment);
                 refundService.handleLatePaymentOnClosedOrder(order, payment, transactionId);
+            } else {
+                log.info("微信回调重复到达已忽略 orderNo={} tx={} 当前状态={}", order.getOrderNo(), transactionId, order.getStatus());
             }
             return;
         }
@@ -354,12 +374,17 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
 
     /** @return true 表示首次见到，可继续处理 */
     private boolean markNotifyOnce(String transactionId) {
+        if (!StringUtils.hasText(transactionId)) {
+            return true;
+        }
         try {
             Boolean ok = stringRedisTemplate.opsForValue()
                     .setIfAbsent("wxpay:notify:" + transactionId, "1", Duration.ofHours(24));
             return Boolean.TRUE.equals(ok);
         } catch (Exception e) {
-            log.warn("Redis 防重放失败，降级为放行单次处理 tx={}", transactionId, e);
+            // Redis 故障时降级为放行：markOrderPaid 内部有订单状态机幂等兜底，
+            // 但此处必须打 WARN 便于运维定位 Redis 异常与潜在重复回调。
+            log.warn("Redis 防重放失败，降级放行（订单状态机会兜底） tx={}", transactionId, e);
             return true;
         }
     }

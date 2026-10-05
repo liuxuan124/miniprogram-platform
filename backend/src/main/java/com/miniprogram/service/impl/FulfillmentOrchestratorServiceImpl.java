@@ -3,6 +3,7 @@ package com.miniprogram.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.entity.FulfillmentLog;
+import com.miniprogram.entity.MembershipPlan;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.OrderItem;
 import com.miniprogram.entity.Product;
@@ -14,6 +15,7 @@ import com.miniprogram.support.CardCodeCrypto;
 import com.miniprogram.mapper.ProductCardCodeMapper;
 import com.miniprogram.mapper.ProductFileRelMapper;
 import com.miniprogram.mapper.ProductMapper;
+import com.miniprogram.mapper.MembershipPlanMapper;
 import com.miniprogram.entity.ProductFileRel;
 import com.miniprogram.product.ProductTypes;
 import com.miniprogram.service.FulfillmentOrchestratorService;
@@ -39,6 +41,7 @@ public class FulfillmentOrchestratorServiceImpl implements FulfillmentOrchestrat
     private final FulfillmentLogMapper fulfillmentLogMapper;
     private final OrderItemMapper orderItemMapper;
     private final ProductMapper productMapper;
+    private final MembershipPlanMapper membershipPlanMapper;
     private final ProductCardCodeMapper productCardCodeMapper;
     private final ProductFileRelMapper productFileRelMapper;
     private final OrderMapper orderMapper;
@@ -148,7 +151,51 @@ public class FulfillmentOrchestratorServiceImpl implements FulfillmentOrchestrat
         if (StringUtils.hasText(product.getFulfillContent())) {
             detail.put("fulfillContent", product.getFulfillContent());
         }
+        Map<String, Object> giftDetail = grantGiftEntitlement(order, product);
+        if (giftDetail != null) {
+            detail.putAll(giftDetail);
+        }
         return detail;
+    }
+
+    /**
+     * 买赠权益：单品成交后沉淀会员 / 星球资产。
+     * - giftMembershipDays：赠送平台会员天数（与商品自身会员期叠加，会员套餐商品已在 doDeliver 提前 return，不走这里）
+     * - giftPlanetId + giftPlanetDays：赠送指定星球订购（星球内容门禁走 mp_member_subscription，必须有期限）
+     * 幂等由外层 fulfillment_log 的 success 记录保证。
+     */
+    private Map<String, Object> grantGiftEntitlement(Order order, Product product) {
+        int memberDays = product.getGiftMembershipDays() == null ? 0 : Math.max(0, product.getGiftMembershipDays());
+        String planetId = StringUtils.hasText(product.getGiftPlanetId()) ? product.getGiftPlanetId().trim() : null;
+        int planetDays = product.getGiftPlanetDays() == null ? 0 : Math.max(0, product.getGiftPlanetDays());
+        if (memberDays <= 0 && (planetId == null || planetDays <= 0)) {
+            return null;
+        }
+        Map<String, Object> gift = new HashMap<>();
+        if (memberDays > 0) {
+            // planId=null → 写平台订购（与旧会员商品兜底口径一致）
+            membershipAccessService.grantSubscription(order.getUserId(), null, memberDays, order.getId());
+            gift.put("giftMembershipDays", memberDays);
+        }
+        if (planetId != null && planetDays > 0) {
+            MembershipPlan planetPlan = membershipPlanMapper.selectOne(new LambdaQueryWrapper<MembershipPlan>()
+                    .eq(MembershipPlan::getScope, "planet")
+                    .eq(MembershipPlan::getPlanetId, planetId)
+                    .last("LIMIT 1"));
+            if (planetPlan == null) {
+                // 该星球还没有付费档，无法写 planet 订购；宁可漏赠也不要错赠成平台会员
+                log.warn("买赠星球无对应付费档，跳过星球赠送 orderId={} productId={} planetId={}",
+                        order.getId(), product.getId(), planetId);
+            } else {
+                membershipAccessService.grantSubscription(
+                        order.getUserId(), planetPlan.getId(), planetDays, order.getId());
+                gift.put("giftPlanetId", planetId);
+                gift.put("giftPlanetDays", planetDays);
+            }
+        }
+        log.info("买赠权益已发放 orderId={} productId={} memberDays={} planetId={} planetDays={}",
+                order.getId(), product.getId(), memberDays, planetId, planetDays);
+        return gift;
     }
 
     private void appendVirtualDelivery(Order order, String productName, String cardCode) {

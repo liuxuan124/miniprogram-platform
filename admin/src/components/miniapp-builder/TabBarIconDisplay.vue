@@ -9,10 +9,18 @@ import { isNavImageIcon, navIconDisplaySrc, migrateTabBarIcon } from '@/componen
 
 const props = defineProps<{
   icon?: string
+  /** 选中态图标；缺省时退回 icon（与小程序 selected===index?selectedIcon:icon 对齐） */
+  selectedIcon?: string
+  /** 当前是否选中——为 true 时优先用 selectedIcon */
+  active?: boolean
   fallback?: string
 }>()
 
-const resolvedIcon = computed(() => migrateTabBarIcon(props.icon))
+const picked = computed(() => {
+  if (props.active && props.selectedIcon) return props.selectedIcon
+  return props.icon
+})
+const resolvedIcon = computed(() => migrateTabBarIcon(picked.value))
 const isImage = computed(() => isNavImageIcon(resolvedIcon.value))
 const displaySrc = computed(() => navIconDisplaySrc(resolvedIcon.value))
 </script>

@@ -25,6 +25,7 @@ export enum ComponentType {
   PromoBanner = 'promo_banner',
   Coupon = 'coupon',
   Video = 'video',
+  Audio = 'audio',
   BrandIntro = 'brand_intro',
   ImageText = 'image_text',
   ContactInfo = 'contact_info',
@@ -63,6 +64,29 @@ export enum ComponentType {
   MaterialList = 'material_list',
   MemberPlan = 'member_plan',
   QaList = 'qa_list',
+  // ===== 2026-10-05 新增 19 个组件（5 大类）=====
+  PlanetQaCard = 'planet_qa_card',
+  PlanetAskBanner = 'planet_ask_banner',
+  PlanetMembersStrip = 'planet_members_strip',
+  PlanetChallengeCard = 'planet_challenge_card',
+  PlanetBenefitCard = 'planet_benefit_card',
+  OpCreatorBanner = 'op_creator_banner',
+  OpQuoteCard = 'op_quote_card',
+  OpSmartGroupCard = 'op_smart_group_card',
+  OpReferralBanner = 'op_referral_banner',
+  OpGatedDownloadCard = 'op_gated_download_card',
+  HPeekCarousel = 'h_peek_carousel',
+  HComparisonCard = 'h_comparison_card',
+  HMetricStrip = 'h_metric_strip',
+  HFilterChips = 'h_filter_chips',
+  HSplitBanner = 'h_split_banner',
+  ContentFaqAccordion = 'content_faq_accordion',
+  ContentMiniAudio = 'content_mini_audio',
+  ContentMilestoneTracker = 'content_milestone_tracker',
+  LayoutOverlapWrapper = 'layout_overlap_wrapper',
+  LayoutPaperSheet = 'layout_paper_sheet',
+  LayoutStickyWrapper = 'layout_sticky_wrapper',
+  LayoutFlexibleGrid = 'layout_flexible_grid',
 }
 
 /** 组件类型标签映射 */
@@ -87,6 +111,7 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.PromoBanner]: '促销横幅',
   [ComponentType.Coupon]: '优惠券',
   [ComponentType.Video]: '视频',
+  [ComponentType.Audio]: '音频',
   [ComponentType.BrandIntro]: '品牌介绍',
   [ComponentType.ImageText]: '图文组合',
   [ComponentType.ContactInfo]: '联系方式',
@@ -125,6 +150,29 @@ export const ComponentTypeLabels: Record<ComponentType, string> = {
   [ComponentType.MaterialList]: '资料列表',
   [ComponentType.MemberPlan]: '会员方案',
   [ComponentType.QaList]: '问答列表',
+
+  [ComponentType.PlanetQaCard]: '精选问答卡',
+  [ComponentType.PlanetAskBanner]: '向主理人提问条',
+  [ComponentType.PlanetMembersStrip]: '活跃成员排',
+  [ComponentType.PlanetChallengeCard]: '打卡挑战营卡',
+  [ComponentType.PlanetBenefitCard]: '星球权益卡',
+  [ComponentType.OpCreatorBanner]: '创作者招募条',
+  [ComponentType.OpQuoteCard]: '金句观点卡',
+  [ComponentType.OpSmartGroupCard]: '群活码卡',
+  [ComponentType.OpReferralBanner]: '邀请助力条',
+  [ComponentType.OpGatedDownloadCard]: '资料解锁卡',
+  [ComponentType.HPeekCarousel]: '半露横滑卷轴',
+  [ComponentType.HComparisonCard]: 'AB 对比卡',
+  [ComponentType.HMetricStrip]: '数据背书条',
+  [ComponentType.HFilterChips]: '筛选芯片排',
+  [ComponentType.HSplitBanner]: '双格分流卡',
+  [ComponentType.ContentFaqAccordion]: '折叠问答面板',
+  [ComponentType.ContentMiniAudio]: '微音频收听条',
+  [ComponentType.ContentMilestoneTracker]: '政策里程碑轴',
+  [ComponentType.LayoutOverlapWrapper]: '层叠穿透容器',
+  [ComponentType.LayoutPaperSheet]: '纸感包裹器',
+  [ComponentType.LayoutStickyWrapper]: '吸顶容器',
+  [ComponentType.LayoutFlexibleGrid]: '弹性栅格',
 }
 
 /** 组件类型图标映射 */
@@ -149,6 +197,7 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.PromoBanner]: 'Promotion',
   [ComponentType.Coupon]: 'Ticket',
   [ComponentType.Video]: 'VideoPlay',
+  [ComponentType.Audio]: 'Headset',
   [ComponentType.BrandIntro]: 'Memo',
   [ComponentType.ImageText]: 'Document',
   [ComponentType.ContactInfo]: 'Phone',
@@ -187,6 +236,29 @@ export const ComponentTypeIcons: Record<ComponentType, string> = {
   [ComponentType.MaterialList]: 'FolderOpened',
   [ComponentType.MemberPlan]: 'GoldMedal',
   [ComponentType.QaList]: 'ChatDotRound',
+
+  [ComponentType.PlanetQaCard]: 'ChatLineSquare',
+  [ComponentType.PlanetAskBanner]: 'ChatLineRound',
+  [ComponentType.PlanetMembersStrip]: 'UserFilled',
+  [ComponentType.PlanetChallengeCard]: 'Calendar',
+  [ComponentType.PlanetBenefitCard]: 'Present',
+  [ComponentType.OpCreatorBanner]: 'EditPen',
+  [ComponentType.OpQuoteCard]: 'ChatDotRound',
+  [ComponentType.OpSmartGroupCard]: 'ChatDotSquare',
+  [ComponentType.OpReferralBanner]: 'Promotion',
+  [ComponentType.OpGatedDownloadCard]: 'DocumentCopy',
+  [ComponentType.HPeekCarousel]: 'Picture',
+  [ComponentType.HComparisonCard]: 'Switch',
+  [ComponentType.HMetricStrip]: 'TrendCharts',
+  [ComponentType.HFilterChips]: 'Filter',
+  [ComponentType.HSplitBanner]: 'Share',
+  [ComponentType.ContentFaqAccordion]: 'ChatLineSquare',
+  [ComponentType.ContentMiniAudio]: 'Headset',
+  [ComponentType.ContentMilestoneTracker]: 'Timer',
+  [ComponentType.LayoutOverlapWrapper]: 'Files',
+  [ComponentType.LayoutPaperSheet]: 'DocumentCopy',
+  [ComponentType.LayoutStickyWrapper]: 'Top',
+  [ComponentType.LayoutFlexibleGrid]: 'Grid',
 }
 
 /** 组件分类 */
@@ -197,6 +269,10 @@ export enum ComponentCategory {
   Layout = 'layout',
   Planet = 'planet',
   Warm = 'warm',
+  /** 增长与转化运营 */
+  Growth = 'growth',
+  /** 平排 / 横向高密度 */
+  Horizontal = 'horizontal',
 }
 
 /** 组件分类标签 */
@@ -207,6 +283,8 @@ export const ComponentCategoryLabels: Record<ComponentCategory, string> = {
   [ComponentCategory.Layout]: '布局',
   [ComponentCategory.Planet]: '星球',
   [ComponentCategory.Warm]: '品牌组件',
+  [ComponentCategory.Growth]: '增长转化',
+  [ComponentCategory.Horizontal]: '平排横滑',
 }
 
 /** 组件分类与类型映射 */
@@ -228,10 +306,46 @@ export const ComponentCategoryMap: Record<ComponentCategory, ComponentType[]> = 
     ComponentType.QaList,
     ComponentType.BrandIntro,
     ComponentType.Certificate,
+    ComponentType.ContentFaqAccordion,
+    ComponentType.ContentMiniAudio,
+    ComponentType.ContentMilestoneTracker,
   ],
   [ComponentCategory.Marketing]: [ComponentType.NoticeBar, ComponentType.ActivityEntry, ComponentType.ActivityList, ComponentType.AppointmentService, ComponentType.MemberCard, ComponentType.PromoBanner, ComponentType.MemberPlan, ComponentType.ContentPaywall, ComponentType.Countdown, ComponentType.FloatButton, ComponentType.FormEntry, ComponentType.AIEntry, ComponentType.ContactInfo, ComponentType.JoinGroup],
-  [ComponentCategory.Layout]: [ComponentType.Nav, ComponentType.Divider, ComponentType.Spacer, ComponentType.Container, ComponentType.SectionBg],
-  [ComponentCategory.Planet]: [ComponentType.PlanetHero, ComponentType.PlanetTopics, ComponentType.PlanetFeed],
+  [ComponentCategory.Layout]: [
+    ComponentType.Nav,
+    ComponentType.Divider,
+    ComponentType.Spacer,
+    ComponentType.Container,
+    ComponentType.SectionBg,
+    ComponentType.LayoutOverlapWrapper,
+    ComponentType.LayoutPaperSheet,
+    ComponentType.LayoutStickyWrapper,
+    ComponentType.LayoutFlexibleGrid,
+  ],
+  [ComponentCategory.Planet]: [
+    ComponentType.PlanetHero,
+    ComponentType.PlanetTopics,
+    ComponentType.PlanetFeed,
+    ComponentType.PlanetQaCard,
+    ComponentType.PlanetAskBanner,
+    ComponentType.PlanetMembersStrip,
+    ComponentType.PlanetChallengeCard,
+    ComponentType.PlanetBenefitCard,
+  ],
+  [ComponentCategory.Growth]: [
+    ComponentType.OpCreatorBanner,
+    ComponentType.OpQuoteCard,
+    ComponentType.OpSmartGroupCard,
+    ComponentType.OpReferralBanner,
+    ComponentType.OpGatedDownloadCard,
+  ],
+  [ComponentCategory.Horizontal]: [
+    ComponentType.HPeekCarousel,
+    ComponentType.HComparisonCard,
+    ComponentType.HMetricStrip,
+    ComponentType.HFilterChips,
+    ComponentType.HSplitBanner,
+  ],
   [ComponentCategory.Warm]: [
     ComponentType.WarmGreet,
     ComponentType.WarmAuthors,
@@ -344,6 +458,16 @@ export interface ComponentStyle {
   font_size?: number
   /** 是否在小程序端渲染，false 时不展示 */
   visible?: boolean
+  /**
+   * 暖调环境阴影（v2）：独立字段便于属性面板逐项调节，
+   * 渲染端合成 box-shadow；数字单位 px（端上 rpx = px * 2）。
+   */
+  shadow_x?: number
+  shadow_y?: number
+  shadow_blur?: number
+  shadow_spread?: number
+  /** 支持 rgba 透明度通道 */
+  shadow_color?: string
   [key: string]: any
 }
 
@@ -359,6 +483,38 @@ export interface ComponentInstance {
   children?: ComponentInstance[]
 }
 
+/** 渐变色标：offset 为 0~100 的百分比 */
+export interface GradientStop {
+  color: string
+  offset: number
+}
+
+/** 渐变参数：angle 0~360（CSS 惯例，180° = 自上而下） */
+export interface PageGradient {
+  angle: number
+  stops: GradientStop[]
+}
+
+/** 复合页面背景：solid = 纯色；gradient = 线性渐变 */
+export interface PageBackground {
+  type: 'solid' | 'gradient'
+  /** solid 模式的填充色 */
+  color?: string
+  /** gradient 模式的渐变参数 */
+  gradient?: PageGradient
+}
+
+/**
+ * 底部渐隐融合遮罩。
+ * color = 'auto' 时自动取页面背景底色（渐变取终点色标）；
+ * 数字字段单位 px（端上按 rpx = px * 2 换算）。
+ */
+export interface PageBottomOverlay {
+  enabled: boolean
+  height: number
+  color: 'auto' | string
+}
+
 /** 页面配置 */
 export interface PageConfig {
   id: string
@@ -367,8 +523,63 @@ export interface PageConfig {
   path: string
   share_title?: string
   share_image?: string
+  /** @deprecated 旧字段，仅向下兼容；新代码使用 background，保存时双向同步 */
   background_color?: string
+  /** 复合背景（v2）：与 background_color 共存，渲染端优先读本字段 */
+  background?: PageBackground
+  /** 底部渐隐融合遮罩（v2） */
+  bottomOverlay?: PageBottomOverlay
 }
+
+/** 底部遮罩默认配置（需求基线：默认开启 / 96px / 自动取底色） */
+export const DEFAULT_BOTTOM_OVERLAY: PageBottomOverlay = {
+  enabled: true,
+  height: 96,
+  color: 'auto',
+}
+
+/** 品牌预设色盘（暖阁质感规范） */
+export const BACKGROUND_PRESETS: Array<{ label: string; background: PageBackground }> = [
+  {
+    label: '暖阁纸感',
+    background: {
+      type: 'gradient',
+      gradient: {
+        angle: 180,
+        stops: [
+          { color: '#FFFDF9', offset: 0 },
+          { color: '#FDF6EC', offset: 100 },
+        ],
+      },
+    },
+  },
+  {
+    label: '晨光米杏',
+    background: {
+      type: 'gradient',
+      gradient: {
+        angle: 180,
+        stops: [
+          { color: '#FEF3C7', offset: 0 },
+          { color: '#FFFDF9', offset: 100 },
+        ],
+      },
+    },
+  },
+  {
+    label: '极简冷白',
+    background: {
+      type: 'gradient',
+      gradient: {
+        angle: 180,
+        stops: [
+          { color: '#FFFFFF', offset: 0 },
+          { color: '#F8FAFC', offset: 100 },
+        ],
+      },
+    },
+  },
+]
 
 /** 全局配置 */
 export interface GlobalConfig {

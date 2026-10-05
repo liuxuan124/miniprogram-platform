@@ -138,7 +138,12 @@
             :style="{ color: activeTab === idx ? form.theme.tabBarActiveColor : form.theme.tabBarInactiveColor }"
             @click="switchTab(idx)"
           >
-            <TabBarIconDisplay :icon="tab.icon" class="tabbar-icon" />
+            <TabBarIconDisplay
+              :icon="tab.icon"
+              :selected-icon="tab.selectedIcon"
+              :active="activeTab === idx"
+              class="tabbar-icon"
+            />
             <span class="tabbar-label">{{ tab.text }}</span>
           </div>
         </div>

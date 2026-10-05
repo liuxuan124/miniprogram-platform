@@ -27,14 +27,16 @@
         </button>
         <div class="scene-chips">
           <button
-            v-for="s in sceneChips"
+            v-for="s in sceneChipViews"
             :key="s.key"
             type="button"
             class="chip"
-            :class="{ on: sceneFilter === s.key }"
+            :class="{ on: sceneFilter === s.key, 'chip--empty': s.count === 0 && s.key !== 'all' }"
+            :disabled="s.count === 0 && s.key !== 'all'"
+            :title="s.count === 0 && s.key !== 'all' ? '该场景下暂无模板' : ''"
             @click="sceneFilter = s.key"
           >
-            {{ s.label }}
+            {{ s.label }} {{ s.count }}
           </button>
         </div>
       </div>
@@ -68,50 +70,64 @@
                 <span v-if="isInUse(item)" class="tag t-acc">
                   {{ isLiveTemplate(item) ? '当前使用中' : '待发布' }}
                 </span>
+                <span v-if="isSystemStore(item)" class="tag t-live">官方预设</span>
+                <span class="tpl-dots" :title="`主色：${accentListOf(item).join(' ')}`">
+                  <i v-for="(c, ci) in accentListOf(item)" :key="ci" :style="{ background: c }" />
+                </span>
               </div>
               <div class="faint">
                 {{ sceneLabelForStore(item) }} · {{ item.pageCount || 0 }} 个导航页 · 含导航与配色
               </div>
+              <div v-if="corePagesOf(item).length" class="tpl-pages">
+                <span class="faint">包含</span>
+                <span v-for="p in corePagesOf(item)" :key="p" class="tag t-page">{{ p }}</span>
+              </div>
               <div class="tpl-actions">
-                <button type="button" class="btn sm" @click="previewStore(item)">
-                  <MiniIcon name="eye" :size="14" />
-                  预览
-                </button>
-                <button type="button" class="btn sm" @click="previewStoreQr(item)">
-                  <MiniIcon name="qr" :size="14" />
-                  扫码
-                </button>
                 <button
                   v-if="!isInUse(item)"
                   type="button"
-                  class="btn sm soft"
+                  class="btn sm primary"
                   :disabled="activatingId === item.id"
                   @click="confirmActivate(item)"
                 >
-                  应用
+                  应用模板
                 </button>
                 <button v-else type="button" class="btn sm" disabled>当前使用中</button>
-                <button type="button" class="btn sm" @click="duplicateStore(item)">复制</button>
-                <button type="button" class="btn sm" @click="openEditStoreMeta(item)">编辑</button>
-                <button
-                  v-if="canDeleteStore(item)"
-                  type="button"
-                  class="btn sm tpl-btn-danger"
-                  @click="deleteStore(item)"
-                >
-                  删除
+                <button type="button" class="btn sm soft" @click="previewStore(item)">
+                  <MiniIcon name="eye" :size="14" />
+                  预览
                 </button>
-              </div>
-              <div v-if="!isSystemStore(item)" class="tpl-actions tpl-actions--sub">
-                <button type="button" class="btn sm soft" @click="editStoreSite(item)">编辑站点</button>
-                <button type="button" class="btn sm soft" @click="captureStoreFromSite(item)">覆盖保存</button>
+                <el-dropdown trigger="click" placement="bottom-end" @command="(c: string) => onCardMenu(c, item)">
+                  <button type="button" class="iconbtn" aria-label="更多操作" aria-haspopup="menu">
+                    <MiniIcon name="more" :size="16" />
+                  </button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="qr">扫码看真机</el-dropdown-item>
+                      <el-dropdown-item command="duplicate">复制为我的模板</el-dropdown-item>
+                      <el-dropdown-item v-if="!isSystemStore(item)" command="edit">
+                        编辑模板信息
+                      </el-dropdown-item>
+                      <el-dropdown-item v-if="!isSystemStore(item)" command="edit-site" divided>
+                        编辑站点
+                      </el-dropdown-item>
+                      <el-dropdown-item v-if="!isSystemStore(item)" command="capture">
+                        用当前站点覆盖保存
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        v-if="canDeleteStore(item)"
+                        command="delete"
+                        divided
+                        class="is-danger"
+                      >
+                        删除
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
             </div>
           </article>
-          <button type="button" class="tpl tpl-add" :disabled="creating" @click="createFromCurrent">
-            <span class="tpl-add__plus">+</span>
-            <span>把当前小程序存为模板</span>
-          </button>
         </div>
         <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
           <span>{{ sceneFilter === 'all' ? '还没有整店模板' : '这个场景下还没有模板' }}</span>
@@ -237,34 +253,65 @@
               </div>
             </div>
             <div class="tpl-body">
-              <b class="tpl-title" :title="displayNameFull(item)">{{ displayNameFull(item) }}</b>
+              <div class="tpl-title-row">
+                <b class="tpl-title" :title="displayNameFull(item)">{{ displayNameFull(item) }}</b>
+                <span v-if="isInUse(item)" class="tag t-acc">
+                  {{ isLiveTemplate(item) ? '当前使用中' : '待发布' }}
+                </span>
+                <span class="tpl-dots" :title="`主色：${accentListOf(item).join(' ')}`">
+                  <i v-for="(c, ci) in accentListOf(item)" :key="ci" :style="{ background: c }" />
+                </span>
+              </div>
               <div class="faint">
                 {{ sceneLabelForStore(item) }} · {{ formatTime(item.updateTime || item.createTime) }}
+              </div>
+              <div v-if="corePagesOf(item).length" class="tpl-pages">
+                <span class="faint">包含</span>
+                <span v-for="p in corePagesOf(item)" :key="p" class="tag t-page">{{ p }}</span>
               </div>
               <div class="tpl-actions">
                 <button
                   v-if="!isInUse(item)"
                   type="button"
-                  class="btn sm soft"
+                  class="btn sm primary"
+                  :disabled="activatingId === item.id"
                   @click="confirmActivate(item)"
                 >
-                  应用
+                  应用模板
                 </button>
                 <button v-else type="button" class="btn sm" disabled>当前使用中</button>
-                <button type="button" class="btn sm" @click="duplicateStore(item)">复制</button>
-                <button type="button" class="btn sm" @click="openEditStoreMeta(item)">编辑</button>
-                <button
-                  v-if="canDeleteStore(item)"
-                  type="button"
-                  class="btn sm tpl-btn-danger"
-                  @click="deleteStore(item)"
-                >
-                  删除
+                <button type="button" class="btn sm soft" @click="previewStore(item)">
+                  <MiniIcon name="eye" :size="14" />
+                  预览
                 </button>
-              </div>
-              <div class="tpl-actions tpl-actions--sub">
-                <button type="button" class="btn sm soft" @click="editStoreSite(item)">编辑站点</button>
-                <button type="button" class="btn sm soft" @click="captureStoreFromSite(item)">覆盖保存</button>
+                <el-dropdown trigger="click" placement="bottom-end" @command="(c: string) => onCardMenu(c, item)">
+                  <button type="button" class="iconbtn" aria-label="更多操作" aria-haspopup="menu">
+                    <MiniIcon name="more" :size="16" />
+                  </button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="qr">扫码看真机</el-dropdown-item>
+                      <el-dropdown-item command="duplicate">复制一份</el-dropdown-item>
+                      <el-dropdown-item v-if="!isSystemStore(item)" command="edit" divided>
+                        编辑模板信息
+                      </el-dropdown-item>
+                      <el-dropdown-item v-if="!isSystemStore(item)" command="edit-site">
+                        编辑站点
+                      </el-dropdown-item>
+                      <el-dropdown-item v-if="!isSystemStore(item)" command="capture">
+                        用当前站点覆盖保存
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        v-if="canDeleteStore(item)"
+                        command="delete"
+                        divided
+                        class="is-danger"
+                      >
+                        删除
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
               </div>
             </div>
           </article>
@@ -474,6 +521,26 @@ const storeTabTotal = computed(() => storeListBase.value.length)
 const pageTabTotal = computed(() => pageTemplates.value.length)
 const mineTabTotal = computed(() => myTemplates.value.length)
 
+/**
+ * 场景筛选 chip 带数量；当前 tab 下 0 个的场景置灰不可点。
+ * 注意计数不能复用 matchStoreScene/matchPageScene —— 那两个读 sceneFilter.value，
+ * 在这里调用会形成 computed 循环依赖。这里直接用 resolver 拿场景 key 再比对。
+ */
+const sceneChipViews = computed(() => {
+  const usePage = tab.value === 'page'
+  const base = usePage ? pageTemplates.value : storeListBase.value
+  return sceneChips.map((s) => {
+    if (s.key === 'all') return { ...s, count: base.length }
+    const count = base.filter((r) => {
+      const key = usePage
+        ? resolvePageTemplateScene(r as Record<string, unknown>)
+        : resolveStoreTemplateScene(r as unknown as Record<string, unknown>)
+      return key === s.key
+    }).length
+    return { ...s, count }
+  })
+})
+
 watch(tab, (v) => {
   router.replace({ query: { ...route.query, tab: v === 'store' ? undefined : v } })
 })
@@ -538,9 +605,98 @@ function artBg(item: ReleaseRecord) {
   return colors[id % colors.length]
 }
 
+/** 兜底色板：只在快照里读不到主色时用，按 id 稳定取色避免每次渲染都变 */
+const ACCENT_FALLBACK = ['#B4430F', '#2458A6', '#1F7A4D', '#8F5400', '#7A3E5C', '#5E5146']
+
+/** 兜底取色：只在完全读不到任何真实主色时用 */
+/**
+ * 卡片副标题里的「包含核心页面」。
+ * 只取前 5 个并且只显示短名——列表卡片不是详情页，堆满标签反而看不清。
+ */
+function corePagesOf(item: ReleaseRecord): string[] {
+  const raw = (item as unknown as Record<string, unknown>)
+  const list = (raw.corePages || raw.pageNames || raw.pages) as unknown
+  if (Array.isArray(list) && list.length) {
+    return list
+      .map((p) => {
+        const s = typeof p === 'string' ? p : String((p as Record<string, unknown>)?.name || '')
+        return s.split('/').filter(Boolean).pop() || s
+      })
+      .filter(Boolean)
+      .slice(0, 5)
+  }
+  // 没有显式列表时，用导航条目数给个下限提示，不编造页面名
+  const n = Number(item.pageCount || 0)
+  return n > 0 ? [`${n} 个页面`] : []
+}
+
+/** 卡片「···」菜单统一分发 */
+function onCardMenu(cmd: string, item: ReleaseRecord) {
+  if (cmd === 'qr') return previewStoreQr(item)
+  if (cmd === 'duplicate') return duplicateStore(item)
+  if (cmd === 'edit') return openEditStoreMeta(item)
+  if (cmd === 'edit-site') return editStoreSite(item)
+  if (cmd === 'capture') return captureStoreFromSite(item)
+  if (cmd === 'delete') return deleteStore(item)
+}
+
 function accentOf(item: ReleaseRecord) {
-  const colors = ['#B4430F', '#2458A6', '#1F7A4D', '#8F5400', '#7A3E5C', '#5E5146']
-  return colors[(Number(item.id) || 0) % colors.length]
+  return accentListOf(item)[0] || ACCENT_FALLBACK[(Number(item.id) || 0) % ACCENT_FALLBACK.length]
+}
+
+/**
+ * 卡片上的主色小圆点。
+ * 数据源优先级：① 列表接口带的 themeSnapshot → ② 已缓存的 release 详情快照 → ③ 兜底色板。
+ * 之前是纯按 id 取模，导致不同模板显示同一批颜色、且和实际风格完全无关——
+ * 那不是「预判风格」，是误导。
+ */
+const accentCache = new Map<string, string[]>()
+
+function pickColors(cfg: Record<string, unknown> | null | undefined): string[] {
+  if (!cfg) return []
+  const theme = (cfg.theme || cfg.siteTheme || {}) as Record<string, unknown>
+  const mine = (cfg.minePageConfig || {}) as Record<string, unknown>
+  const out: string[] = []
+  const push = (v: unknown) => {
+    const s = String(v || '').trim()
+    if (/^#[0-9a-fA-F]{3,8}$/.test(s) && !out.includes(s)) out.push(s)
+  }
+  push(theme.primaryColor)
+  push(theme.tabBarActiveColor)
+  push(theme.secondaryColor)
+  push(mine.themeColor)
+  return out.slice(0, 3)
+}
+
+function accentListOf(item: ReleaseRecord): string[] {
+  const id = String(item.id ?? '')
+  const fromList = pickColors(
+    ((item as unknown as Record<string, unknown>).themeSnapshot
+      || (item as unknown as Record<string, unknown>).theme) as Record<string, unknown> | undefined,
+  )
+  if (fromList.length) {
+    accentCache.set(id, fromList)
+    return fromList
+  }
+  const cached = accentCache.get(id)
+  if (cached?.length) return cached
+  return []
+}
+
+/** 异步补齐主色：卡片先渲染，拿到详情后再点亮圆点 */
+async function warmAccent(item: ReleaseRecord) {
+  const id = toReleaseId(item.id)
+  if (id == null || accentCache.has(String(item.id))) return
+  try {
+    const res = await getReleaseDetail(id)
+    const detail = (res as { data?: Record<string, unknown> })?.data || (res as Record<string, unknown>)
+    const snap = detail?.snapshot ?? detail?.configSnapshot
+    const cfg = typeof snap === 'string' ? JSON.parse(snap) : snap
+    const colors = pickColors(cfg as Record<string, unknown>)
+    if (colors.length) accentCache.set(String(item.id), colors)
+  } catch {
+    /* 拿不到就保持无圆点，比假色好 */
+  }
 }
 
 function pageArtBg(tpl: any) {
@@ -711,6 +867,12 @@ function createFromCurrent() {
 }
 
 function openEditStoreMeta(item: ReleaseRecord) {
+  // 官方预置模板属全局资产：与 deleteStore / editStoreSite 同一口径，不给编辑入口。
+  // 漏这条会让 content_ops 直接改掉所有租户共用的模板。
+  if (isSystemStore(item)) {
+    ElMessage.info('官方预置模板不可编辑，可先「复制为我的模板」再改')
+    return
+  }
   const id = toReleaseId(item.id)
   if (id == null) return
   saveDialogMode.value = 'edit'
@@ -908,6 +1070,10 @@ async function load() {
     siteName.value = String(site?.name || site?.brand?.name || '我的小程序')
     const inUse = storeTemplates.value.find((r) => isInUse(r))
     currentPageCount.value = Number(inUse?.pageCount || currentTabBar.value.length || 0)
+    // 卡片主色圆点：列表接口通常不带 theme，靠详情快照补齐（失败就不显示，不填假色）
+    void Promise.all(
+      [...storeTemplates.value, ...myTemplates.value].map((r) => warmAccent(r)),
+    )
   } catch (e: unknown) {
     const msg = apiErrorMessage(e, '加载模板失败')
     if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
@@ -934,6 +1100,14 @@ onBeforeUnmount(() => {
   gap: 6px;
   flex-wrap: wrap;
   padding-bottom: 6px;
+  .chip--empty {
+    opacity: .45;
+    cursor: not-allowed;
+  }
+  .chip--empty:hover {
+    border-color: var(--line, #e8dfd3) !important;
+    background: transparent !important;
+  }
 }
 .tpl-title-row {
   display: flex;
@@ -941,10 +1115,46 @@ onBeforeUnmount(() => {
   gap: 8px;
   align-items: flex-start;
 }
+
+/* 卡片主色小圆点：不点进预览就能预判色彩风格 */
+.tpl-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, .1);
+    display: block;
+  }
+}
+
+/* 「包含核心页面」标签行 */
+.tpl-pages {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  margin-top: 2px;
+  .tag.t-page {
+    font-size: 10.5px;
+    padding: 1px 6px;
+    background: var(--soft, #F5F1EA);
+    border: 1px solid var(--line2, #E8DFD3);
+    border-radius: 5px;
+    color: var(--mute, #8A7F72);
+    white-space: nowrap;
+  }
+}
+
 .tpl-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
   &--sub {
     margin-top: 6px;
     padding-top: 6px;

@@ -15,7 +15,7 @@ public interface ContentInteractService {
 
     List<ContentCommentDTO> listComments(Long contentId);
 
-    ContentCommentDTO addComment(Long contentId, Long userId, String nickname, String avatar, String content);
+    ContentCommentDTO addComment(Long contentId, Long userId, String nickname, String avatar, String content, Long parentId, String replyToNickname);
 
     PageResult<ContentCommentDTO> adminListComments(Long contentId, Integer status, long current, long size);
 

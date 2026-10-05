@@ -14,6 +14,8 @@ public class FileItemVO {
 
     private String summary;
 
+    private String iconUrl;
+
     private Long groupId;
 
     private String groupName;
