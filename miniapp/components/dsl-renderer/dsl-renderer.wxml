@@ -15,15 +15,57 @@
   </block>
 
   <!-- 0. 搜索组件 search -->
-  <view
-    wx:elif="{{comp.type === 'search'}}"
-    class="dsl-search"
-    style="{{comp.styleString}}"
-    bindtap="onSearchTap"
-  >
-    <text class="dsl-search__icon">🔍</text>
-    <text class="dsl-search__text">{{comp.props.placeholder || '搜索文章 / 活动 / 话题'}}</text>
-  </view>
+  <block wx:if="{{comp.type === 'search'}}">
+    <view
+      class="dsl-search dsl-search--{{comp.props._shape}} dsl-search--align-{{comp.props._align}} {{comp.props._sticky ? 'is-sticky' : ''}}"
+      style="{{comp.props._boxStyle}}"
+      bindtap="onSearchTap"
+    >
+      <text class="dsl-search__icon" style="color:{{comp.props._textColor}}">🔍</text>
+      <text class="dsl-search__text" style="color:{{comp.props._textColor}}">{{comp.props._phText}}</text>
+
+      <!-- 右侧附加交互 -->
+      <text
+        wx:if="{{comp.props._rightAction === 'button'}}"
+        class="dsl-search__btn"
+        style="color:{{comp.props._btnColor}}"
+        catchtap="onSearchActionTap"
+      >{{comp.props._rightActionText}}</text>
+      <text
+        wx:elif="{{comp.props._rightAction === 'scan'}}"
+        class="dsl-search__ico"
+        style="color:{{comp.props._textColor}}"
+        catchtap="onSearchActionTap"
+      >⌗</text>
+      <text
+        wx:elif="{{comp.props._rightAction === 'category'}}"
+        class="dsl-search__ico"
+        style="color:{{comp.props._textColor}}"
+        catchtap="onSearchActionTap"
+      >☰</text>
+    </view>
+
+    <!-- 弹窗搜索：tap_target = popup 时在当前页浮层内直接搜 -->
+    <view wx:if="{{popupSearchOpen}}" class="dsl-search-popup" catchtap="noop">
+      <view class="dsl-search-popup__mask" bindtap="closePopupSearch"></view>
+      <view class="dsl-search-popup__panel" style="background:{{comp.props._bgColor}}">
+        <view class="dsl-search-popup__head">
+          <text class="dsl-search-popup__title" style="color:{{comp.props._textColor}}">搜索 · {{comp.props._scopeText}}</text>
+          <text class="dsl-search-popup__close" bindtap="closePopupSearch">✕</text>
+        </view>
+        <input
+          class="dsl-search-popup__input"
+          style="color:{{comp.props._textColor}};background:{{comp.props._bgColor}}"
+          focus="{{popupSearchOpen}}"
+          confirm-type="search"
+          placeholder="{{comp.props._phText}}"
+          value="{{popupKeyword}}"
+          bindinput="onPopupKeywordInput"
+          bindconfirm="doPopupSearch"
+        />
+      </view>
+    </view>
+  </block>
 
   <!-- 0. 公告栏 notice_bar -->
   <dsl-notice-bar
@@ -36,42 +78,132 @@
   <!-- 0. 分类导航 category_nav -->
   <view
     wx:elif="{{comp.type === 'category_nav'}}"
-    class="dsl-category dsl-category--icon-{{comp.props.icon_style || 'circle'}}"
+    class="dsl-category dsl-category--surface-{{comp.props._surface}} dsl-category--shape-{{comp.props._iconShape}}"
     style="{{comp.styleString}}"
   >
-    <view class="dsl-category__title">{{comp.props.title || '分类导航'}}</view>
-    <scroll-view
-      wx:if="{{(comp.props.layout || 'grid-3') === 'scroll'}}"
-      class="dsl-category__list"
-      scroll-x
+    <!-- showTitle=false 时整行不渲染 -->
+    <view wx:if="{{comp.props._showTitle && comp.props._title}}" class="dsl-category__title">
+      {{comp.props._title}}
+    </view>
+
+    <!-- 固定网格 -->
+    <view
+      wx:if="{{comp.props._layout === 'grid'}}"
+      class="dsl-category__grid"
+      style="grid-template-columns: repeat({{comp.props._columns}}, minmax(0, 1fr));"
     >
       <view
-        wx:for="{{comp.props.items || []}}"
-        wx:key="index"
+        wx:for="{{comp.props._items}}"
+        wx:key="id"
         class="dsl-category__item"
-        data-link="{{item.link_url || item.url}}"
+        data-link="{{item.link_url}}"
         bindtap="onQuickNavigate"
       >
-        <image wx:if="{{item._iconIsImage}}" class="dsl-category__icon-img" src="{{item.icon}}" mode="aspectFit" />
-        <text wx:else class="dsl-category__icon">{{item.icon || '📌'}}</text>
-        <text class="dsl-category__name">{{item.title || item.name || '分类'}}</text>
+        <view
+          class="dsl-category__icon"
+          style="border-radius:{{comp.props._iconRadius}}rpx;{{comp.props._iconShape === 'none' ? 'background:transparent;' : ''}}"
+        >
+          <image wx:if="{{item.isImage}}" class="dsl-category__icon-img" src="{{item.icon}}" mode="aspectFit" />
+          <text wx:else class="dsl-category__icon-emoji">{{item.icon || '📌'}}</text>
+          <text wx:if="{{item.badge}}" class="dsl-category__badge" style="background:{{item.badgeColor}}">{{item.badge}}</text>
+        </view>
+        <text class="dsl-category__name" style="color:{{comp.props._titleColor}}">{{item.title || '分类'}}</text>
+        <text
+          wx:if="{{item.subtitle}}"
+          class="dsl-category__sub"
+          style="color:{{comp.props._subtitleColor}};font-size:{{comp.props._subtitleSize}}rpx;"
+        >{{item.subtitle}}</text>
+      </view>
+    </view>
+
+    <!-- 单行横滑 -->
+    <scroll-view
+      wx:elif="{{comp.props._layout === 'scroll'}}"
+      class="dsl-category__scroll"
+      scroll-x
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <view class="dsl-category__scroll-inner">
+        <view
+          wx:for="{{comp.props._items}}"
+          wx:key="id"
+          class="dsl-category__item dsl-category__item--fixed"
+          data-link="{{item.link_url}}"
+          bindtap="onQuickNavigate"
+        >
+          <view
+            class="dsl-category__icon"
+            style="border-radius:{{comp.props._iconRadius}}rpx;{{comp.props._iconShape === 'none' ? 'background:transparent;' : ''}}"
+          >
+            <image wx:if="{{item.isImage}}" class="dsl-category__icon-img" src="{{item.icon}}" mode="aspectFit" />
+            <text wx:else class="dsl-category__icon-emoji">{{item.icon || '📌'}}</text>
+            <text wx:if="{{item.badge}}" class="dsl-category__badge" style="background:{{item.badgeColor}}">{{item.badge}}</text>
+          </view>
+          <text class="dsl-category__name" style="color:{{comp.props._titleColor}}">{{item.title || '分类'}}</text>
+          <text
+            wx:if="{{item.subtitle}}"
+            class="dsl-category__sub"
+            style="color:{{comp.props._subtitleColor}};font-size:{{comp.props._subtitleSize}}rpx;"
+          >{{item.subtitle}}</text>
+        </view>
       </view>
     </scroll-view>
-    <view
-      wx:else
-      class="dsl-category__grid dsl-category__grid--{{comp.props.layout || 'grid-3'}}"
-      style="grid-template-columns: repeat({{comp.props.columns || ((comp.props.layout || 'grid-3') === 'grid-4' ? 4 : 3)}}, minmax(0, 1fr));"
-    >
-      <view
-        wx:for="{{comp.props.items || []}}"
-        wx:key="index"
-        class="dsl-category__item"
-        data-link="{{item.link_url || item.url}}"
-        bindtap="onQuickNavigate"
+
+    <!-- 双行分页滑动：内层横向 scroll-view，每页宽度 = 100% -->
+    <view wx:else class="dsl-category__pager">
+      <scroll-view
+        class="dsl-category__pager-scroll"
+        scroll-x
+        enhanced
+        show-scrollbar="{{false}}"
+        circular
+        bindscroll="onCategoryPagerScroll"
       >
-        <image wx:if="{{item._iconIsImage}}" class="dsl-category__icon-img" src="{{item.icon}}" mode="aspectFit" />
-        <text wx:else class="dsl-category__icon">{{item.icon || '📌'}}</text>
-        <text class="dsl-category__name">{{item.title || item.name || '分类'}}</text>
+        <view class="dsl-category__pager-track">
+          <!-- 🔴 分页切片在 JS 里算好（_pageGroups 是二维数组），不在 WXML 里写 index 比较：
+               嵌套 wx:for 会让内层 index 覆盖外层，且 item0 不是 WXML 合法变量，
+               那种写法在小程序端静默不渲染。此处只做纯遍历。 -->
+          <view
+            wx:for="{{comp.props._pageGroups}}"
+            wx:for-item="pageItems"
+            wx:key="pageKey"
+            class="dsl-category__page"
+            style="grid-template-columns: repeat({{comp.props._pageColumns}}, minmax(0, 1fr));"
+          >
+            <view
+              wx:for="{{pageItems}}"
+              wx:for-item="item"
+              wx:key="id"
+              class="dsl-category__item"
+              data-link="{{item.link_url}}"
+              bindtap="onQuickNavigate"
+            >
+              <view
+                class="dsl-category__icon"
+                style="border-radius:{{comp.props._iconRadius}}rpx;{{comp.props._iconShape === 'none' ? 'background:transparent;' : ''}}"
+              >
+                <image wx:if="{{item.isImage}}" class="dsl-category__icon-img" src="{{item.icon}}" mode="aspectFit" />
+                <text wx:else class="dsl-category__icon-emoji">{{item.icon || '📌'}}</text>
+                <text wx:if="{{item.badge}}" class="dsl-category__badge" style="background:{{item.badgeColor}}">{{item.badge}}</text>
+              </view>
+              <text class="dsl-category__name" style="color:{{comp.props._titleColor}}">{{item.title || '分类'}}</text>
+              <text
+                wx:if="{{item.subtitle}}"
+                class="dsl-category__sub"
+                style="color:{{comp.props._subtitleColor}};font-size:{{comp.props._subtitleSize}}rpx;"
+              >{{item.subtitle}}</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view wx:if="{{comp.props._pages > 1}}" class="dsl-category__dots">
+        <view
+          wx:for="{{comp.props._pages}}"
+          wx:key="*this"
+          class="dsl-category__dot {{index === categoryPagerIndex ? 'is-on' : ''}}"
+        ></view>
       </view>
     </view>
   </view>
@@ -614,9 +746,16 @@
     style="padding:48rpx 32rpx;color:#6b5443;text-align:center;"
   >固定模板入口：发现/商城/星球/我的走原生业务页；首页请拆成可编辑区块</view>
 
+  <!--
+    styleString 透传：组件要知道自己有没有被配了通栏底色。
+    外层 parseStyle 已把 background_color 下发成 background（真机通栏底色本来就生效），
+    但组件内部卡片是不透明米白，会把底色整块遮死 —— 组件据此把卡片让成半透明。
+    与后台 PlanetFeedRenderer 的 has-bg 判定同规则。
+  -->
   <dsl-planet-feed
     wx:elif="{{comp.type === 'planet_feed'}}"
     config="{{comp.props}}"
+    style-string="{{comp.styleString}}"
   />
 
   <!-- ============================================================

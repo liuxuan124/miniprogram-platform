@@ -29,6 +29,9 @@ function getPlanetFeed(params = {}) {
     current: params.current || params.page || 1,
     size: params.size || params.page_size || 10,
     planetId: params.planetId || '',
+    // 排序：new(最新发布) / hot(热门) / reply(最后回复)。
+    // 只在显式传入时透传，留空让后端用默认 new，避免给老调用方塞一个多余 query。
+    sortBy: params.sortBy || params.sort_by || '',
   }, { showError: false })
 }
 

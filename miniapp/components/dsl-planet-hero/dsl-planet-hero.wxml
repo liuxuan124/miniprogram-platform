@@ -1,30 +1,71 @@
-<view class="dsl-planet-hero pl-hero" style="padding-top: {{padTop}}px;">
+<view class="dsl-planet-hero pl-hero" style="padding: {{padTop}}px {{padX}}px {{padBottom}}px;">
   <view class="pl-hero__rw">
-    <view class="pl-hero__lg">{{logoEmoji}}</view>
+    <view class="pl-hero__lg">
+      <image wx:if="{{isImageLogo}}" class="pl-hero__lg-img" src="{{logoEmoji}}" mode="aspectFill" />
+      <text wx:else>{{logoEmoji}}</text>
+    </view>
     <view class="pl-hero__meta">
       <text class="pl-hero__title warm-serif">{{title}}</text>
       <text class="pl-hero__sb">{{subtitle}}</text>
     </view>
     <view class="pl-hero__acts">
-      <view class="pl-hero__sw" catchtap="onSwitch">切换</view>
-      <view class="pl-hero__jn" catchtap="onJoin">{{joinText}}</view>
+      <!--
+        切换按钮此前**写死**（后台面板无对应开关），且与身份无关独立判定 ——
+        游客（还没加入任何星球）也会看到「切换」，点了必然无效。
+        现改为：① 受 show_switch_btn / switch_btn_text 控制；② **仅会员态可见**。
+        switch_action=link 时直接跳页，否则走 planet-switch-sheet 半屏切换（不跳页）。
+      -->
+      <view wx:if="{{isMember && showSwitchBtn}}" class="pl-hero__sw" catchtap="onSwitch">{{switchBtnText}}</view>
+      <!--
+        加入按钮与有效期条业务上互斥：游客显示加入按钮，会员显示续费入口。
+        ⚠️ 此前两个都无条件渲染 —— 截图里「加入」和「剩余 185 天」同时出现。
+      -->
+      <view wx:if="{{!isMember && showJoinBtn}}" class="pl-hero__jn" catchtap="onJoin">{{joinText}}</view>
+      <view wx:elif="{{isMember && showRenewBtn}}" class="pl-hero__rn" catchtap="onRenew">{{renewText}}</view>
     </view>
   </view>
-  <view class="pl-kpi">
-    <view wx:for="{{kpis}}" wx:key="label" class="pl-kpi__item">
-      <text class="pl-kpi__b">{{item.value}}</text>
+
+  <!--
+    KPI 栅格：列数由 kpiGridStyle 按**实际条数**动态给出。
+    ⚠️ 此前这里写的是 `pl-kpi--{{kpiStyle}}`，而 kpiStyle 只有 glass/plain 两种值，
+    CSS 里的列数类名却是 --quad/--triple/--compact —— 两套命名对不上，
+    导致 grid-template-columns 从未生效，4 项 KPI 在真机上竖着排成 4 行。
+  -->
+  <view
+    wx:if="{{visibleKpis.length}}"
+    class="pl-kpi pl-kpi--{{kpiStyle}}"
+    style="grid-template-columns: repeat({{visibleKpis.length}}, minmax(0, 1fr));"
+  >
+    <view wx:for="{{visibleKpis}}" wx:key="label" class="pl-kpi__item">
+      <text class="pl-kpi__b">{{item.value}}<text wx:if="{{item.suffix}}" class="pl-kpi__sfx">{{item.suffix}}</text></text>
       <text class="pl-kpi__s">{{item.label}}</text>
     </view>
   </view>
-  <view class="pl-exp" wx:if="{{expireText}}" catchtap="onRenew">🎫 {{expireText}}</view>
-  <view class="pl-joinrow" catchtap="onJoinRow">
+
+  <!-- 有效期条仅会员态可见（与加入按钮互斥） -->
+  <view wx:if="{{isMember && showExpireNotice}}" class="pl-exp" catchtap="onRenew">🎫 {{expireText}}</view>
+
+  <view wx:if="{{showGroupNotice}}" class="pl-joinrow" catchtap="onJoinRow">
     <text>{{joinRowText || '👥 加入球友微信群，第一时间收到更新通知'}}</text>
     <text class="pl-joinrow__go">{{joinRowGo || '去加入 ›'}}</text>
   </view>
+
   <!-- 切换主星球：半屏就地切，不跳页 -->
   <planet-switch-sheet
     id="planet-switch-sheet"
     bindchange="onSwitchChange"
     bindintro="onSwitchIntro"
   />
+
+  <!-- 加群活码弹窗：group_action_type=qrcode 时用；跳转链接模式下不会打开 -->
+  <view wx:if="{{groupModalOpen}}" class="pl-modal" catchtap="onGroupModalClose">
+    <view class="pl-modal__mask" />
+    <view class="pl-modal__bd" catchtap="noop">
+      <text class="pl-modal__t">{{groupModalTitle || '扫码加入球友群'}}</text>
+      <image wx:if="{{groupQrImage}}" class="pl-modal__qr" src="{{groupQrImage}}" mode="aspectFit" />
+      <text wx:if="{{!groupQrImage}}" class="pl-modal__d pl-modal__d--warn">尚未配置群二维码，请到装修器里上传</text>
+      <text wx:else class="pl-modal__d">{{groupModalDesc || '长按识别二维码，第一时间收到更新通知'}}</text>
+      <view class="pl-modal__x" catchtap="onGroupModalClose">关闭</view>
+    </view>
+  </view>
 </view>

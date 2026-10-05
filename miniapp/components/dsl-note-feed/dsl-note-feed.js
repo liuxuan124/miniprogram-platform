@@ -451,9 +451,14 @@ Component({
       const gutter = Number.isFinite(gutterRaw) ? Math.max(0, Math.min(gutterRaw, 40)) : 0
       this.setData({ gutterStyle: `padding-left:${gutter * 2}rpx;padding-right:${gutter * 2}rpx;` })
 
-      // 标题字号（24~44px）：写到每张卡片，不改 wxss
+      // 标题字号：13~18px 逻辑口径（与后台 noteFeedSchema 一致）。
+      // 🔴 旧实现是 24~44 再 *2rpx —— 面板填 32 实际只有约 16px，造成「填 32 渲染 16」的认知偏差。
+      // 现在面板填多少，视觉就是多少 px；*2 是 px→rpx 的正常换算。
       const titleRaw = Number(config.title_size)
-      const titleSize = Number.isFinite(titleRaw) ? Math.max(24, Math.min(titleRaw, 44)) : 32
+      const legacy = Number.isFinite(titleRaw) && titleRaw > 20 // 旧口径遗留值按 2 倍折回
+      const titleSize = legacy
+        ? Math.max(13, Math.min(Math.round(titleRaw / 2), 18))
+        : (Number.isFinite(titleRaw) ? Math.max(13, Math.min(titleRaw, 18)) : 15)
       this.setData({ titleStyle: `font-size:${titleSize * 2}rpx;` })
       const gapRaw = Number(config.item_gap)
       const itemGap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 48)) : 11

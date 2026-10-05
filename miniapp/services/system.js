@@ -82,6 +82,12 @@ const DEFAULT_MINE_PAGE_CONFIG = {
   ],
   orderQuickAccess: { ...DEFAULT_ORDER_QUICK_ACCESS, tabLabels: { ...DEFAULT_ORDER_QUICK_ACCESS.tabLabels } },
   userProfile: { ...DEFAULT_USER_PROFILE },
+  // ↓ 1.30 新增字段的默认值。口径 = 线上现状（全部显示 / 跟随全局 / 渐变头部 / 阴影卡片）。
+  // modules 走 resolveMineModules 归一化，这里只声明默认值表。
+  themeSource: 'inherit',
+  pageBackgroundColor: '',
+  headerStyle: 'gradient',
+  cardStyle: 'shadow',
 }
 
 function parseConfigField(value, fallback) {
@@ -109,6 +115,27 @@ const DEFAULT_LOGIN_PAGE_CONFIG = {
   templateStyle: 'warm',
   themeColor: '#C2410C',
   themeColorSecondary: '#EA580C',
+  // ↓ 新增字段默认值：一律等于**线上现状**（继承全局品牌色 / 模块全显示 / 渐变顶部 / 阴影卡片）
+  themeSource: 'inherit',
+  pageBackgroundColor: '',
+  headerStyle: 'gradient',
+  cardStyle: 'shadow',
+}
+
+/**
+ * 登录页模块显隐默认值。
+ * 🔴 全部 true —— 与线上 login.wxml 的无条件渲染一致，改任何一项为 false
+ * 都会让老页面升级后外观突变。
+ * key 与 login.wxml 的 block wx:if 一一对应（协议勾选/隐私弹窗/登录按钮刻意不在其中：合规项不给开关）。
+ */
+const LOGIN_MODULE_DEFAULTS = {
+  brandIdentity: true,
+  heroTitle: true,
+  interceptTip: true,
+  sheetHeading: true,
+  formHint: true,
+  skipButton: true,
+  privacyNote: true,
 }
 
 /** 登录页 4 套皮肤归一化（warm/brand/minimal/wechat） */
@@ -121,11 +148,69 @@ function resolveLoginPageStyleKey(login) {
   return 'warm'
 }
 
+/** 主题来源归一化：非法/缺省 → inherit（与 resolveMineThemeSource 同口径） */
+function normalizeLoginThemeSource(raw) {
+  return String(raw == null ? '' : raw).trim().toLowerCase() === 'page' ? 'page' : 'inherit'
+}
+
+/** 顶部样式归一化：非法/缺省 → gradient（线上现状） */
+function normalizeLoginHeaderStyle(raw) {
+  return String(raw == null ? '' : raw).trim().toLowerCase() === 'solid' ? 'solid' : 'gradient'
+}
+
+/** 卡片样式归一化：非法/缺省 → shadow（线上现状） */
+function normalizeLoginCardStyle(raw) {
+  const s = String(raw == null ? '' : raw).trim().toLowerCase()
+  if (s === 'flat' || s === 'outline') return s
+  return 'shadow'
+}
+
+/** 模块显隐归一化：缺字段 → true（保持线上表现） */
+function resolveLoginModules(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const out = {}
+  Object.keys(LOGIN_MODULE_DEFAULTS).forEach((key) => {
+    out[key] = src[key] === undefined || src[key] === null
+      ? LOGIN_MODULE_DEFAULTS[key]
+      : src[key] !== false
+  })
+  return out
+}
+
+/**
+ * 登录页生效主题色 —— 与管理端 `types/miniapp.ts` 的 resolveLoginEffectiveTheme 同语义。
+ *
+ * 🔴 老数据里 themeColor 一定有值（历史模板写死的暖橘），判定「是否页面覆盖」
+ * 只能看显式的 themeSource，不能看 themeColor 有没有值。
+ *
+ * @param {object} loginConfig 归一化后的登录页配置
+ * @param {object} globalTheme 全局品牌色 { primaryColor, secondaryColor }
+ */
+function resolveLoginEffectiveTheme(loginConfig, globalTheme) {
+  const theme = globalTheme && typeof globalTheme === 'object' ? globalTheme : {}
+  const gPrimary = String(theme.primaryColor || '').trim()
+  const gSecondary = String(theme.secondaryColor || '').trim()
+  const source = normalizeLoginThemeSource(loginConfig && loginConfig.themeSource)
+  if (source === 'page') {
+    const p = String((loginConfig && loginConfig.themeColor) || '').trim()
+    const s = String((loginConfig && loginConfig.themeColorSecondary) || '').trim()
+    if (p) return { primary: p, secondary: s || gSecondary || p, source: 'page' }
+    return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
+  }
+  return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
+}
+
 function normalizeLoginPageConfig(raw) {
   const base = { ...DEFAULT_LOGIN_PAGE_CONFIG }
   const src = raw && typeof raw === 'object' ? raw : {}
   const merged = { ...base, ...src }
   merged.styleKey = resolveLoginPageStyleKey(merged)
+  // 🔴 新字段必须逐个显式归一化。老数据没有这些字段 → 落到默认值 = 线上现状。
+  merged.modules = resolveLoginModules(src.modules)
+  merged.themeSource = normalizeLoginThemeSource(src.themeSource != null ? src.themeSource : src.theme_source)
+  merged.pageBackgroundColor = String(src.pageBackgroundColor || src.page_background_color || '')
+  merged.headerStyle = normalizeLoginHeaderStyle(src.headerStyle != null ? src.headerStyle : src.header_style)
+  merged.cardStyle = normalizeLoginCardStyle(src.cardStyle != null ? src.cardStyle : src.card_style)
   return merged
 }
 
@@ -239,6 +324,80 @@ function resolveMineStyleKey(mine) {
   return 'warm'
 }
 
+/**
+ * 「我的」页 6 个内容模块的显隐 key。
+ * 🔴 默认全部 true —— 线上 mine.wxml 里这 6 块都是无条件渲染的，
+ * 缺字段时若默认 false 会让老用户升级后页面少一大块。
+ */
+const MINE_MODULE_DEFAULTS = {
+  userHeader: true,
+  stats: true,
+  memberCard: true,
+  quickAccess: true,
+  continueLearn: true,
+  myPlanet: true,
+}
+
+/** 条件显示归一化：非法/缺省 → always（= 旧行为） */
+function normalizeMineVisibleOn(raw) {
+  const s = String(raw == null ? '' : raw).trim().toLowerCase()
+  if (s === 'login' || s === 'loggedin' || s === 'logged_in') return 'login'
+  if (s === 'member' || s === 'vip') return 'member'
+  return 'always'
+}
+
+/** 模块显隐归一化：缺字段 → true（保持线上表现） */
+function resolveMineModules(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {}
+  const out = {}
+  Object.keys(MINE_MODULE_DEFAULTS).forEach((key) => {
+    out[key] = src[key] === undefined || src[key] === null
+      ? MINE_MODULE_DEFAULTS[key]
+      : src[key] !== false
+  })
+  return out
+}
+
+/** 主题来源归一化：非法/缺省 → inherit（老数据没有显式开关，一律跟全局走） */
+function normalizeMineThemeSource(raw) {
+  return String(raw == null ? '' : raw).trim().toLowerCase() === 'page' ? 'page' : 'inherit'
+}
+
+/** 头部配色：非法/缺省 → gradient（线上现状） */
+function normalizeMineHeaderStyle(raw) {
+  return String(raw == null ? '' : raw).trim().toLowerCase() === 'solid' ? 'solid' : 'gradient'
+}
+
+/** 卡片样式：非法/缺省 → shadow（线上现状） */
+function normalizeMineCardStyle(raw) {
+  const s = String(raw == null ? '' : raw).trim().toLowerCase()
+  if (s === 'flat' || s === 'outline') return s
+  return 'shadow'
+}
+
+/**
+ * 生效主题色 —— 与管理端 `types/miniapp.ts` 的 resolveMineEffectiveTheme 同语义。
+ *
+ * 🔴 老数据里 themeColor 一定有值（历史模板写死的暖橘），
+ * 所以判定「是否页面覆盖」只能看显式的 themeSource，不能看 themeColor 有没有值。
+ *
+ * @param {object} mineConfig 归一化后的我的页配置
+ * @param {object} globalTheme 全局品牌色 { primaryColor, secondaryColor }
+ */
+function resolveMineEffectiveTheme(mineConfig, globalTheme) {
+  const theme = globalTheme && typeof globalTheme === 'object' ? globalTheme : {}
+  const gPrimary = String(theme.primaryColor || '').trim()
+  const gSecondary = String(theme.secondaryColor || '').trim()
+  const source = normalizeMineThemeSource(mineConfig && mineConfig.themeSource)
+  if (source === 'page') {
+    const p = String((mineConfig && mineConfig.themeColor) || '').trim()
+    const s = String((mineConfig && mineConfig.themeColorSecondary) || '').trim()
+    if (p) return { primary: p, secondary: s || gSecondary || p, source: 'page' }
+    return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
+  }
+  return { primary: gPrimary, secondary: gSecondary, source: 'inherit' }
+}
+
 function normalizeMinePageConfig(raw) {
   const base = { ...DEFAULT_MINE_PAGE_CONFIG }
   const src = raw && typeof raw === 'object' ? raw : {}
@@ -253,9 +412,15 @@ function normalizeMinePageConfig(raw) {
     ...DEFAULT_USER_PROFILE,
     ...(src.userProfile || {}),
   }
-  const menuItems = Array.isArray(src.menuItems) && src.menuItems.length
+  const srcMenuItems = Array.isArray(src.menuItems) && src.menuItems.length
     ? src.menuItems
     : DEFAULT_MINE_PAGE_CONFIG.menuItems
+  // 菜单项归一化：visibleOn 缺省 → always，老数据行为不变
+  const menuItems = srcMenuItems.map((m) => (
+    m && typeof m === 'object'
+      ? { ...m, visibleOn: normalizeMineVisibleOn(m.visibleOn != null ? m.visibleOn : m.visible_on) }
+      : m
+  ))
 
   return {
     ...base,
@@ -266,6 +431,12 @@ function normalizeMinePageConfig(raw) {
     orderQuickAccess,
     userProfile,
     menuItems,
+    // ↓ 1.30 新增字段
+    modules: resolveMineModules(src.modules),
+    themeSource: normalizeMineThemeSource(src.themeSource != null ? src.themeSource : src.theme_source),
+    pageBackgroundColor: String(src.pageBackgroundColor || src.page_background_color || ''),
+    headerStyle: normalizeMineHeaderStyle(src.headerStyle != null ? src.headerStyle : src.header_style),
+    cardStyle: normalizeMineCardStyle(src.cardStyle != null ? src.cardStyle : src.card_style),
   }
 }
 
@@ -517,6 +688,9 @@ function applyMemberModuleGate(mineConfig, plugins) {
   return {
     ...mineConfig,
     showMemberCard: false,
+    // 会员模块关闭时，会员卡模块也必须一起关掉，
+    // 否则 wxml 里的 modules.memberCard 仍为 true，卡片会带着空数据露出来。
+    modules: { ...resolveMineModules(mineConfig.modules), memberCard: false },
     userProfile,
     menuItems,
   }
@@ -537,21 +711,38 @@ async function fetchMinePageConfig(forceRefresh) {
   const loginSubtitle = rawLoginSubtitle
     .replace(/订单、订单/g, '订单')
     || DEFAULT_MINE_PAGE_CONFIG.loginSubtitle
+  // 主题色：inherit 时用全局品牌色覆盖，page 时用页面色。
+  // 小程序端 wxml 直接读 theme.primary/secondary，所以这里必须给最终值。
+  const globalTheme = (config.miniappThemeConfig && typeof config.miniappThemeConfig === 'object')
+    ? config.miniappThemeConfig
+    : {}
+  const theme = resolveMineEffectiveTheme(mineConfig, globalTheme)
   return {
     ...mineConfig,
     loginSubtitle,
     menuItems,
     styleKey: resolveMineStyleKey(mineConfig),
+    // 会员模块被 gate 关掉时不能还显示会员配色，按 basic 走
+    theme: theme.source === 'inherit' && !theme.primary
+      ? null
+      : { primary: theme.primary, secondary: theme.secondary, source: theme.source },
   }
 }
 
-/** 取登录页配置（已归一化 + styleKey 解析） */
+/** 取登录页配置（已归一化 + styleKey 解析 + 生效主题色） */
 async function fetchLoginPageConfig(forceRefresh) {
   const config = await fetchSystemConfig(forceRefresh)
   const loginConfig = normalizeLoginPageConfig(
     config.loginPageConfig || DEFAULT_LOGIN_PAGE_CONFIG,
   )
   loginConfig.styleKey = resolveLoginPageStyleKey(loginConfig)
+  // 主题色：inherit 时用全局品牌色，page 时用页面色。
+  // login.js 直接读 theme.primary/secondary 拼 inline CSS 变量，所以这里必须给最终值。
+  const globalTheme = (config.miniappThemeConfig && typeof config.miniappThemeConfig === 'object')
+    ? config.miniappThemeConfig
+    : {}
+  const theme = resolveLoginEffectiveTheme(loginConfig, globalTheme)
+  loginConfig.theme = theme
   return loginConfig
 }
 
@@ -608,8 +799,21 @@ module.exports = {
   fetchBrandConfig,
   resolveMineStyleKey,
   normalizeMinePageConfig,
+  resolveMineEffectiveTheme,
+  resolveMineModules,
+  normalizeMineVisibleOn,
+  normalizeMineThemeSource,
+  normalizeMineHeaderStyle,
+  normalizeMineCardStyle,
+  MINE_MODULE_DEFAULTS,
   resolveLoginPageStyleKey,
   normalizeLoginPageConfig,
+  resolveLoginEffectiveTheme,
+  resolveLoginModules,
+  normalizeLoginThemeSource,
+  normalizeLoginHeaderStyle,
+  normalizeLoginCardStyle,
+  LOGIN_MODULE_DEFAULTS,
   isMemberModuleEnabled,
   isProductModuleEnabled,
   isPluginEnabled,

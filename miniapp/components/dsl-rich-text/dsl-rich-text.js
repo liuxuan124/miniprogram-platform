@@ -31,6 +31,10 @@ Component({
     hasLink: false,
     /** 纯文本模式：整段交给 rich-text */
     plain: true,
+    /** 容器排版样式（字号/行高/内外边距/背景），与内部样式解耦、靠继承生效 */
+    bodyStyle: '',
+    /** 内容为空 → 展示占位，避免塌成 0 高 */
+    isEmpty: false,
   },
 
   observers: {
@@ -50,11 +54,61 @@ Component({
         blocks: parsed.nodes,
         hasLink: parsed.hasLink,
         plain: !parsed.hasLink,
+        isEmpty: !String(html).replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, ' ').trim() && !/<img\b/i.test(html),
       })
+      this._syncBodyStyle()
+    },
+    // 容器排版字段任一变化都要重算（字号/行高靠继承，不要下放到每个节点）
+    'config.base_font_size, config.text_color, config.line_height, config.paragraph_gap, config.padding_x, config.padding_y, config.margin_y, config.container_bg, config.container_radius': function () {
+      this._syncBodyStyle()
+    },
+  },
+
+  lifetimes: {
+    attached() {
+      this._syncBodyStyle()
     },
   },
 
   methods: {
+    /**
+     * 计算容器样式。与后台 richTextSchema.ts 同规则。
+     * ⚠️ rich-text 内部节点不认外部 class，容器样式只能挂在最外层靠继承生效；
+     *    这也是后台把字号/行高放容器而不是逐个改内联 style 的原因。
+     */
+    _syncBodyStyle() {
+      const c = (this.data.config || {})
+      const num = (v, d) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : d)
+      const fontSize = num(c.base_font_size, 14)
+      const lineHeight = Number(c.line_height) > 0 ? Number(c.line_height) : 1.75
+      const gap = num(c.paragraph_gap, 8)
+      const padX = Number.isFinite(Number(c.padding_x)) ? Number(c.padding_x) : 16
+      const padY = Number.isFinite(Number(c.padding_y)) ? Number(c.padding_y) : 12
+      const marY = Number.isFinite(Number(c.margin_y)) ? Number(c.margin_y) : 8
+
+      let bg = 'transparent'
+      if (c.container_bg === 'card') bg = '#ffffff'
+      else if (c.container_bg === 'paper') bg = '#faf7f0'
+      else if (c.background_color) bg = String(c.background_color)
+
+      let radius = ''
+      if (c.container_bg && c.container_bg !== 'none' && c.container_radius !== false) {
+        radius = 'border-radius:20rpx;'
+      }
+
+      this.setData({
+        bodyStyle:
+          'font-size:' + fontSize * 2 + 'rpx;' +
+          'line-height:' + lineHeight + ';' +
+          'color:' + (c.text_color || '#333333') + ';' +
+          'padding:' + padY * 2 + 'rpx ' + padX * 2 + 'rpx;' +
+          'margin-top:' + marY * 2 + 'rpx;margin-bottom:' + marY * 2 + 'rpx;' +
+          'background:' + bg + ';' +
+          radius +
+          'word-break:break-word;',
+      })
+    },
+
     /** 对外暴露：预览富文本内全部图片 */
     previewImages(currentUrl) {
       const html = (this.data.config && this.data.config.content) || ''

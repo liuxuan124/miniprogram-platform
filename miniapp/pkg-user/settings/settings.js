@@ -1,5 +1,6 @@
 const { AuthUtil } = require('../../utils/auth')
 const { AuthService } = require('../../services/auth')
+const noticeService = require('../../services/notice')
 const { upload, classifyUploadError, uploadErrorMessage } = require('../../utils/request')
 const {
   DEFAULT_AVATAR,
@@ -11,6 +12,36 @@ const {
 const { resolveMediaUrl } = require('../../utils/media-url')
 
 const NICKNAME_MAX_LEN = 10
+
+/**
+ * 通知偏好分组。口径必须与后端 UserNoticeService.preferenceGroup 严格一致 ——
+ * 两端各写一份必然出现「后台显示已关闭、端上还在收」。
+ */
+const NOTIFY_GROUP_LABEL = {
+  order: '订单通知',
+  member: '会员与客服',
+  planet: '星球互动',
+  ops: '运营推广',
+}
+
+const NOTIFY_GROUP_DESC = {
+  order: '下单、支付、发货、订单催付',
+  member: '会员开通、客服回复、反馈回复',
+  planet: '星球提问与互动提醒',
+  ops: '活动推广与人群触达',
+}
+
+const DEFAULT_NOTIFY_PREFERENCE = { order: true, member: true, planet: true, ops: true }
+
+function notifyGroupRows(pref) {
+  const p = Object.assign({}, DEFAULT_NOTIFY_PREFERENCE, pref || {})
+  return Object.keys(NOTIFY_GROUP_LABEL).map((key) => ({
+    key,
+    label: NOTIFY_GROUP_LABEL[key],
+    desc: NOTIFY_GROUP_DESC[key],
+    on: !!p[key],
+  }))
+}
 
 const isRemoteUrl = isPersistedMediaUrl
 
@@ -53,6 +84,8 @@ Page({
     canSave: false,
     savingProfile: false,
     version: '1.30.8',
+    notifyPreference: Object.assign({}, DEFAULT_NOTIFY_PREFERENCE),
+    notifyGroups: notifyGroupRows(DEFAULT_NOTIFY_PREFERENCE),
   },
 
   onShow() {
@@ -104,6 +137,7 @@ Page({
       emailSoftTip: softEmailTip(editEmail),
       canSave: calcCanSave(editNickName),
     })
+    this._loadNotifyPreference()
   },
 
   onAvatarError() {
@@ -390,6 +424,50 @@ Page({
       url: '/pkg-user/feedback/feedback',
       fail: () => wx.navigateTo({ url: '/pkg-user/service-chat/service-chat' }),
     })
+  },
+
+  // ---------- 通知偏好 ----------
+  _loadNotifyPreference() {
+    if (!this.data.isLoggedIn) {
+      this.setData({ notifyPreference: DEFAULT_NOTIFY_PREFERENCE, notifyGroups: notifyGroupRows(DEFAULT_NOTIFY_PREFERENCE) })
+      return
+    }
+    noticeService
+      .getPreference()
+      .then((d) => {
+        const pref = Object.assign({}, DEFAULT_NOTIFY_PREFERENCE, d || {})
+        this.setData({ notifyPreference: pref, notifyGroups: notifyGroupRows(pref) })
+      })
+      .catch(() => {
+        this.setData({ notifyPreference: DEFAULT_NOTIFY_PREFERENCE, notifyGroups: notifyGroupRows(DEFAULT_NOTIFY_PREFERENCE) })
+      })
+  },
+
+  onToggleNotify(e) {
+    if (!this.data.isLoggedIn) {
+      this.onLoginTap()
+      return
+    }
+    const key = String((e.currentTarget.dataset && e.currentTarget.dataset.key) || '')
+    if (!NOTIFY_GROUP_LABEL[key]) return
+    const prev = Object.assign({}, this.data.notifyPreference)
+    const next = Object.assign({}, prev)
+    next[key] = !prev[key]
+    // 先改本地再发请求：开关点下去必须立刻动，否则会被 setData 竞态弹回去
+    this.setData({ notifyPreference: next, notifyGroups: notifyGroupRows(next) })
+    noticeService
+      .savePreference(next)
+      .then(() => {
+        wx.showToast({ title: next[key] ? '已开启' : '已关闭', icon: 'none' })
+      })
+      .catch(() => {
+        this.setData({ notifyPreference: prev, notifyGroups: notifyGroupRows(prev) })
+        wx.showToast({ title: '保存失败', icon: 'none' })
+      })
+  },
+
+  goNotices() {
+    wx.navigateTo({ url: '/pkg-user/notices/notices' })
   },
 
   onLogout() {

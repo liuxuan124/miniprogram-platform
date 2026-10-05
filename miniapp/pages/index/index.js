@@ -612,20 +612,22 @@ Page({
     this._go(url, !!tab || tab === 'true' || tab === true || tab === '1' || tab === 1)
   },
 
+  /**
+   * 点作者条目（V121）。
+   * 招募位已从作者条目里解耦，由组件自身的 onRecruit 处理（读 recruitment_slot.target_path），
+   * 所以这里不再需要判断 apply。
+   * 有 id 时优先带 id 进作者作品页（避免重名作者点错档案）。
+   */
   onAuthor(e) {
     const d = evData(e)
-    if (d.apply || d.apply === true || d.apply === 'true' || d.apply === '1') {
-      this._go('/pkg-content/contribute/contribute')
-      return
-    }
     const name = d.name || ''
     const id = d.id || ''
-    if (!name) {
+    if (!name && !id) {
       this._go('/pkg-content/author-list/author-list')
       return
     }
     const q = [
-      `author=${encodeURIComponent(name)}`,
+      name ? `author=${encodeURIComponent(name)}` : '',
       id ? `id=${encodeURIComponent(id)}` : '',
     ].filter(Boolean).join('&')
     this._go(`/pkg-content/author-feed/author-feed?${q}`)

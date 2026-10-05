@@ -300,10 +300,73 @@
   color: #999999;
 }
 
-/* 列表布局：独立横卡，正方形图内缩，不贴边 */
+/* 横向单列（旧类名 list 保留兼容）：独立横卡，正方形图内缩，不贴边 */
+.dsl-product-list__grid--row,
 .dsl-product-list__grid--list {
   display: flex;
   flex-direction: column;
+}
+
+/* ---------- 横向滑动 ----------
+   关键点：用 grid-auto-flow: column + grid-auto-columns 让卡片宽度固定且可横滑。
+   写成 flex 会让「两列/三列」的列数设置完全失效（flex 忽略 grid-template-columns）。 */
+.dsl-product-list__grid--scroll {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(264rpx, 42%);
+  overflow-x: auto;
+  padding-bottom: 8rpx;
+}
+
+/* ---------- 角标 ----------
+   position: relative 是角标定位的前提（容器与图片都需要）。 */
+.dsl-product-list__badge {
+  position: absolute;
+  top: 8rpx;
+  left: 8rpx;
+  max-width: 60%;
+  padding: 0 10rpx;
+  overflow: hidden;
+  color: #fff;
+  font-size: 18rpx;
+  font-weight: 700;
+  line-height: 28rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 6rpx;
+}
+
+/* ---------- 划线原价 ---------- */
+.dsl-product-list__origin,
+.dsl-product-list__row-origin {
+  color: #b3a596;
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+/* ---------- CTA 按钮 ---------- */
+.dsl-product-list__cta {
+  flex-shrink: 0;
+  padding: 4rpx 16rpx;
+  font-size: 21rpx;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 999rpx;
+}
+
+/* 🔴 0 元商品：绿色描边 + 淡绿底，让「免费领取」在一堆付费卡里一眼可辨。
+   画布端用同样的规则（.product-card.is-free），两端必须一致。 */
+.dsl-product-list__item.is-free {
+  background: rgba(31, 169, 122, 0.05);
+  border: 1rpx solid rgba(31, 169, 122, 0.32);
+}
+
+/* 卡片风格：描边 / 平铺（白卡投影的行内 style 已给，这里只兜底） */
+.dsl-product-list__grid.card-outline .dsl-product-list__item,
+.dsl-product-list__grid.card-outline .dsl-product-list__row,
+.dsl-product-list__grid.card-flat .dsl-product-list__item,
+.dsl-product-list__grid.card-flat .dsl-product-list__row {
+  box-shadow: none;
 }
 
 .dsl-product-list__row {
@@ -320,6 +383,8 @@
 }
 
 .dsl-product-list__thumb {
+  /* 角标定位前提（同 __item-media） */
+  position: relative;
   flex-shrink: 0;
   width: 168rpx;
   height: 168rpx;

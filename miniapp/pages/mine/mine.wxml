@@ -22,50 +22,59 @@
     <login-sheet id="global-login-sheet" />
   </block>
 </block>
-<view wx:else class="mn-page mn-page--{{styleKey}}">
+<view
+  wx:else
+  class="mn-page mn-page--{{styleKey}} mn-header--{{headerStyle}} mn-card--{{cardStyle}} {{modules.userHeader ? '' : 'mn-page--no-hero'}}"
+  style="{{mineThemeStyle}}{{minePageBg ? 'background-color:' + minePageBg : ''}}"
+>
   <scroll-view class="mn-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="mn-hero" style="padding-top: {{statusBarHeight + 10}}px;">
-      <view class="mn-hero__rw">
-        <view class="mn-hero__main" bindtap="onUserAreaTap">
-          <view class="mn-hero__av" wx:if="{{mineToggles.showAvatar}}">
-            <image
-              class="warm-ph mn-hero__av-img"
-              src="{{displayAvatarUrl}}"
-              mode="aspectFill"
-              binderror="onAvatarError"
-            />
-          </view>
-          <view class="mn-hero__meta">
-            <view class="mn-hero__name warm-serif" wx:if="{{isLoggedIn}}">
-              {{userInfo.nickName || '微信用户'}}
-              <text
-                class="warm-tag warm-tag--soft"
-                wx:if="{{mineToggles.showMemberLevel && memberInfo.level_name}}"
-              >{{memberInfo.level_name}}</text>
+    <!-- 用户头部：modules.userHeader 关掉时整块不渲染，不留空白。
+         未登录态这里是唯一的登录入口，隐藏前请确认其它模块仍能唤起登录。 -->
+    <block wx:if="{{modules.userHeader}}">
+      <view class="mn-hero" style="padding-top: {{statusBarHeight + 10}}px;">
+        <view class="mn-hero__rw">
+          <view class="mn-hero__main" bindtap="onUserAreaTap">
+            <view class="mn-hero__av" wx:if="{{mineToggles.showAvatar}}">
+              <image
+                class="warm-ph mn-hero__av-img"
+                src="{{displayAvatarUrl}}"
+                mode="aspectFill"
+                binderror="onAvatarError"
+              />
             </view>
-            <view class="mn-hero__name warm-serif" wx:else>{{mineText.loginTitle}}</view>
-            <text class="mn-hero__sb" wx:if="{{isLoggedIn}}">连续阅读 {{continuousDays}} 天 · 加入暖阁 {{joinDays}} 天</text>
-            <text class="mn-hero__sb" wx:else>{{mineText.loginSubtitle}}</text>
+            <view class="mn-hero__meta">
+              <view class="mn-hero__name warm-serif" wx:if="{{isLoggedIn}}">
+                {{userInfo.nickName || '微信用户'}}
+                <text
+                  class="warm-tag warm-tag--soft"
+                  wx:if="{{mineToggles.showMemberLevel && memberInfo.level_name}}"
+                >{{memberInfo.level_name}}</text>
+              </view>
+              <view class="mn-hero__name warm-serif" wx:else>{{mineText.loginTitle}}</view>
+              <text class="mn-hero__sb" wx:if="{{isLoggedIn}}">连续阅读 {{continuousDays}} 天 · 加入暖阁 {{joinDays}} 天</text>
+              <text class="mn-hero__sb" wx:else>{{mineText.loginSubtitle}}</text>
+            </view>
+          </view>
+          <view
+            class="mn-hero__set"
+            catchtap="onSettingsTap"
+            hover-class="mn-hero__set--pressed"
+            hover-stay-time="80"
+            aria-role="button"
+            aria-label="设置"
+          >⚙︎</view>
+        </view>
+        <!-- 收藏/笔记/关注/暖豆 统计 -->
+        <view class="mn-st" wx:if="{{modules.stats}}">
+          <view wx:for="{{stats}}" wx:key="label" bindtap="{{item.label === '收藏' ? 'onGoFavorites' : ''}}">
+            <text class="mn-st__b">{{item.value}}</text>
+            <text class="mn-st__s">{{item.label}}</text>
           </view>
         </view>
-        <view
-          class="mn-hero__set"
-          catchtap="onSettingsTap"
-          hover-class="mn-hero__set--pressed"
-          hover-stay-time="80"
-          aria-role="button"
-          aria-label="设置"
-        >⚙︎</view>
       </view>
-      <view class="mn-st">
-        <view wx:for="{{stats}}" wx:key="label" bindtap="{{item.label === '收藏' ? 'onGoFavorites' : ''}}">
-          <text class="mn-st__b">{{item.value}}</text>
-          <text class="mn-st__s">{{item.label}}</text>
-        </view>
-      </view>
-    </view>
+    </block>
 
-    <view class="mn-vip" wx:if="{{mineToggles.showMemberCard}}" catchtap="onMemberCardTap">
+    <view class="mn-vip" wx:if="{{modules.memberCard && mineToggles.showMemberCard}}" catchtap="onMemberCardTap">
       <text class="mn-vip__ic">🎫</text>
       <view class="mn-vip__tx">
         <text class="mn-vip__h">{{vipTitle || '暖阁年度会员'}}</text>
@@ -74,7 +83,7 @@
       <text class="mn-vip__b">{{vipCta}}</text>
     </view>
 
-    <view class="mn-quick">
+    <view class="mn-quick" wx:if="{{modules.quickAccess}}">
       <view class="mn-quick__it" bindtap="onGoFavorites">
         <text class="mn-quick__ic" wx:if="{{mineToggles.showMenuIcons}}">⭐️</text>我的收藏
       </view>
@@ -90,7 +99,7 @@
       </view>
     </view>
 
-    <view class="mn-cont">
+    <view class="mn-cont" wx:if="{{modules.continueLearn}}">
       <view class="mn-cont__t">
         <text class="mn-cont__h">继续学习</text>
         <text class="mn-cont__a" wx:if="{{isLoggedIn && learnItem}}" bindtap="onGoLearnMore">查看 ›</text>
@@ -108,7 +117,7 @@
       </view>
     </view>
 
-    <view class="mn-pl">
+    <view class="mn-pl" wx:if="{{modules.myPlanet}}">
       <view class="mn-pl__t">
         <text class="mn-pl__h">我的星球</text>
         <text class="mn-pl__a" bindtap="onGoPlanet">进入 ›</text>

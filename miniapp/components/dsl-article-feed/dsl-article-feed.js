@@ -54,6 +54,32 @@ function normalizeArticleItem(item, index) {
     summary: String(item.summary || item.excerpt || item.subtitle || '').trim(),
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
+    // —— 卡片要素（本轮新增）——
+    // 专栏 / 话题胶囊
+    columnName: String(item.columnName || item.column_name || item.column || '').trim(),
+    // 作者认证
+    authorName: String(item.authorName || item.author_name || '').trim(),
+    authorAvatar: item.authorAvatar || item.author_avatar || '',
+    authorVerified: Number(item.authorVerified || item.author_verified || 0) === 1,
+    // 互动热度
+    likeCount: Number(item.likeCount || item.like_count || 0) || 0,
+    viewCount: Number(item.viewCount || item.view_count || 0) || 0,
+    // 预估阅读时长（分钟）：后端没给时按摘要字数粗估，约 400 字/分钟
+    readingMinutes:
+      Number(item.readingMinutes || item.reading_minutes || 0) ||
+      (String(item.summary || item.excerpt || '').trim()
+        ? Math.max(1, Math.round(String(item.summary || item.excerpt || '').trim().length / 400))
+        : 0),
+    // 状态角标标记
+    isOriginal: Number(item.isOriginal || item.is_original || 0) === 1,
+    isPinned: Number(item.isPinned || item.is_pinned || 0) === 1,
+    isFeatured: Number(item.isFeatured || item.is_featured || 0) === 1,
+    isLatest: Number(item.isLatest || item.is_latest || 0) === 1,
+    isDeepReport: Number(item.isDeepReport || item.is_deep_report || 0) === 1,
+    hasAudio: Number(item.hasAudio || item.has_audio || 0) === 1,
+    hasVideo: Number(item.hasVideo || item.has_video || 0) === 1,
+    isMemberOnly: Number(item.isMemberOnly || item.is_member_only || 0) === 1,
+    isFreeLimited: Number(item.isFreeLimited || item.is_free_limited || 0) === 1,
   }
 }
 
@@ -136,6 +162,20 @@ Component({
     listStyle: '',
     itemCardStyle: '',
     layout: 'list',
+    // —— 本轮新增的卡片要素派生字段 ——
+    hideCover: false,
+    coverOnLeft: false,
+    dividerStyle: 'line',
+    badgeTypes: [],
+    badgePosition: 'meta',
+    metricTypes: [],
+    showColumnTag: false,
+    showCta: false,
+    ctaText: '阅读全文 →',
+    showAuthor: false,
+    showExcerpt: false,
+    excerptLines: 2,
+    excerptColor: '#666666',
     loading: false,
     loadingMore: false,
     tabLoading: false,
@@ -241,6 +281,18 @@ Component({
         ? ('border-radius:' + Math.max(0, radiusNum) * 2 + 'rpx;')
         : ''
       const showCategoryTabs = config.show_category_tabs === true
+      // 纯文字版式（compact）强制隐藏封面
+      const hideCover = layout === 'compact'
+      // 封面位置：仅横向图文版式生效；网格/大图类封面在上方，忽略该设置
+      const coverLeft =
+        (layout === 'list' || layout === 'card' || layout === 'compact') &&
+        config.cover_position === 'left'
+      // 容器风格：细分割线 / 独立卡片
+      const dividerStyle = config.divider_style === 'card' ? 'card' : 'line'
+      // 状态角标：勾选类型 ∩ 端上已映射的字段
+      const badgeTypes = Array.isArray(config.show_badges) ? config.show_badges : []
+      // 旧字段 show_badge 兜底（未升级后台只写了这个布尔开关）
+      const legacyBadge = config.show_badges === undefined && config.show_badge !== false
       this.setData({
         titleStyle: 'font-size:' + (titleSize * 2) + 'rpx;',
         metaStyle: 'font-size:' + (metaSize * 2) + 'rpx;',
@@ -248,6 +300,19 @@ Component({
         itemCardStyle,
         layout,
         showCategoryTabs,
+        hideCover,
+        coverOnLeft: coverLeft,
+        dividerStyle,
+        badgeTypes: legacyBadge ? ['original'] : badgeTypes,
+        badgePosition: config.badge_position || 'meta',
+        metricTypes: Array.isArray(config.show_metrics) ? config.show_metrics : [],
+        showColumnTag: config.show_column_tag === true,
+        showCta: config.show_cta === true,
+        ctaText: config.cta_text || '阅读全文 →',
+        showAuthor: config.show_author === true,
+        showExcerpt: config.show_excerpt === true,
+        excerptLines: Number(config.excerpt_lines) > 0 ? Number(config.excerpt_lines) : 2,
+        excerptColor: config.excerpt_color || '#666666',
       })
 
       if (showCategoryTabs) {

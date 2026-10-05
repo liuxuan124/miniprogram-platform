@@ -70,6 +70,33 @@
     </view>
   </view>
 
+  <view class="section-label">通知</view>
+  <view class="group">
+    <view class="row" bindtap="goNotices">
+      <text>我的通知</text>
+      <text class="ar">›</text>
+    </view>
+  </view>
+
+  <view class="group">
+    <view
+      class="row row--switch"
+      wx:for="{{notifyGroups}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onToggleNotify"
+    >
+      <view class="switch-text">
+        <text>{{item.label}}</text>
+        <text class="switch-desc">{{item.desc}}</text>
+      </view>
+      <switch class="row-switch" checked="{{item.on}}" color="#C2410C" />
+    </view>
+  </view>
+  <view class="switch-footnote">
+    关闭后不再收到该类通知。订单类通知建议保持开启，否则会错过发货与支付提醒。
+  </view>
+
   <view class="section-label">其他</view>
   <view class="group">
     <view class="row" bindtap="goAddress">

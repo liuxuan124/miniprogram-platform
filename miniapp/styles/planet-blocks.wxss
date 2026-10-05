@@ -52,6 +52,23 @@
   justify-content: center;
   font-size: 56rpx;
   flex: none;
+  overflow: hidden;
+}
+/* 图标库模式（logo_mode=image）：铺满圆角框，避免素材本身留白露底 */
+.pl-hero__lg-img { width: 100%; height: 100%; }
+
+/* 会员态的续费按钮：与游客态「加入」同一位置，用暖金底区分语义 */
+.pl-hero__rn {
+  height: 64rpx;
+  padding: 0 28rpx;
+  border-radius: 999rpx;
+  background: #fde68a;
+  color: #7c2d12;
+  font-size: 24rpx;
+  font-weight: 780;
+  display: flex;
+  align-items: center;
+  flex: none;
 }
 
 .pl-hero__meta { flex: 1; min-width: 0; }
@@ -113,10 +130,16 @@
   position: relative;
   margin-top: 32rpx;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
   gap: 14rpx;
   min-height: 112rpx;
 }
+/*
+ * KPI 列数由 wxml 的行内 style 动态给出：repeat(visibleKpis.length, minmax(0,1fr))。
+ * ⚠️ 此前这里按数量写了 --quad/--triple/--compact 三档类名，但 wxml 挂的是
+ * --{{kpiStyle}}（只有 glass/plain），两套命名对不上 → grid-template-columns 从未生效，
+ * 4 项 KPI 在真机上竖排成 4 行。类名已移除，列数改由行内 style 承担。
+ * 保留 minmax(0,1fr) 的原因：1fr 的最小尺寸是 auto，长数字会撑破列宽。
+ */
 .pl-kpi__item {
   background: rgba(255, 255, 255, 0.12);
   border: 1rpx solid rgba(255, 255, 255, 0.14);
@@ -124,7 +147,16 @@
   padding: 18rpx 8rpx;
   text-align: center;
 }
+/* 无底色极简：去掉色块，只用底部细线分隔 */
+.pl-kpi--plain .pl-kpi__item {
+  background: transparent;
+  border: none;
+  border-bottom: 1rpx solid rgba(255, 255, 255, 0.2);
+  border-radius: 0;
+}
 .pl-kpi__b { display: block; font-size: 30rpx; font-weight: 780; }
+/* 单位/后缀：数值大、后缀小一号，避免「8折」和「3,241」抢视觉 */
+.pl-kpi__sfx { margin-left: 2rpx; font-size: 20rpx; font-weight: 600; opacity: 0.8; }
 .pl-kpi__s { font-size: 19rpx; opacity: 0.78; }
 
 .pl-exp {
@@ -202,14 +234,28 @@
   padding-top: 18rpx;
 }
 
+/* ========== 分段标签栏：三种外观 + 可关吸顶 ==========
+   ⚠️ 这里的默认值必须与后台预览 PlanetFeedRenderer.vue 的同名类保持一致，
+   「继承品牌色」时后台不下行内样式，靠这堆默认值呈现，两端才长得一样。
+   ⚠️ 选中态刻意不加 !important：运营自定义 active_bg 时，
+   行内样式必须能盖掉下面的默认渐变（!important 会把行内样式压掉）。 */
 .pl-segs {
   white-space: nowrap;
   padding: 32rpx 0 16rpx;
+  min-height: 96rpx;
+}
+/* 吸顶做成可选：默认不加，靠 .pl-segs--sticky 显式打开 */
+.pl-segs--sticky {
   position: sticky;
   top: 0;
   z-index: 10;
   background: linear-gradient(180deg, var(--bg) 72%, transparent);
-  min-height: 96rpx;
+}
+/* 下沉避让：top 由行内 style 给出（JS 实测上方顶栏高度）。
+   渐变背景此时盖不住从下方滚上来的内容，改不透明底 + 投影，否则会「透字」 */
+.pl-segs--offset {
+  background: var(--bg);
+  box-shadow: 0 4rpx 12rpx rgba(120, 72, 40, 0.08);
 }
 
 .pl-feed-wrap {
@@ -222,27 +268,66 @@
 }
 .pl-seg {
   flex: none;
-  padding: 14rpx 28rpx;
-  border-radius: 999rpx;
   font-size: 25rpx;
   font-weight: 650;
-  background: #fffaf3;
-  border: 1rpx solid rgba(120, 72, 40, 0.12);
   color: #6b5443;
 }
-.pl-seg--on {
-  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
-  color: #fff !important;
-  border-color: transparent !important;
+
+/* —— 胶囊（默认，与线上现状一致）—— */
+.pl-segs--pill .pl-segs__inner { gap: 14rpx; }
+.pl-segs--pill .pl-seg {
+  padding: 14rpx 28rpx;
+  border-radius: 999rpx;
+  background: #fffaf3;
+  border: 1rpx solid rgba(120, 72, 40, 0.12);
+}
+.pl-segs--pill .pl-seg--on {
+  background: linear-gradient(135deg, var(--brand-2), var(--brand));
+  color: #fff;
+  border-color: transparent;
 }
 
+/* —— 底部滑块 —— */
+.pl-segs--line .pl-segs__inner { gap: 0; }
+.pl-segs--line .pl-seg {
+  padding: 18rpx 24rpx;
+  background: transparent;
+  border-bottom: 4rpx solid transparent;
+}
+.pl-segs--line .pl-seg--on {
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+}
+
+/* —— 纯文本 —— */
+.pl-segs--text .pl-segs__inner { gap: 0; }
+.pl-segs--text .pl-seg {
+  padding: 16rpx 22rpx;
+  background: transparent;
+}
+.pl-segs--text .pl-seg--on {
+  color: var(--brand);
+}
+
+/* 卡片：margin-bottom / padding / border-radius / box-shadow 由行内样式接管，
+   这里的值只是「运营什么都没配」时的兜底，与后台预览默认值一致。 */
 .pl-fd {
-  margin: 0 32rpx 22rpx;
-  border-radius: 36rpx;
+  margin: 0 32rpx 24rpx;
+  border-radius: 32rpx;
   background: var(--sheet);
   box-shadow: var(--shadow-s);
   padding: 28rpx 30rpx 20rpx;
 }
+/*
+ * 配了通栏底色（style.background_color）时，卡片让位成半透明，
+ * 否则不透明米白会把底色整块遮死 —— 表现为「配了背景色没生效」。
+ * ⚠️ 与后台 PlanetFeedRenderer 的 `.pf.has-bg .pf__card` 同规则、同 alpha(0.82)，
+ * 两端观感必须一致，否则会出现「预览透蓝、真机不透」。
+ */
+.has-bg .pl-fd { background: rgba(255, 253, 249, 0.82); }
+.has-bg .pl-fd--top { background: linear-gradient(150deg, rgba(255, 247, 236, 0.9), rgba(255, 250, 243, 0.82)); }
+/* 吸顶条同理：跟随通栏底色，避免顶部留一条米白与下方割裂 */
+.has-bg .pl-segs--sticky { background: rgba(255, 253, 249, 0.96); }
 .pl-fd--top {
   border: 1rpx solid #f0d3ad;
   background: linear-gradient(150deg, #fff7ec, #fffaf3);
@@ -280,6 +365,13 @@
   font-size: 29rpx;
   line-height: 1.72;
   color: #3a2a1c;
+}
+/* 正文截断：行数由行内样式注入 -webkit-line-clamp；未开启截断时无此 class */
+.pl-fd__ct--clamp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
 }
 .pl-fd__q {
   margin-top: 22rpx;
@@ -329,6 +421,14 @@
   background: var(--sheet-2);
 }
 .pl-fd__gg--two .pl-fd__img { height: 224rpx; }
+/* 原图比例自适应：不设固定高度，配合 mode="widthFix" 由图片自身比例撑开 */
+.pl-fd__gg--auto { display: block; }
+.pl-fd__gg--auto .pl-fd__img {
+  display: block;
+  height: auto;
+  margin-bottom: 10rpx;
+}
+.pl-fd__gg--auto .pl-fd__img:last-child { margin-bottom: 0; }
 .pl-fd__tp {
   display: block;
   margin-top: 20rpx;
@@ -380,4 +480,69 @@
   font-size: 21rpx;
   padding: 28rpx 0 12rpx;
   letter-spacing: 0.1em;
+}
+
+/* ---------------------------------------------------------------- *
+ * 加群活码弹窗（group_action_type=qrcode）
+ * 端上不依赖任何 UI 库，纯 view 实现，避免为一个弹窗引组件。
+ * ---------------------------------------------------------------- */
+.pl-modal {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pl-modal__mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+.pl-modal__bd {
+  position: relative;
+  z-index: 1;
+  width: 560rpx;
+  padding: 48rpx 40rpx 36rpx;
+  background: #fff;
+  border-radius: 32rpx;
+  text-align: center;
+  box-shadow: 0 24rpx 64rpx rgba(0, 0, 0, 0.2);
+}
+.pl-modal__t {
+  display: block;
+  color: #172033;
+  font-size: 32rpx;
+  font-weight: 780;
+}
+/* 二维码固定 1:1，否则非正方形素材会被拉伸变形 */
+.pl-modal__qr {
+  width: 320rpx;
+  height: 320rpx;
+  margin: 32rpx auto 24rpx;
+  display: block;
+  background: #f5f5f4;
+  border-radius: 16rpx;
+}
+.pl-modal__d {
+  display: block;
+  color: #64748b;
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+.pl-modal__d--warn { color: #b42318; }
+.pl-modal__x {
+  margin-top: 36rpx;
+  padding: 20rpx;
+  color: #8c3208;
+  font-size: 27rpx;
+  font-weight: 700;
+  background: #f7efe7;
+  border-radius: 999rpx;
 }

@@ -1,40 +1,67 @@
 <!--components/dsl-banner/dsl-banner.wxml — 轮播图组件-->
-<view class="dsl-banner" style="{{styleString}}">
-  <swiper
-    class="dsl-banner__swiper"
-    autoplay="{{config.autoplay !== false}}"
-    interval="{{config.interval || 3000}}"
-    circular="{{config.circular !== false}}"
-    indicator-dots="{{config.indicator_dots !== false}}"
-    indicator-color="rgba(255,255,255,0.4)"
-    indicator-active-color="#ffffff"
-    style="height: {{config.height || 290}}rpx; border-radius: {{config.border_radius ? config.border_radius * 2 : 16}}rpx;"
-    bindchange="onChange"
-  >
-    <swiper-item
-      wx:for="{{resolvedImages}}"
-      wx:key="index"
+<view class="dsl-banner {{layoutClass}}" style="{{styleString}}">
+  <!-- 空态：没有图片时仍占位，避免容器塌陷 -->
+  <view wx:if="{{resolvedImages.length === 0}}" class="dsl-banner__empty" style="{{shadowStyle}}">
+    <text class="dsl-banner__empty-text">轮播图待配置</text>
+  </view>
+
+  <view wx:else class="dsl-banner__wrap" style="{{shadowStyle}}">
+    <swiper
+      class="dsl-banner__swiper {{layoutMode === 'peek' ? 'dsl-banner__swiper--peek' : ''}}"
+      autoplay="{{config.autoplay !== false}}"
+      interval="{{interval}}"
+      circular="{{config.loop !== false}}"
+      indicator-dots="{{showNativeDots}}"
+      indicator-color="{{config.indicator_inactive_color || 'rgba(255,255,255,0.45)'}}"
+      indicator-active-color="{{config.indicator_active_color || '#ffffff'}}"
+      style="{{swiperStyle}}"
+      bindchange="onChange"
     >
-      <image
-        wx:if="{{item.url && item.isValid && !item.broken}}"
-        class="dsl-banner__image"
-        src="{{item.url}}"
-        mode="aspectFill"
-        data-index="{{index}}"
-        bindtap="onTapItem"
-        binderror="onImageError"
-        lazy-load
-      />
-      <view
-        wx:else
-        class="dsl-banner__fallback"
-        data-index="{{index}}"
-        bindtap="onTapItem"
+      <swiper-item
+        wx:for="{{resolvedImages}}"
+        wx:key="index"
+        class="dsl-banner__item"
       >
-        <view class="dsl-banner__orb"></view>
-        <text class="dsl-banner__fallback-title">{{item.title || config.title || '会员福利专区'}}</text>
-        <text class="dsl-banner__fallback-subtitle">{{item.subtitle || '点击了解'}}</text>
-      </view>
-    </swiper-item>
-  </swiper>
+        <view class="dsl-banner__inner" data-index="{{index}}" bindtap="onTapItem">
+          <image
+            wx:if="{{item.url && item.isValid}}"
+            class="dsl-banner__image"
+            src="{{item.url}}"
+            mode="{{imageMode}}"
+            data-index="{{index}}"
+            binderror="onImageError"
+            lazy-load
+          />
+          <view wx:else class="dsl-banner__fallback">
+            <view class="dsl-banner__orb"></view>
+            <text class="dsl-banner__fallback-title">{{item.title || config.title || '会员福利专区'}}</text>
+            <text wx:if="{{item.subtitle}}" class="dsl-banner__fallback-subtitle">{{item.subtitle}}</text>
+          </view>
+
+          <!-- 文字蒙层 + 标题层级 -->
+          <view wx:if="{{item.title || item.subtitle || item.cta}}" class="dsl-banner__mask" style="{{maskStyle}}">
+            <view class="dsl-banner__text">
+              <text wx:if="{{item.title}}" class="dsl-banner__title" style="{{titleStyle}}">{{item.title}}</text>
+              <text wx:if="{{item.subtitle}}" class="dsl-banner__desc" style="{{descStyle}}">{{item.subtitle}}</text>
+            </view>
+            <text wx:if="{{item.cta}}" class="dsl-banner__cta">{{item.cta}}</text>
+          </view>
+        </view>
+      </swiper-item>
+    </swiper>
+
+    <!-- 自定义指示器：胶囊 / 细长线 / 数字角标（圆点形态走原生 indicator-dots） -->
+    <view wx:if="{{customIndicator}}" class="dsl-banner__indicator {{indicatorClass}}" style="{{indicatorStyle}}">
+      <text wx:if="{{config.indicator_type === 'number'}}" class="dsl-banner__ind-num" style="color:{{config.indicator_active_color || '#ffffff'}};">
+        {{current + 1}}<text class="dsl-banner__ind-slash">/</text>{{resolvedImages.length}}
+      </text>
+      <block wx:else>
+        <view
+          wx:for="{{resolvedImages}}"
+          wx:key="index"
+          class="dsl-banner__ind-bar {{index === current ? 'is-on' : ''}}"
+        ></view>
+      </block>
+    </view>
+  </view>
 </view>

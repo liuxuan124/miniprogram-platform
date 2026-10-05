@@ -1,56 +1,71 @@
 /* components/dsl-coupon/dsl-coupon.wxss — 优惠券组件样式 */
 
+/* 🔴 向后兼容：外层 padding 0 24rpx 保持原样。
+   组件内边距改由 block_padding 经 rootStyle 行内注入（缺省 8px=16rpx，
+   与原先视觉接近；老页面无该字段时回落 8，不会突变）。 */
 .dsl-coupon {
   width: 100%;
-  padding: 0 24rpx;
   box-sizing: border-box;
 }
 
 .dsl-coupon__header {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   margin-bottom: 12rpx;
 }
 
 .dsl-coupon__title {
   color: var(--ink);
-  font-size: 30rpx;
   font-weight: 700;
 }
 
 .dsl-coupon__more {
   color: #94a3b8;
-  font-size: 24rpx;
 }
 
 .dsl-coupon__list {
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
 }
 
-.dsl-coupon--horizontal .dsl-coupon__list {
+/* ---------- 布局三档 ---------- */
+.dsl-coupon--scroll .dsl-coupon__list {
   flex-direction: row;
   overflow-x: auto;
 }
 
-.dsl-coupon--horizontal .dsl-coupon__item {
+.dsl-coupon--scroll .dsl-coupon__item {
   flex: 0 0 420rpx;
 }
 
+.dsl-coupon--grid .dsl-coupon__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dsl-coupon--stack .dsl-coupon__list {
+  flex-direction: column;
+}
+
+.dsl-coupon--stack .dsl-coupon__item {
+  min-height: 96rpx;
+}
+
 .dsl-coupon__item {
+  position: relative;
   display: flex;
   flex-direction: row;
   align-items: center;
+  min-width: 0;
   min-height: 108rpx;
   overflow: hidden;
   background-color: #fff6f6;
   border: 1rpx solid #ffd6d6;
-  border-radius: 12rpx;
 }
 
-.dsl-coupon__item--claimed {
+/* 已领取 / 已抢光：整体弱化；按钮与金额的灰度由行内 style 给 */
+.dsl-coupon__item--dim {
   opacity: 0.72;
 }
 
@@ -62,13 +77,10 @@
   flex-shrink: 0;
   width: 160rpx;
   min-height: 108rpx;
-  color: #f0646a;
   border-right: 1rpx dashed #ffd6d6;
 }
 
 .dsl-coupon__item-amount {
-  color: #f0646a;
-  font-size: 40rpx;
   font-weight: 700;
 }
 
@@ -84,7 +96,6 @@
 .dsl-coupon__item-name {
   overflow: hidden;
   color: var(--ink);
-  font-size: 26rpx;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -92,8 +103,10 @@
 
 .dsl-coupon__item-condition {
   margin-top: 4rpx;
+  overflow: hidden;
   color: #8b95a5;
-  font-size: 22rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dsl-coupon__item-expire {
@@ -117,12 +130,57 @@
   color: #fff;
   font-size: 24rpx;
   font-weight: 700;
-  background: #f3656c;
   border-radius: 999rpx;
 }
 
-.dsl-coupon__item--claimed .dsl-coupon__item-btn {
-  background: #cbd5e1;
+/* ---------- 票券风格三档 ---------- */
+/* 经典锯齿撕边：右侧打一排半圆缺口 */
+.dsl-coupon--theme-tear .dsl-coupon__item {
+  border-radius: 12rpx;
+}
+
+.dsl-coupon--theme-tear .dsl-coupon__item::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 8rpx;
+  content: '';
+  background-image: radial-gradient(circle at 100% 50%, transparent 6rpx, #fff 6rpx);
+  background-size: 8rpx 24rpx;
+  background-repeat: repeat-y;
+}
+
+/* 内凹打孔：左右两侧半圆缺口 */
+.dsl-coupon--theme-punch .dsl-coupon__item {
+  border-radius: 12rpx;
+}
+
+.dsl-coupon--theme-punch .dsl-coupon__item::before,
+.dsl-coupon--theme-punch .dsl-coupon__item::after {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 20rpx;
+  height: 40rpx;
+  content: '';
+  background: #fff;
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.dsl-coupon--theme-punch .dsl-coupon__item::before { left: -10rpx; }
+.dsl-coupon--theme-punch .dsl-coupon__item::after { right: -10rpx; }
+
+/* 极简圆角卡片 */
+.dsl-coupon--theme-rounded .dsl-coupon__item {
+  border-radius: 20rpx;
+  border-color: rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2rpx 8rpx rgba(42, 31, 23, 0.06);
+}
+
+.dsl-coupon--theme-rounded .dsl-coupon__item-left {
+  border-right: 0;
 }
 
 .dsl-coupon__empty {
@@ -135,16 +193,4 @@
 .dsl-coupon__empty-text {
   color: #999;
   font-size: 26rpx;
-}
-
-.dsl-coupon--stack .dsl-coupon__list {
-  gap: 12rpx;
-}
-
-.dsl-coupon--stack .dsl-coupon__item {
-  min-height: 96rpx;
-}
-
-.dsl-coupon--vertical .dsl-coupon__list {
-  flex-direction: column;
 }

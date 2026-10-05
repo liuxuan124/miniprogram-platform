@@ -34,8 +34,8 @@
       <view class="dsl-article-feed__content">
         <text class="dsl-article-feed__title dsl-article-feed__title--compact" style="{{titleStyle}}">{{item.title || item.name}}</text>
         <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
-          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
-          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">{{item.source}}</text>
         </view>
       </view>
     </view>
@@ -184,16 +184,31 @@
         <text>📖</text>
       </view>
       <view class="dsl-article-feed__content">
+        <text wx:if="{{showColumnTag && item.columnName}}" class="dsl-article-feed__column">{{item.columnName}}</text>
         <text class="dsl-article-feed__title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
-        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
-          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
-          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+        <text wx:if="{{showExcerpt && item.summary}}" class="dsl-article-feed__excerpt text-ellipsis-2" style="color:{{excerptColor}};">{{item.summary}}</text>
+        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false || showAuthor || metricTypes.length || (badgePosition === 'meta' && badgeTypes.length) || showCta}}">
+          <text class="dsl-article-feed__author" wx:if="{{showAuthor && item.authorName}}">
+            <image wx:if="{{item.authorAvatar}}" class="dsl-article-feed__avatar" src="{{item.authorAvatar}}" mode="aspectFill" />
+            <text class="dsl-article-feed__author-name">{{item.authorName}}</text>
+            <text wx:if="{{item.authorVerified}}" class="dsl-article-feed__v">V</text>
+          </text>
+          <!-- 🔴 此前硬编码了「时间 」「来源 」前缀，运营看到的是「时间 2026-01-01」这种怪字符串 -->
+          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">{{item.source}}</text>
+          <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('views') >= 0 && item.viewCount}}">◉ {{item.viewCount}}</text>
+          <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('likes') >= 0 && item.likeCount}}">♥ {{item.likeCount}}</text>
+          <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('reading') >= 0 && item.readingMinutes}}">⏱ 阅读 {{item.readingMinutes}} 分钟</text>
+          <text class="dsl-article-feed__badges" wx:if="{{badgePosition === 'meta' && badgeTypes.length}}">
+            <text wx:for="{{badgeTypes}}" wx:key="*this" wx:for-item="bt" class="dsl-article-feed__badge" wx:if="{{item[bt]}}">{{bt}}</text>
+          </text>
+          <text class="dsl-article-feed__cta" wx:if="{{showCta}}">{{ctaText}}</text>
         </view>
       </view>
     </view>
   </view>
 
-  <view wx:else class="dsl-article-feed__list" style="{{listStyle}}">
+  <view wx:else class="dsl-article-feed__list {{dividerStyle === 'card' ? 'dsl-article-feed__list--card' : ''}} {{coverOnLeft ? 'dsl-article-feed__list--cover-left' : ''}}" style="{{listStyle}}">
     <view
       class="dsl-article-feed__item dsl-article-feed__item--list"
       style="{{itemCardStyle}}"
@@ -203,20 +218,39 @@
       bindtap="onTapArticle"
     >
       <image
-        wx:if="{{config.show_cover !== false && (item.cover_url || item.image)}}"
+        wx:if="{{!hideCover && config.show_cover !== false && (item.cover_url || item.image)}}"
         class="dsl-article-feed__cover"
         src="{{item.cover_url || item.image}}"
         mode="aspectFill"
         lazy-load
       />
-      <view wx:elif="{{config.show_cover !== false}}" class="dsl-article-feed__placeholder">
+      <view wx:elif="{{!hideCover && config.show_cover !== false}}" class="dsl-article-feed__placeholder">
         <text>📖</text>
       </view>
       <view class="dsl-article-feed__content">
-        <text class="dsl-article-feed__title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
-        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false}}">
-          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
-          <text class="dsl-article-feed__source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+        <!-- 专栏 / 话题胶囊 -->
+        <text wx:if="{{showColumnTag && item.columnName}}" class="dsl-article-feed__column">{{item.columnName}}</text>
+        <text class="dsl-article-feed__title text-ellipsis-{{excerptLines}}" style="{{titleStyle}}">
+          <text wx:if="{{badgePosition === 'title' && badgeTypes.length}}" class="dsl-article-feed__badges">
+            <text wx:for="{{badgeTypes}}" wx:key="*this" wx:for-item="bt" class="dsl-article-feed__badge" wx:if="{{item[bt]}}">{{bt}}</text>
+          </text>
+          {{item.title || item.name}}
+        </text>
+        <text wx:if="{{showExcerpt && item.summary}}" class="dsl-article-feed__excerpt text-ellipsis-{{excerptLines}}" style="color:{{excerptColor}};">{{item.summary}}</text>
+        <view class="dsl-article-feed__meta" wx:if="{{config.show_date !== false || showAuthor || metricTypes.length || (badgePosition === 'meta' && badgeTypes.length) || showCta}}">
+          <text class="dsl-article-feed__author" wx:if="{{showAuthor && item.authorName}}">
+            <image wx:if="{{item.authorAvatar}}" class="dsl-article-feed__avatar" src="{{item.authorAvatar}}" mode="aspectFill" />
+            <text class="dsl-article-feed__author-name">{{item.authorName}}</text>
+            <text wx:if="{{item.authorVerified}}" class="dsl-article-feed__v">V</text>
+          </text>
+          <text class="dsl-article-feed__date" style="{{metaStyle}}" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+          <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('views') >= 0 && item.viewCount}}">◉ {{item.viewCount}}</text>
+          <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('likes') >= 0 && item.likeCount}}">♥ {{item.likeCount}}</text>
+          <text class="dsl-article-feed__metric" style="{{metaStyle}}" wx:if="{{metricTypes.indexOf('reading') >= 0 && item.readingMinutes}}">⏱ 阅读 {{item.readingMinutes}} 分钟</text>
+          <text class="dsl-article-feed__badges" wx:if="{{badgePosition === 'meta' && badgeTypes.length}}">
+            <text wx:for="{{badgeTypes}}" wx:key="*this" wx:for-item="bt" class="dsl-article-feed__badge" wx:if="{{item[bt]}}">{{bt}}</text>
+          </text>
+          <text class="dsl-article-feed__cta" wx:if="{{showCta}}">{{ctaText}}</text>
         </view>
       </view>
     </view>

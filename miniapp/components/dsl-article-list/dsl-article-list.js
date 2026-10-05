@@ -47,9 +47,61 @@ function normalizeArticleItem(item, index) {
     source: item.source || item.categoryName || item.category_name || '',
     sourceTag: item.sourceTag || item.source_tag || '',
     summary: String(item.summary || item.excerpt || item.subtitle || '').trim(),
+    // 阅读热度（show_views）：与后台 ArticleListRenderer.viewsOf 同规则
+    view_count: Number(item.viewCount != null ? item.viewCount : item.view_count) || 0,
+    viewsText: '',
     categoryId: item.categoryId != null ? String(item.categoryId) : (item.category_id != null ? String(item.category_id) : ''),
     categoryName: item.categoryName || item.category_name || '',
   }
+}
+
+/**
+ * 摘要简介是否展示（与后台 articleListSchema.resolveShowSummary 同规则）。
+ * 报刊细排 / 杂志首篇的排版本身依赖摘要，这两个布局强制显示。
+ */
+function resolveShowSummary(layout, showSummary) {
+  if (layout === 'editorial' || layout === 'magazine') return true
+  return showSummary === true
+}
+
+/** 阅读量文案（≥1万 折算，与后台一致） */
+function formatViewsText(showViews, count) {
+  if (showViews !== true) return ''
+  const n = Number(count) || 0
+  if (n <= 0) return '0 阅读'
+  return n >= 10000 ? (n / 10000).toFixed(1) + '万 阅读' : n + ' 阅读'
+}
+
+/**
+ * 🔴 手动置顶（2026-10-06 新增，需与后台 ArticleListRenderer.displayArticleItems 同规则）。
+ *
+ * 置顶项按配置顺序排在最前，其余按筛选后原序跟随。
+ * 置顶的文章不在当前结果里（筛选条件变了）也要占位 ——
+ * 否则运营会以为「置顶没生效」而反复排查。
+ */
+function applyPinned(list, pinned) {
+  const rows = list || []
+  const pins = Array.isArray(pinned) ? pinned.filter((p) => p && p.id != null && String(p.id) !== '') : []
+  if (!pins.length) return rows
+
+  const byId = {}
+  rows.forEach((it) => { byId[String(it.id)] = it })
+
+  const head = []
+  const used = {}
+  pins.forEach((p) => {
+    const key = String(p.id)
+    const hit = byId[key]
+    if (hit) {
+      head.push(hit)
+      used[key] = true
+    } else {
+      head.push({ id: p.id, title: p.title || ('文章 #' + p.id), cover_url: p.cover || '', navigable: false, viewsText: '' })
+    }
+  })
+
+  const rest = rows.filter((it) => !used[String(it.id)])
+  return head.concat(rest)
 }
 
 function normalizeTabs(config) {
@@ -68,7 +120,41 @@ function normalizeTabs(config) {
   if (!tabs.some((t) => t.name === '全部')) {
     tabs.unshift({ id: '', name: '全部' })
   }
+  // 「分类范围」= picked 时只保留运营手选的分类；id 比较统一按字符串，
+  // 否则 el-select 回传数字 id 而这里存的是字符串，手选分类会被全部滤掉。
+  const pickedRaw = config && config.category_tab_ids
+  if (Array.isArray(pickedRaw) && pickedRaw.length) {
+    const picked = pickedRaw.map((x) => String(x))
+    const kept = tabs.filter((t) => t.id !== '' && picked.indexOf(String(t.id)) >= 0)
+    return kept.length ? [{ id: '', name: '全部' }].concat(kept) : [{ id: '', name: '全部' }]
+  }
   return tabs
+}
+
+/**
+ * 🔴 拉取量必须与展示量解耦（2026-10-05 修复，需与后台 ArticleListRenderer 同规则）。
+ *
+ * 背景：DSL 里的 limit 原本同时充当「拉多少」和「留多少」，而来源/标签筛选是**拉回来之后**
+ * 在客户端做的 —— 于是「显示数量 2」+「筛选来源=公众号」时，若接口按最新返回的前 2 篇恰好
+ * 都不是公众号，就会被筛成空白或只剩 1 篇，运营看不出原因。
+ *
+ * 正解：拉取时按倍数放大余量，筛选完再截 limit。
+ * 内容池本身不够时如实少给，不补假数据。
+ */
+const FETCH_BUFFER_FACTOR = 4
+const FETCH_BUFFER_MIN = 20
+
+function hasClientFilter(config) {
+  const cfg = config || {}
+  const sourceFilter = Array.isArray(cfg.source_filter) && cfg.source_filter.length > 0
+  const platforms = Array.isArray(cfg.filter_platform_codes) && cfg.filter_platform_codes.length > 0
+  const topics = Array.isArray(cfg.filter_topic_tags) && cfg.filter_topic_tags.length > 0
+  return sourceFilter || platforms || topics
+}
+
+function resolveFetchSize(limit, filtered) {
+  if (!filtered) return Math.max(limit, 50)
+  return Math.max(limit * FETCH_BUFFER_FACTOR, FETCH_BUFFER_MIN, limit)
 }
 
 /** 按屏高估算一页条数：铺满一屏 + 少量缓冲，随机型变化 */
@@ -139,6 +225,12 @@ Component({
     layout: 'list',
     showCategoryTabs: false,
     categoryTabs: [],
+    tabStyle: 'pill',
+    emptyText: '暂无内容',
+    emptyIcon: '',
+    emptyHide: false,
+    showViews: false,
+    showSummary: false,
     activeTabId: '',
     tabLoading: false,
     loadingMore: false,
@@ -227,6 +319,17 @@ Component({
       const categoryTabs = showCategoryTabs ? normalizeTabs(cfg) : []
       const activeTabId = this.data.activeTabId || ''
 
+      // 空态兜底（2026-10-05 新增，需与后台 ArticleListRenderer 同规则）
+      // empty_mode=hide → 空态整块不渲染；empty_text → 自定义占位文案
+      const emptyText = String(cfg.empty_text || '').trim() || '暂无内容'
+      const emptyHide = cfg.empty_mode === 'hide'
+      const emptyIcon = String(cfg.empty_icon || '').trim()
+      // 分类范围=picked 时只保留运营手选的分类（比较统一按字符串，避免数字 id 被滤掉）
+      const tabStyle = ['pill', 'underline', 'bold'].includes(cfg.category_tab_style) ? cfg.category_tab_style : 'pill'
+      // 展示元素：阅读热度 / 摘要简介（与后台 resolveShowSummary 同规则）
+      const showViews = cfg.show_views === true
+      const showSummary = resolveShowSummary(layout, cfg.show_summary)
+
       this._pageSize = calcPageSize(layout)
 
       this.setData({
@@ -249,6 +352,12 @@ Component({
         layout,
         showCategoryTabs,
         categoryTabs,
+        tabStyle,
+        emptyText,
+        emptyIcon,
+        emptyHide,
+        showViews,
+        showSummary,
         activeTabId,
       })
 
@@ -347,7 +456,7 @@ Component({
           const merged = reset ? mapped : (this.data.displayData || []).concat(mapped)
           const hasMore = resolveHasMore(data, nextPage, pageSize, mapped.length)
           this.setData({
-            displayData: merged,
+            displayData: this._finalizeDisplay(merged, cfg),
             page: nextPage,
             hasMore,
             tabLoading: false,
@@ -387,7 +496,7 @@ Component({
       const merged = reset ? slice : (this.data.displayData || []).concat(slice)
       const hasMore = start + pageSize < pool.length
       this.setData({
-        displayData: merged,
+        displayData: this._finalizeDisplay(merged, this.data.config),
         page: nextPage,
         hasMore,
         tabLoading: false,
@@ -422,11 +531,27 @@ Component({
       return list
     },
 
+    /**
+     * 置顶 + 阅读量文案收尾。
+     *
+     * ⚠️ 置顶必须在「按limit 截断」**之后**：置顶项可能因为排序/筛选落在前limit 条之外，
+     * 先截断再置顶才能保证运营指定的文章真的出现在第 1 位。
+     */
+    _finalizeDisplay(list, config) {
+      const cfg = config || {}
+      const showViews = this.data.showViews === true
+      const pinned = applyPinned(list, cfg.pinned)
+      return pinned.map((item) => ({
+        ...item,
+        viewsText: formatViewsText(showViews, item.view_count),
+      }))
+    },
+
     _normalizeDisplayData(runtimeData, config) {
       let rows = []
       if (Array.isArray(runtimeData) && runtimeData.length > 0) {
         const limit = Math.max(Number((config && config.limit) || runtimeData.length), 1)
-        rows = runtimeData.slice(0, limit).map((item, index) => normalizeArticleItem(item, index))
+        rows = runtimeData.slice(0, resolveFetchSize(limit, hasClientFilter(config))).map((item, index) => normalizeArticleItem(item, index))
       } else {
         const items = Array.isArray(config && config.items) ? config.items : []
         const source = items.length ? items : [
@@ -434,9 +559,12 @@ Component({
           { title: '选品指南：活动与商品联动', publishedAt: '2026-05-12', source: '运营精选' },
         ]
         const limit = Math.max(Number((config && config.limit) || source.length), 1)
-        rows = source.slice(0, limit).map((item, index) => normalizeArticleItem(item, index))
+        rows = source.slice(0, resolveFetchSize(limit, hasClientFilter(config))).map((item, index) => normalizeArticleItem(item, index))
       }
-      return this._applySourceEnhancements(rows, config)
+      const enhanced = this._applySourceEnhancements(rows, config)
+      // 筛选后再按 limit 截断：拉取量已放大余量，这里只保证不超过配置值
+      const finalLimit = Math.max(Number((config && config.limit) || enhanced.length), 1)
+      return this._finalizeDisplay(enhanced.slice(0, finalLimit), config)
     },
 
     onTapArticle(e) {

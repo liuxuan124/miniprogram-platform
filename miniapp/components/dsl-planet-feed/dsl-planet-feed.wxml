@@ -1,10 +1,19 @@
-<view class="dsl-planet-feed">
-  <scroll-view class="pl-segs" scroll-x enhanced show-scrollbar="{{false}}">
+<view class="dsl-planet-feed {{hasSectionBg ? 'has-bg' : ''}}">
+  <!-- 标签栏：三种外观 + 可关吸顶，类名与后台预览同口径。
+     stickyTop 由 JS 实测上方顶栏高度得出，避免与星球顶栏/通知公告层叠穿透 -->
+  <scroll-view
+    class="pl-segs pl-segs--{{tabStyle.variant}} {{tabStyle.sticky ? 'pl-segs--sticky' : ''}} {{stickyTop > 0 ? 'pl-segs--offset' : ''}}"
+    style="{{stickyTop > 0 ? 'top:' + stickyTop + 'px' : ''}}"
+    scroll-x
+    enhanced
+    show-scrollbar="{{false}}"
+  >
     <view class="pl-segs__inner">
       <text
         wx:for="{{segs}}"
         wx:key="key"
         class="pl-seg {{activeSeg === item.key ? 'pl-seg--on' : ''}}"
+        style="{{item.style}}"
         data-key="{{item.key}}"
         bindtap="onSegTap"
       >{{item.label}}</text>
@@ -15,6 +24,7 @@
   <block wx:for="{{list}}" wx:key="uid">
     <view
       class="pl-fd {{item.top ? 'pl-fd--top' : ''}}"
+      style="{{cardStyleInline}}"
       data-id="{{item.id}}"
       data-uid="{{item.uid}}"
       data-demo="{{item.isDemo}}"
@@ -27,7 +37,7 @@
         <view class="pl-fd__who">
           <view class="pl-fd__nm">
             <text>{{item.author}}</text>
-            <text class="warm-tag warm-tag--gold" wx:if="{{item.tagGold}}">{{item.tagGold}}</text>
+            <text class="warm-tag warm-tag--gold" wx:if="{{vis.showTopBadge && item.tagGold}}">{{item.tagGold}}</text>
             <text class="warm-tag" wx:if="{{item.tag}}">{{item.tag}}</text>
           </view>
           <text class="pl-fd__tm">{{item.time}}</text>
@@ -41,7 +51,7 @@
           catchtap="onMoreTap"
         >···</text>
       </view>
-      <text class="pl-fd__ct">{{item.content}}</text>
+      <text class="pl-fd__ct {{vis.clampLines > 0 ? 'pl-fd__ct--clamp' : ''}}" style="{{vis.clampLines > 0 ? '-webkit-line-clamp:' + vis.clampLines : ''}}">{{item.content}}</text>
       <view class="pl-fd__q" wx:if="{{item.answer}}">
         <view class="pl-fd__qlb">星主已回答</view>
         <text>{{item.answer}}</text>
@@ -63,11 +73,14 @@
           <text class="pl-fd__fgo">{{f.open ? '预览 ›' : '开通 ›'}}</text>
         </view>
       </view>
-      <view class="pl-fd__gg {{item.images.length === 2 ? 'pl-fd__gg--two' : ''}}" wx:if="{{item.images.length}}">
-        <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" class="pl-fd__img warm-ph" src="{{img}}" mode="aspectFill" />
+      <view
+        class="pl-fd__gg {{item.images.length === 2 ? 'pl-fd__gg--two' : ''}} {{cardStyle.imageRatio === 'auto' ? 'pl-fd__gg--auto' : ''}}"
+        wx:if="{{item.images.length}}"
+      >
+        <image wx:for="{{item.images}}" wx:for-item="img" wx:key="*this" class="pl-fd__img warm-ph" src="{{img}}" mode="{{cardStyle.imageRatio === 'auto' ? 'widthFix' : 'aspectFill'}}" />
       </view>
       <text class="pl-fd__tp" wx:if="{{item.topics}}">{{item.topics}}</text>
-      <view class="pl-fd__ft">
+      <view class="pl-fd__ft" wx:if="{{vis.showInteractions}}">
         <text
           class="{{item.liked || item.hot ? 'pl-fd__hot' : ''}}"
           data-id="{{item.id}}"

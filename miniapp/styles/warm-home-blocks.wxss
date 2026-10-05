@@ -190,6 +190,9 @@
   border: 3rpx dashed #ddbe98; color: #c79a6c; font-size: 38rpx;
   display: flex; align-items: center; justify-content: center; background: #fffaf3;
 }
+/* 招募位卡片（V121）：组件级配置追加在列表末尾，与作者卡片同尺寸但弱化视觉 */
+.wh-author--recruit .wh-author__n { color: #c79a6c; font-weight: 600; }
+.wh-author--recruit { opacity: .92; }
 /* 未配头像时用姓名首字占位，与后台预览一致 */
 .wh-author__av--initial {
   display: flex; align-items: center; justify-content: center;
@@ -225,6 +228,15 @@
 .wh-col {
   display: inline-block; width: 308rpx; margin-right: 24rpx; vertical-align: top; white-space: normal;
 }
+/* 横滑容器内层：统一用 gap 控间距。
+   ⚠️ scroll 模式卡片宽度写死 308rpx，若外层还留 margin-right，
+   它会与 flex gap 叠加 —— 运营拖「条目间距」滑块时会看不出变化到底来自哪个机制。 */
+.wh-rail__inner {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 24rpx;
+}
+.wh-rail__inner .wh-col { margin-right: 0; }
 .wh-col__cv {
   height: 208rpx; border-radius: 32rpx; overflow: hidden; position: relative; background: #f8ecdd;
 }
@@ -234,6 +246,50 @@
 .wh-col__p { display: block; font-size: 21rpx; color: #a1897a; margin-top: 8rpx; }
 .wh-col__pr { margin-top: 12rpx; font-size: 26rpx; font-weight: 800; color: #c2410c; }
 .wh-col__s { font-size: 20rpx; color: #a1897a; font-weight: 500; margin-left: 10rpx; text-decoration: line-through; }
+
+/* 无封面占位（2026-10-05）：比 image 空 src 的破图态干净，也能看出该有图 */
+.wh-col__cv-ph {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; color: #b3a596; font-size: 22rpx;
+  background: linear-gradient(135deg, #f8ecdd, #efe2d0);
+}
+
+/* 集数 / 主理人元信息行 */
+.wh-col__mt { display: flex; align-items: center; margin-top: 10rpx; }
+.wh-col__host { font-size: 20rpx; color: #a1897a; }
+.wh-col__ls {
+  margin-left: 10rpx; padding: 2rpx 12rpx;
+  font-size: 19rpx; color: #c2410c;
+  background: rgba(194,65,12,.10); border-radius: 999rpx;
+}
+
+/* ---------------------------------------------------------------- *
+ * 专栏三布局（config.layout）
+ *   scroll 横滑：原实现，卡片固定宽 + scroll-x
+ *   grid   双列：两列等宽换行
+ *   single 单列大卡：整宽，卡内图文左右排布
+ * ⚠️ 圆角由 wxml inline style 传（每条数据带 columnRadius）；
+ *    **间距统一用 gap**（wxml 上按 columnGap 内联），所以这里不再写 margin-right ——
+ *    两套机制并存时 flex 的 gap 与 margin 会叠加，运营调滑块会看不出效果变在哪。
+ * ---------------------------------------------------------------- */
+.wh-rail--grid {
+  display: flex; flex-wrap: wrap; white-space: normal;
+}
+.wh-rail--grid .wh-col {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-right: 0;
+}
+
+.wh-rail--single { display: flex; white-space: normal; }
+.wh-rail--single .wh-col {
+  flex: 1 1 100%;
+  margin-right: 0;
+}
+.wh-rail--single .wh-col__cv {
+  flex: 0 0 208rpx; width: 208rpx; height: 156rpx; margin-right: 20rpx;
+}
+.wh-rail--single .wh-col__h { margin-top: 0; }
 
 .wh-planet {
   margin: 12rpx 32rpx 0; border-radius: 44rpx; padding: 32rpx; color: #fff; position: relative; overflow: hidden;

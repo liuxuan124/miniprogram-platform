@@ -54,6 +54,147 @@ function normalizeSegs(raw) {
   return out
 }
 
+/* ========== 样式/显隐归一化（与 admin/src/utils/preview-planet.ts 同规则） ==========
+ * 判定规则必须两端一致，否则会出现「预览是胶囊、真机是滑块」「预览截 3 行、真机不截」。
+ * 这里不引后台的 TS 文件，按同样的口径重写一遍（小程序端无编译期共享能力）。 */
+
+function obj(raw) {
+  return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+}
+
+function clampNum(v, fallback, min, max) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(max, Math.max(min, Math.round(n)))
+}
+
+const TAB_VARIANTS = ['pill', 'line', 'text']
+const SHADOWS = {
+  none: 'none',
+  light: '0 4rpx 12rpx rgba(120, 64, 24, 0.08)',
+  medium: '0 12rpx 40rpx rgba(120, 64, 24, 0.14)',
+}
+const RADII = [0, 8, 16]
+
+function normalizeTabStyle(raw) {
+  const o = obj(raw)
+  return {
+    variant: TAB_VARIANTS.indexOf(o.variant) >= 0 ? o.variant : 'pill',
+    // 默认继承品牌色 + 默认吸顶：与线上现状一致
+    inheritBrand: o.inherit_brand !== false,
+    activeBg: String(o.active_bg || ''),
+    activeText: String(o.active_text || ''),
+    text: String(o.text || ''),
+    sticky: o.sticky !== false,
+    // 默认自动避让；老页面没这两个字段，auto + 上方无顶栏 = 偏移 0，与旧行为一致
+    stickyOffsetMode: o.sticky_offset_mode === 'manual' ? 'manual' : 'auto',
+    stickyOffset: clampNum(o.sticky_offset, 0, 0, 200),
+  }
+}
+
+/**
+ * 🔴 吸顶层级穿透修正（2026-10-06）。
+ *
+ * 原来标签栏吸顶写死 `top: 0`。页面顶部若已有星球顶栏 / 通知公告，
+ * 两者会层叠穿透（标签栏压在公告上，滚动时表现为「忽然插到公告上面」）。
+ *
+ * 自动模式下实测上方顶栏的实际渲染高度（`top` + `height` 求和），
+ * 比按配置推算更准 —— 顶栏高度会随文案长度、是否带图变化。
+ * 上方没有顶栏时返回 0，行为与改动前完全一致。
+ *
+ * @param {number} segsTop  标签栏自身的 getBoundingClientRect().top（相对视口）
+ * @param {Array}  rects    上方候选元素的 rect 列表
+ */
+function computeStickyOffset(segTop, rects) {
+  // segsTop 为负说明页面已下滚；此时标签栏已吸住，取它当前的实际 top 即为偏移量。
+  // 没下滚（segsTop >= 0）说明还没吸顶，偏移量就是上方元素底部到视口顶的距离。
+  if (typeof segsTop === 'number' && segsTop < 0) return Math.min(200, Math.round(-segsTop))
+  let bottom = 0
+  ;(rects || []).forEach((r) => {
+    if (r && typeof r.bottom === 'number' && r.bottom > bottom) bottom = r.bottom
+  })
+  return Math.min(200, Math.max(0, Math.round(bottom)))
+}
+
+function normalizeCardStyle(raw) {
+  const o = obj(raw)
+  const r = Number(o.radius)
+  return {
+    marginBottom: clampNum(o.margin_bottom, 12, 0, 40),
+    padding: clampNum(o.padding, 14, 0, 28),
+    radius: RADII.indexOf(r) >= 0 ? r : 16,
+    shadow: SHADOWS[o.shadow] || SHADOWS.light,
+    imageRatio: o.image_ratio === 'auto' ? 'auto' : 'square',
+  }
+}
+
+function normalizeVisibility(raw) {
+  const o = obj(raw)
+  return {
+    showTopBadge: o.show_top_badge !== false,
+    showInteractions: o.show_interactions !== false,
+    // clamp_lines 缺省为 0 = 不截断（不能默认 3，否则线上长文被凭空截断）
+    clampLines: clampNum(o.clamp_lines, 0, 0, 8),
+  }
+}
+
+/**
+ * 解析默认高亮分段：配置命中则用它，否则回落第一段，一段都没有才用 all。
+ * 关键在第 2 级：运营配了 default_seg 又把该段删掉，不校验就会「哪段都不亮」。
+ */
+function resolveDefaultSeg(segs, defaultSeg) {
+  const want = String(defaultSeg == null ? '' : defaultSeg).trim()
+  if (want && segs.some((s) => s.key === want)) return want
+  return (segs[0] && segs[0].key) || 'all'
+}
+
+/**
+ * 给每个分段挂上 `style`（行内样式串）。
+ * 必须在 activeSeg 变化时重算 —— 选中态的配色依赖它，
+ * 只在 _load 里算一次的话，点了另一个分段后高亮色不会跟着换。
+ */
+function decorateSegs(segs, tabStyle, activeSeg) {
+  return segs.map((s) => ({
+    key: s.key,
+    label: s.label,
+    style: segInlineStyle(tabStyle, s.key === activeSeg),
+  }))
+}
+
+/**
+ * 卡片行内样式。
+ * ⚠️ 单位是 rpx（小程序端用 rpx，后台预览用 px）：
+ * 后台面板里配的是「px 语义值」（圆角 8/16、间距 12），
+ * 这里统一 ×2 转 rpx（750rpx = 375pt，1px ≈ 2rpx），两端视觉一致。
+ * 不能直接把后台的 px 串原样塞进来，否则真机上圆角会小一半。
+ */
+function cardStyleInline(cs) {
+  const padBottom = Math.max(6, cs.padding - 4)
+  return [
+    `margin-bottom:${cs.marginBottom * 2}rpx`,
+    `padding:${cs.padding * 2}rpx ${(cs.padding + 1) * 2}rpx ${padBottom * 2}rpx`,
+    `border-radius:${cs.radius * 2}rpx`,
+    `box-shadow:${cs.shadow}`,
+  ].join(';') + ';'
+}
+
+/**
+ * 分段行内样式。
+ * 「继承品牌色」时不产出任何行内样式，交给 WXSS 的 var(--brand) 兜底 ——
+ * 这样后台勾了继承，真机就真的跟随主题色，而不是被一个写死色盖住。
+ */
+function segInlineStyle(tabStyle, isActive) {
+  if (tabStyle.inheritBrand) return ''
+  if (isActive) {
+    const parts = []
+    if (tabStyle.activeText) parts.push(`color:${tabStyle.activeText}`)
+    // 滑块/纯文本风格不做底色，只有胶囊才铺背景，否则滑块会被整块色盖掉指示线
+    if (tabStyle.variant === 'pill' && tabStyle.activeBg) parts.push(`background:${tabStyle.activeBg}`)
+    return parts.join(';') + (parts.length ? ';' : '')
+  }
+  return tabStyle.text ? `color:${tabStyle.text};` : ''
+}
+
 function isTruthyDemo(v) {
   return v === true || v === 'true' || v === 1 || v === '1'
 }
@@ -158,38 +299,140 @@ const DEMO_FEED_LIST = warmPlanet.FEED.map(mapFeedItem)
 Component({
   properties: {
     config: { type: Object, value: {} },
+    /**
+     * 外层算好的行内样式串（render.js 的 parseStyle 产物）。
+     * 只用它判断「有没有配通栏底色」，不直接渲染 ——
+     * 底色本身由外层 wrapper 承担，这里只负责让内部卡片让位。
+     */
+    styleString: { type: String, value: '' },
   },
   data: {
     segs: warmPlanet.SEGS,
+    /** 已归一 + 已回落默认的原始分段（不带行内样式），切段重算样式的基准 */
+    segsBase: warmPlanet.SEGS,
     activeSeg: 'all',
     allList: DEMO_FEED_LIST,
     list: DEMO_FEED_LIST,
     footerText: '—— 演示数据 ——',
     usingDemo: true,
     resourcesUrl: '/pkg-content/resources/resources',
+    tabStyle: normalizeTabStyle(null),
+    cardStyle: normalizeCardStyle(null),
+    /** 预拼好的行内样式串：WXML 里拼三元+字符串拼接太脆，放 JS 算一次 */
+    cardStyleInline: '',
+    vis: normalizeVisibility(null),
+    /** 吸顶时距离页面顶部的偏移（px）；自动模式实测上方顶栏高度得出 */
+    stickyTop: 0,
+    /** 外层是否配了通栏底色（卡片据此让位成半透明） */
+    hasSectionBg: false,
   },
-  lifetimes: { attached() { this._load() } },
-  observers: { config() { this._load() } },
+  lifetimes: {
+    attached() {
+      this._load()
+      this._applySectionBg()
+      // DOM 落地后再量高度，attached 时 getBoundingClientRect 还拿不到
+      setTimeout(() => this._measureStickyTop(), 60)
+    },
+  },
+  observers: {
+    config() { this._load(); setTimeout(() => this._measureStickyTop(), 60) },
+    // 后台改「背景色」→ styleString 变化 → 要重算卡片让位与吸顶条配色
+    styleString() { this._applySectionBg() },
+  },
   methods: {
+    /**
+     * 通栏底色是否被配了。
+     *
+     * 背景色由外层 wrapper 渲染（parseStyle 已把 background_color 转成 background），
+     * 但卡片是不透明米白/渐变，会把底色整块遮死。这里据此把卡片让成半透明。
+     * 与后台 `PlanetFeedRenderer` 的 `has-bg` 判定同规则。
+     */
+    _applySectionBg() {
+      const s = String(this.data.styleString || '')
+      // 只认 background(-color) 声明；渐变也算（运营可能配 background-image）
+      const has = /(^|;)\s*background(-color)?\s*:/.test(s)
+      if (has !== this.data.hasSectionBg) this.setData({ hasSectionBg: has })
+    },
+    /**
+     * 实测吸顶偏移。手动模式直接用配置值；自动模式量上方顶栏的实际高度。
+     * 类名与 dsl-renderer 的渲染分支保持一致 —— 找不到就回落 0（= 旧行为）。
+     */
+    _measureStickyTop() {
+      const ts = this.data.tabStyle || normalizeTabStyle(null)
+      if (!ts.sticky) {
+        if (this.data.stickyTop !== 0) this.setData({ stickyTop: 0 })
+        return
+      }
+      if (ts.stickyOffsetMode === 'manual') {
+        if (this.data.stickyTop !== ts.stickyOffset) this.setData({ stickyTop: ts.stickyOffset })
+        return
+      }
+      const self = this
+      // ⚠️ 选择器必须与 dsl-renderer.wxml 里的真实标签对齐（核实过）：
+      // notice_bar / planet_hero 是自定义组件（tag 选择器），
+      // planet_topics 才是 view.class 形态。写错一个就量不到，会回落 0 = 旧行为。
+      // 🔴 这里**不能**用 `.in(this)`：`.in` 把查询域锁在本组件内，
+      // 上方的兄弟节点（顶栏/公告）根本不在域内，永远返回 null。
+      // 但 `.pl-segs`（自身节点）用 `.in(this)` 才量得到 —— 拆成两条查询。
+      wx.createSelectorQuery()
+        .in(this)
+        .select('.pl-segs')
+        .boundingClientRect()
+        .exec(function (selfRes) {
+          const segsRect = selfRes && selfRes[0]
+          wx.createSelectorQuery()
+            .select('dsl-notice-bar')
+            .boundingClientRect()
+            .select('dsl-planet-hero')
+            .boundingClientRect()
+            .select('.dsl-planet-topics')
+            .boundingClientRect()
+            .exec(function (res) {
+              if (!res || !res.length) return
+              const next = computeStickyOffset(segsRect && segsRect.top, res.filter(Boolean))
+              if (next !== self.data.stickyTop) self.setData({ stickyTop: next })
+            })
+        })
+    },
     _load() {
       const c = this.data.config || {}
       const configured = normalizeSegs(c.segs)
       const segs = configured.length ? configured : warmPlanet.SEGS
-      const pageSize = Number(c.page_size) || 20
+      const pageSize = clampNum(c.page_size, 20, 5, 50)
       const resourcesUrl = c.resources_url || '/pkg-content/resources/resources'
       const manual = String(c.source_mode || 'auto') === 'manual'
-      // 运营可能把默认的 all 段删掉：选中项必须落在实际存在的分段里，
+      // 运营可能把默认段删掉：选中项必须落在实际存在的分段里，
       // 否则首屏没有任何高亮、且落到「不过滤」分支，看起来像白屏/点了没反应。
-      const activeSeg = segs.some((s) => s.key === this.data.activeSeg) ? this.data.activeSeg : (segs[0] && segs[0].key) || 'all'
+      // default_seg 配的段不存在时也回落第一段（与后台 resolvePlanetDefaultSeg 同规则）。
+      const configuredActive = resolveDefaultSeg(segs, c.default_seg)
+      const activeSeg = segs.some((s) => s.key === this.data.activeSeg)
+        ? (segs.some((s) => s.key === configuredActive) ? configuredActive : this.data.activeSeg)
+        : configuredActive
+      const tabStyle = normalizeTabStyle(c.tabStyle)
+      const cardStyle = normalizeCardStyle(c.cardStyle)
+      const vis = normalizeVisibility(c.visibility)
       // 保留 DEMO 列表，不先清空；只更新 tabs
-      this.setData({ segs, resourcesUrl, activeSeg })
+      this.setData({
+        segs: decorateSegs(segs, tabStyle, activeSeg),
+        segsBase: segs,
+        resourcesUrl,
+        activeSeg,
+        tabStyle,
+        cardStyle,
+        cardStyleInline: cardStyleInline(cardStyle),
+        vis,
+      })
       if (manual && Array.isArray(c.items) && c.items.length) {
         this._applySeg(c.items.map(mapFeedItem), true)
         return
       }
+      // 排序与星球 ID 透传给接口；非法 sortBy 由后端回落 new，这里只做存在性判断
+      const sortBy = ['new', 'hot', 'reply'].indexOf(String(c.sort_by || 'new')) >= 0 ? String(c.sort_by) : 'new'
       PlanetService.getMainPlanet().catch(() => null).then((main) => {
-        const planetId = (main && main.planetId) || PlanetService.getCachedMainPlanetId() || ''
-        return PlanetService.getPlanetFeed({ current: 1, size: pageSize, planetId })
+        // 运营显式指定圈子/星球 ID 时优先用它，不跟随用户当前主星球设置
+        const explicit = String(c.planet_id || '').trim()
+        const planetId = explicit || (main && main.planetId) || PlanetService.getCachedMainPlanetId() || ''
+        return PlanetService.getPlanetFeed({ current: 1, size: pageSize, planetId, sortBy })
       }).then((feed) => {
         const records = (feed && (feed.records || feed.list || feed.items)) || []
         if (!records.length) return // 空结果保留 DEMO，避免列表塌陷再跳回
@@ -229,7 +472,14 @@ Component({
         wx.navigateTo({ url, fail() { wx.switchTab({ url }) } })
         return
       }
-      this.setData({ activeSeg: key })
+      // 切段后要重算每段的行内样式，否则自定义配色下高亮色不会跟着换。
+      // ⚠️ 必须用 segsBase（_load 已归一 + 回落过的结果）重算，
+    // 不能拿 config.segs 再 normalize 一次 —— config.segs 为空时
+    // 线上是回落到 warmPlanet.SEGS 的，这里会 normalize 成空数组把标签栏清空。
+      this.setData({
+        activeSeg: key,
+        segs: decorateSegs(this.data.segsBase || [], this.data.tabStyle, key),
+      })
       this._applySeg(this.data.allList, this.data.usingDemo)
     },
     _momentNavUrl(id, demo) {

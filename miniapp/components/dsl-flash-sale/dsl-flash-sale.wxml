@@ -1,17 +1,75 @@
-<view class="dsl-flash" style="{{styleString}}">
+<!--components/dsl-flash-sale/dsl-flash-sale.wxml — 限时秒杀-->
+<!-- 🔴 auto_hide_when_done 且活动结束/售罄时整块不渲染（页面不留空壳） -->
+<view class="dsl-flash" style="{{rootStyle}}" wx:if="{{!hidden}}">
+  <!-- 标题栏 -->
   <view class="dsl-flash__head">
-    <text class="dsl-flash__title" style="{{titleStyle}}">{{config.title || '限时秒杀'}}</text>
-    <text wx:if="{{config.countdown !== false && countdownText}}" class="dsl-flash__countdown {{isExpired ? 'dsl-flash__countdown--expired' : ''}}">{{countdownText}}</text>
-    <text class="dsl-flash__tag">{{isExpired ? '已结束' : '进行中'}}</text>
+    <view class="dsl-flash__title" style="{{titleStyle}}">
+      <image
+        wx:if="{{isImageIcon}}"
+        class="dsl-flash__title-icon"
+        src="{{titleIcon}}"
+        mode="aspectFit"
+      />
+      <text wx:else class="dsl-flash__title-icon">{{titleIcon || '⏱'}}</text>
+      <text>{{title}}</text>
+    </view>
+
+    <!-- 倒计时：方块翻牌器 / 极简纯文本 -->
+    <view wx:if="{{countdown}}" class="dsl-flash__countdown {{countdownStyle}} {{expired ? 'is-expired' : ''}}">
+      <block wx:if="{{countdownStyle === 'flip'}}">
+        <text class="dsl-flash__cd-label">{{prefix}}</text>
+        <text wx:if="{{showDays}}" class="dsl-flash__cd-cell">{{days}}天</text>
+        <text class="dsl-flash__cd-cell">{{hoursText}}</text>
+        <text class="dsl-flash__cd-cell">{{minutesText}}</text>
+        <text class="dsl-flash__cd-cell">{{secondsText}}</text>
+      </block>
+      <text wx:else>{{prefix}} {{countdownText}}</text>
+    </view>
+
+    <text
+      wx:if="{{showMore}}"
+      class="dsl-flash__more"
+      style="color:{{themeColor}}"
+      data-link="{{moreLink}}"
+      bindtap="onMoreTap"
+    >{{moreText}} ›</text>
   </view>
-  <view class="dsl-flash__grid">
-    <view class="dsl-flash__item" wx:for="{{items}}" wx:key="index" bindtap="onTapItem" data-url="{{item.link}}">
+
+  <!-- 商品区 -->
+  <view class="dsl-flash__items {{layout}} surface-{{cardSurface}}">
+    <view
+      class="dsl-flash__item {{dimPhase ? 'is-dim' : ''}}"
+      wx:for="{{displayItems}}"
+      wx:key="id"
+      data-url="{{item.link_url}}"
+      data-index="{{index}}"
+      bindtap="onTapItem"
+    >
+      <text wx:if="{{item.badge}}" class="dsl-flash__badge" style="background:{{themeColor}}">{{item.badge}}</text>
+
       <view class="dsl-flash__img">🔥</view>
-      <view class="dsl-flash__name" style="{{titleStyle}}">{{item.name}}</view>
-      <view class="dsl-flash__price" style="{{metaStyle}}">
-        ¥{{item.price}}
-        <text wx:if="{{item.originalPrice}}" class="dsl-flash__price-origin">¥{{item.originalPrice}}</text>
+
+      <view class="dsl-flash__info">
+        <text class="dsl-flash__name" style="{{nameStyle}}">{{item.name || '爆款商品'}}</text>
+
+        <view class="dsl-flash__price-row">
+          <text class="dsl-flash__price" style="{{priceStyle}}"><text class="dsl-flash__price-sym">¥</text>{{item.price || '--'}}</text>
+          <text
+            wx:if="{{showOriginalPrice && item.original_price}}"
+            class="dsl-flash__price-origin"
+            style="{{originStyle}}"
+          >¥{{item.original_price}}</text>
+        </view>
+
+        <view wx:if="{{showProgress && item.percent > 0}}" class="dsl-flash__progress">
+          <view class="dsl-flash__progress-track">
+            <view class="dsl-flash__progress-fill" style="width:{{item.percent}}%;background:{{themeColor}}"></view>
+          </view>
+          <text class="dsl-flash__progress-text" style="{{metaStyle}}">已抢 {{item.percent}}%</text>
+        </view>
       </view>
+
+      <text wx:if="{{showBuyButton}}" class="dsl-flash__btn" style="{{btnStyle}}">{{buyText}}</text>
     </view>
   </view>
 </view>

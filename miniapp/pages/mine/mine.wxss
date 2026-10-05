@@ -362,3 +362,66 @@
   letter-spacing: 0.12em;
   line-height: 1.7;
 }
+
+/* ============================================================ *
+ * 1.30 配置消费样式
+ *
+ * 主题色由 mine.js 算好（inherit → 全局品牌色 / page → 页面色），
+ * 以 inline CSS 变量注入根节点，这里只消费 --brand* 系列，
+ * 所以各皮肤（warm/basic/member）自带的变量会作为「未注入时」的兜底保留。
+ * ============================================================ */
+
+/* 头部 solid：不走渐变，直接铺品牌色（对应后台「头部样式 = 纯色」） */
+.mn-header--solid .mn-hero {
+  background: var(--brand-dark);
+}
+.mn-header--solid .mn-hero::after { display: none; }
+
+/* 卡片 flat：去掉阴影 */
+.mn-card--flat .mn-vip,
+.mn-card--flat .mn-quick,
+.mn-card--flat .mn-cont,
+.mn-card--flat .mn-pl,
+.mn-card--flat .mn-menu,
+.mn-card--flat .mn-empty {
+  box-shadow: none;
+}
+/* 卡片 flat：会员卡改纯色铺底（渐变就没了层次） */
+.mn-card--flat .mn-vip { background: var(--brand-dark); }
+/* 卡片 flat：快捷/学习/星球/菜单 改用描边划分区块 */
+.mn-card--flat .mn-quick,
+.mn-card--flat .mn-cont,
+.mn-card--flat .mn-pl,
+.mn-card--flat .mn-menu {
+  border: 1rpx solid var(--line);
+  background: var(--sheet);
+}
+
+/* 卡片 outline：白底描边，文字转常规色 */
+.mn-card--outline .mn-vip {
+  background: #ffffff;
+  color: var(--ink);
+  border: 1rpx solid var(--line);
+  box-shadow: none;
+}
+.mn-card--outline .mn-vip__h { color: var(--ink); }
+.mn-card--outline .mn-vip__p { color: var(--mute); opacity: 1; }
+.mn-card--outline .mn-vip__b {
+  color: var(--brand);
+  background: var(--brand-50);
+}
+.mn-card--outline .mn-quick,
+.mn-card--outline .mn-cont,
+.mn-card--outline .mn-pl,
+.mn-card--outline .mn-menu {
+  border: 1rpx solid var(--line);
+  box-shadow: none;
+}
+
+/**
+ * 用户头部被隐藏时的收拢：
+ * 会员卡默认靠 -60rpx 负边距压在头部上，头部没了必须把这段补回来，
+ * 否则卡片会贴到屏幕最上方、被状态栏盖住。
+ * 其余模块用 margin-top 逐个累加，不留空白。
+ */
+.mn-page--no-hero .mn-vip { margin-top: 24rpx; }

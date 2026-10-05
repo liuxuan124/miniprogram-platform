@@ -1,6 +1,6 @@
 <!--components/dsl-article-list/dsl-article-list.wxml — 文章列表（可选 show_header 内置标题头）-->
 <view class="dsl-article-list {{showCategoryTabs ? 'dsl-article-list--tabs' : ''}}" style="{{styleString}}">
-  <view wx:if="{{showCategoryTabs}}" class="dsl-article-list__tabs-bar">
+  <view wx:if="{{showCategoryTabs}}" class="dsl-article-list__tabs-bar dsl-article-list__tabs-bar--{{tabStyle}}">
   <scroll-view
     class="dsl-article-list__tabs"
     scroll-x
@@ -40,9 +40,11 @@
       />
       <view class="dsl-article-list__item-content">
         <text class="dsl-article-list__item-title dsl-article-list__item-title--compact" style="{{titleStyle}}">{{item.title || item.name}}</text>
+        <text class="dsl-article-list__item-summary dsl-article-list__item-summary--compact text-ellipsis-2" wx:if="{{showSummary && item.summary}}">{{item.summary}}</text>
         <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
           <text class="dsl-article-list__item-date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
           <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+          <text class="dsl-article-list__item-views" style="{{metaStyle}}" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
         </view>
       </view>
     </view>
@@ -74,6 +76,7 @@
         <text class="dsl-article-list__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
         <text class="dsl-article-list__overlay-title">{{item.title || item.name}}</text>
         <text class="dsl-article-list__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+        <text class="dsl-article-list__overlay-meta" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
       </view>
     </view>
   </view>
@@ -100,6 +103,7 @@
           <text class="dsl-article-list__overlay-kicker" wx:if="{{item.source}}">{{item.source}}</text>
           <text class="dsl-article-list__overlay-title">{{item.title || item.name}}</text>
           <text class="dsl-article-list__overlay-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+        <text class="dsl-article-list__overlay-meta" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
         </view>
       </view>
       <view
@@ -121,6 +125,7 @@
           <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
             <text class="dsl-article-list__editorial-meta" wx:if="{{item.created_at || item.publish_time}}">{{item.created_at || item.publish_time}}</text>
             <text class="dsl-article-list__editorial-meta" wx:if="{{item.source}}">{{item.source}}</text>
+            <text class="dsl-article-list__editorial-meta" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
           </view>
         </view>
       </view>
@@ -148,6 +153,7 @@
       <view class="dsl-article-list__grid-body">
         <text class="dsl-article-list__grid-title">{{item.title || item.name}}</text>
         <text class="dsl-article-list__grid-meta" wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}">{{item.created_at || item.publish_time}}</text>
+        <text class="dsl-article-list__grid-meta" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
       </view>
     </view>
   </view>
@@ -211,6 +217,7 @@
           <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
             <text class="dsl-article-list__item-date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
             <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+          <text class="dsl-article-list__item-views" style="{{metaStyle}}" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
           </view>
         </view>
       </view>
@@ -243,9 +250,11 @@
       </view>
       <view class="dsl-article-list__item-content">
         <text class="dsl-article-list__item-title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
+        <text class="dsl-article-list__item-summary text-ellipsis-2" wx:if="{{showSummary && item.summary}}">{{item.summary}}</text>
         <view class="dsl-article-list__item-meta-row" wx:if="{{config.show_date !== false}}">
           <text class="dsl-article-list__item-date" style="{{metaStyle}}" wx:if="{{item.created_at || item.publish_time}}">时间 {{item.created_at || item.publish_time}}</text>
           <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+          <text class="dsl-article-list__item-views" style="{{metaStyle}}" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
         </view>
       </view>
     </view>
@@ -277,6 +286,7 @@
       </view>
       <view class="dsl-article-list__item-content">
         <text class="dsl-article-list__item-title text-ellipsis-2" style="{{titleStyle}}">{{item.title || item.name}}</text>
+        <text class="dsl-article-list__item-summary text-ellipsis-2" wx:if="{{showSummary && item.summary}}">{{item.summary}}</text>
         <view class="dsl-article-list__item-meta-row">
           <text
             class="dsl-article-list__item-date"
@@ -284,13 +294,16 @@
             wx:if="{{config.show_date !== false && (item.created_at || item.publish_time)}}"
           >时间 {{item.created_at || item.publish_time}}</text>
           <text class="dsl-article-list__item-source" style="{{metaStyle}}" wx:if="{{item.source}}">来源 {{item.source}}</text>
+          <text class="dsl-article-list__item-views" style="{{metaStyle}}" wx:if="{{item.viewsText}}">{{item.viewsText}}</text>
         </view>
       </view>
     </view>
   </view>
 
-  <view class="dsl-article-list__empty" wx:if="{{!displayData.length && !tabLoading}}">
-    <text class="dsl-article-list__empty-text">暂无内容</text>
+  <!-- emptyText 运营可配（empty_text）；emptyHide=true 时整块不渲染（empty_mode=hide） -->
+  <view class="dsl-article-list__empty" wx:if="{{!displayData.length && !tabLoading && !emptyHide}}">
+    <text class="dsl-article-list__empty-icon" wx:if="{{emptyIcon}}">{{emptyIcon}}</text>
+    <text class="dsl-article-list__empty-text">{{emptyText}}</text>
   </view>
   <view class="dsl-article-list__empty" wx:elif="{{tabLoading}}">
     <text class="dsl-article-list__empty-text">加载中...</text>

@@ -4,6 +4,14 @@ const { formatProductPriceLabel, formatProductSalesLabel } = require('../../util
 const { filterProductsByPrice, resolvePriceFilterConfig } = require('../../utils/product-price-filter')
 const DatasourceService = require('../../services/datasource')
 const { normalizeImageUrl } = require('../../utils/image-preload')
+const {
+  normalizeProductListProps,
+  resolveCardSurface,
+  resolveCtaText,
+  resolveColumnCount,
+  resolveProductBadge,
+  resolveOriginalPrice,
+} = require('../../utils/product-list-props')
 
 function calcPageSize(config) {
   const raw = Number(config && config.page_size)
@@ -186,7 +194,8 @@ Component({
     },
 
     _mapDisplayItems(source, config, startIndex = 0) {
-      const layout = ['grid', 'list', 'waterfall'].includes(config.layout) ? config.layout : 'grid'
+      // 🔴 归一化只做一次，布局四档与旧值映射都在 product-list-props 里
+      const cfg = normalizeProductListProps(config)
       const artPalette = [
         { bg: '#dbeafe', glyph: '📘' },
         { bg: '#ffedd5', glyph: '☕' },
@@ -209,7 +218,7 @@ Component({
           || item.coverImage || item.cover || item.image || item.pic || firstFromGallery || '',
         ).trim())
       }
-      const zeroPriceDisplay = config.zero_price_display === 'free' ? 'free' : 'amount'
+      const zeroPriceDisplay = cfg.zeroPriceDisplay
       return source.map((item, index) => {
         const globalIndex = startIndex + index
         const cover = pickCover(item)
@@ -223,6 +232,12 @@ Component({
         const safeScore = Number.isFinite(score) && score > 0 ? score.toFixed(1) : ''
         const safeReviews = reviews > 0 ? reviews : 0
         const art = artPalette[globalIndex % artPalette.length]
+        // 🔴 0 元商品单独标记：wxml 靠它区分「免费领取」与「¥0」，
+        //    画布与真机必须一致，否则运营会以为其中一端坏了。
+        const priceNum = Number(price)
+        const isFree = priceNum === 0
+        const originalPrice = resolveOriginalPrice(item)
+        const badge = resolveProductBadge(cfg.badgeMode, cfg.badgeText, priceNum, originalPrice)
         return {
           ...item,
           _key: item._key || `product_${item.id || globalIndex}_${globalIndex}`,
@@ -230,6 +245,9 @@ Component({
           _eager: globalIndex < 6,
           _price: price,
           _priceLabel: (priceLabel.withYuan ? '¥' : '') + priceLabel.text,
+          _isFree: isFree,
+          _originalPrice: originalPrice > 0 ? originalPrice.toFixed(2) : '',
+          _badge: badge,
           _sales: sales,
           _salesLabel: salesLabel,
           _meta: pickTypeLabel(item) + ' · ' + salesLabel,
@@ -242,17 +260,17 @@ Component({
       })
     },
 
+    /**
+     * 展示样式：全部读 normalizeProductListProps 的结果。
+     * 🔴 旧代码在本方法里又算了一遍布局/圆角/间距/字号/列数的默认值与兜底，
+     *   和后台 props 面板各写一份 —— 改一边另一边不认。现统一到 Schema。
+     */
     _applyPresentationStyles(config) {
-      const layout = ['grid', 'list', 'waterfall'].includes(config.layout) ? config.layout : 'grid'
-      const showRating = layout === 'list' ? config.show_rating !== false : config.show_rating === true
-      const titleSize = Number(config.title_font_size) > 0 ? Number(config.title_font_size) : (layout === 'list' ? 15 : 14)
-      const priceSize = Number(config.price_font_size) > 0
-        ? Number(config.price_font_size)
-        : (Number(config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : (layout === 'list' ? 16 : 13))
-      const salesSize = Number(config.sales_font_size) > 0
-        ? Number(config.sales_font_size)
-        : (Number(config.subtitle_font_size) > 0 ? Number(config.subtitle_font_size) : 11)
-      const columnCount = layout === 'list' ? 1 : (layout === 'waterfall' ? 2 : Number(config.columns || 2))
+      const cfg = normalizeProductListProps(config)
+      const layout = cfg.layout
+      const columnCount = resolveColumnCount(layout, cfg.columns)
+      const isRow = layout === 'row'
+      const showRating = cfg.showRating
       const sectionStyle = ['bar', 'card', 'plain'].includes(config.section_style) ? config.section_style : 'plain'
       const sectionAlign = config.section_align === 'center' ? 'center' : 'left'
       const sectionDivider = config.section_divider === true
@@ -263,46 +281,63 @@ Component({
       let sectionColor = config.section_title_color || (isBand ? '#F3F7FC' : '#172033')
       if (isBand && sectionColor === '#172033') sectionColor = '#F3F7FC'
       const sectionSubColor = config.section_subtitle_color || (isBand ? '#D4E2FF' : '#7b8798')
-      const showMore = config.show_more !== false
-      const moreText = String(config.more_text || '查看更多>').trim() || '查看更多>'
-      const moreLink = String(config.more_link || '/pages/shop/shop').trim()
-        || '/pages/shop/shop'
-      const moreColor = config.more_color || (isBand ? '#D4E2FF' : '#7b8798')
-      const radiusRaw = config.item_border_radius
-      const radiusNum = radiusRaw === undefined || radiusRaw === null || radiusRaw === ''
-        ? (layout === 'list' ? 14 : 12)
-        : Number(radiusRaw)
-      const itemCardStyle = Number.isFinite(radiusNum)
-        ? ('border-radius:' + Math.max(0, radiusNum) * 2 + 'rpx;')
-        : ''
-      const imgRadiusRaw = config.image_border_radius
-      const imgRadiusNum = imgRadiusRaw === undefined || imgRadiusRaw === null || imgRadiusRaw === ''
-        ? (layout === 'list' ? 10 : 0)
-        : Number(imgRadiusRaw)
-      const itemImageStyle = Number.isFinite(imgRadiusNum)
-        ? ('border-radius:' + Math.max(0, imgRadiusNum) * 2 + 'rpx;')
-        : ''
-      const gapRaw = Number(config.item_gap)
-      const itemGap = Number.isFinite(gapRaw) ? Math.max(0, Math.min(gapRaw, 48)) : (layout === 'list' ? 10 : 8)
-      const gridGapStyle = layout === 'list'
-        ? ('gap:' + (itemGap * 2) + 'rpx;')
-        : ('grid-template-columns:repeat(' + columnCount + ',1fr);gap:' + (itemGap * 2) + 'rpx;')
-      const titleBold = config.title_bold !== false
+      const moreColor = config.more_color || (isBand ? '#D4E2FF' : cfg.priceColor)
+
+      // 卡片表面：白卡投影 / 描边 / 平铺（与后台 resolveCardSurface 同规则）
+      const surface = resolveCardSurface(cfg.cardStyle, cfg.itemBorderRadius)
+      const itemCardStyle = [
+        'border-radius:' + (cfg.itemBorderRadius * 2) + 'rpx;',
+        'background:' + surface.background + ';',
+        surface.border ? ('border:' + surface.border + ';') : '',
+        surface.boxShadow ? ('box-shadow:' + surface.boxShadow + ';') : '',
+      ].join('')
+      const itemImageStyle = 'border-radius:' + (cfg.imageBorderRadius * 2) + 'rpx;'
+
+      // gap：rpx 化（px × 2）
+      const gapRpx = cfg.itemGap * 2
+      let gridGapStyle = 'gap:' + gapRpx + 'rpx;'
+      if (isRow) {
+        gridGapStyle = 'gap:' + gapRpx + 'rpx;'
+      } else if (layout === 'scroll') {
+        // 🔴 横向滑动：grid-auto-flow: column + auto-columns，卡片宽度固定且可横滑。
+        //    直接写 flex 会让「两列/三列」的列数设置失效。
+        gridGapStyle = 'display:grid;grid-auto-flow:column;grid-auto-columns:minmax(264rpx,42%);overflow-x:auto;gap:' + gapRpx + 'rpx;padding-bottom:8rpx;'
+      } else {
+        gridGapStyle = 'grid-template-columns:repeat(' + columnCount + ',minmax(0,1fr));gap:' + gapRpx + 'rpx;'
+      }
+
+      // CTA 文案
+      const ctaText = cfg.cta === 'cart' ? '🛒' : resolveCtaText(cfg.cta, cfg.ctaText)
+      const ctaStyle = cfg.cta === 'cart'
+        ? ('color:' + cfg.priceColor + ';border:1rpx solid ' + cfg.priceColor + '44;')
+        : ('background:' + cfg.priceColor + ';color:#fff;')
+
       this.setData({
-        sectionTitle: String(config.title || '').trim(),
-        sectionSubtitle: String(config.subtitle || '').trim(),
+        // 🔴 showTitle=false 时整行不渲染（wxml 用它做 wx:if）
+        showTitle: cfg.showTitle,
+        sectionTitle: String(cfg.title || '').trim(),
+        sectionSubtitle: String(cfg.subtitle || '').trim(),
         sectionStyle,
         sectionAlign,
         sectionDivider,
         sectionTitleStyle: 'font-size:' + (sectionTitleSize * 2) + 'rpx;font-weight:' + (sectionBold ? '800' : '400') + ';color:' + sectionColor + ';',
         sectionSubtitleStyle: 'font-size:' + (sectionSubSize * 2) + 'rpx;color:' + sectionSubColor + ';',
         sectionMoreStyle: 'color:' + moreColor + ';',
-        showMore,
-        moreText,
-        moreLink,
-        titleStyle: 'font-size:' + (titleSize * 2) + 'rpx;font-weight:' + (titleBold ? '700' : '400') + ';',
-        priceStyle: 'font-size:' + (priceSize * 2) + 'rpx;color:' + (config.price_color || '#E53935') + ';',
-        salesStyle: 'font-size:' + (salesSize * 2) + 'rpx;',
+        showMore: cfg.showMore,
+        moreText: cfg.moreText + ' ›',
+        moreLink: cfg.moreLink || '/pages/shop/shop',
+        titleStyle: 'font-size:' + (cfg.titleFontSize * 2) + 'rpx;font-weight:' + (cfg.titleBold ? '700' : '400') + ';',
+        // 0 元商品价格色由 wxml 按 _isFree 覆盖为绿色
+        priceStyle: 'font-size:' + (cfg.priceFontSize * 2) + 'rpx;color:' + cfg.priceColor + ';',
+        freePriceStyle: 'font-size:' + (cfg.priceFontSize * 2) + 'rpx;color:#1FA97A;',
+        salesStyle: 'font-size:' + (cfg.salesFontSize * 2) + 'rpx;',
+        showTitleInCard: cfg.showTitleInCard,
+        showOriginalPrice: cfg.showOriginalPrice,
+        showSales: cfg.showSales,
+        ctaText,
+        ctaStyle,
+        badgeStyle: 'background:' + cfg.priceColor + ';',
+        cardStyle: cfg.cardStyle,
         layout,
         columnCount,
         itemCardStyle,
@@ -436,6 +471,23 @@ Component({
           path: '/pkg-content/product-detail/product-detail?id=' + id,
         })
       }
+    },
+
+    /**
+     * 卡片 CTA 按钮：catchtap 阻止冒泡，避免同时触发 onTapProduct 跳详情。
+     *
+     * 🔴 咨询类没有统一落地页（客服会话 / 二维码 / 表单各不相同），
+     *   这里不猜路径：只透出事件让页面层接管，行为由业务方决定。
+     *   猜一个路径写死会让「立即咨询」点进去是空白页。
+     */
+    onCtaTap(e) {
+      const id = e.currentTarget.dataset.id
+      this.triggerEvent('componentevent', {
+        type: 'product_cta',
+        cta: this.data.ctaText,
+        productId: id,
+      })
+      wx.showToast({ title: '咨询功能待接入', icon: 'none' })
     },
   },
 })

@@ -147,6 +147,37 @@
 .row:last-child { border-bottom: none; }
 .row.muted { color: #888; }
 
+.row--switch {
+  justify-content: space-between;
+}
+
+.switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  flex: 1;
+  min-width: 0;
+}
+
+.switch-desc {
+  font-size: 22rpx;
+  color: #8a8f9c;
+  line-height: 1.4;
+}
+
+.row-switch {
+  transform: scale(0.85);
+  transform-origin: right center;
+  flex-shrink: 0;
+}
+
+.switch-footnote {
+  font-size: 22rpx;
+  color: #8a8f9c;
+  line-height: 1.6;
+  padding: 0 8rpx 24rpx;
+}
+
 .login-tip-text {
   flex: 1;
   min-width: 0;

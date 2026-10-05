@@ -9,6 +9,13 @@ page {
   --ink-2: var(--ink-2);
   --ink-3: var(--ink-3);
   --line: var(--line);
+  /**
+   * 生效品牌色。默认回落全局 --brand/--accent（= 线上现状：登录页本来就吃全局色）。
+   * 后台开了「页面独立配色」时，login.js 会用 resolveLoginEffectiveTheme 算出的
+   * 最终色以 inline style 覆盖这两个变量。
+   */
+  --lg-brand: var(--brand);
+  --lg-brand-2: var(--accent, var(--brand));
   position: relative;
   display: flex;
   flex-direction: column;
@@ -65,6 +72,8 @@ page {
   padding: 34rpx 34rpx 30rpx;
   overflow: hidden;
   color: #fff;
+  /* 🔴 保持线上现状：吃全局 --brand-dark/--brand/--accent。
+     开了「页面独立配色」时由 .lg-page--themed 段落接管成 --lg-brand/--lg-brand-2。 */
   background: linear-gradient(138deg, var(--brand-dark) 0%, var(--brand) 60%, var(--accent, var(--brand)) 100%);
   border-radius: 32rpx;
   box-shadow: 0 22rpx 48rpx rgba(30, 55, 125, 0.22);
@@ -529,7 +538,7 @@ page {
 .agreement__link {
   display: inline-block;
   margin: 0 4rpx;
-  color: var(--brand);
+  color: var(--lg-brand);
   font-weight: 650;
 }
 
@@ -561,7 +570,9 @@ page {
   margin: 22rpx 0 0;
   color: #fff;
   line-height: 1;
-  background: linear-gradient(135deg, var(--brand), #5980ff);
+  /* 🔴 保持线上现状的渐变按钮（var(--brand) 即全局品牌色）。
+     开了「页面独立配色」时由 .lg-page--themed 段落接管成纯色。 */
+  background: linear-gradient(135deg, var(--lg-brand), #5980ff);
   border: 0;
   border-radius: 24rpx;
   box-shadow: 0 14rpx 32rpx rgba(49, 94, 251, 0.25);
@@ -869,4 +880,69 @@ page {
 }
 .lg-page--wechat .security-badge__dot {
   background: #07C160;
+}
+
+/* ============================================================ *
+ * 页面独立配色（lg-page--themed）
+ *
+ * 仅当后台 loginPageConfig.themeSource === 'page' 时，
+ * login.js 才会在根节点加这个类（并注入 --lg-brand/--lg-brand-2）。
+ *
+ * 🔴 写在 4 套皮肤之后：brand/minimal/wechat 里写死了按钮底色，
+ * 特异性比基础规则高，只有放在后面才接管得回来。
+ * 只覆盖颜色，padding / border-radius 等版式仍归皮肤 —— 换色不改版式。
+ * ============================================================ */
+.lg-page--themed .brand-hero {
+  background: linear-gradient(138deg, var(--lg-brand) 0%, var(--lg-brand) 60%, var(--lg-brand-2) 100%);
+}
+
+.lg-page--themed .brand-mark {
+  background: var(--lg-brand);
+}
+.lg-page--themed .brand-hero__orb--one {
+  background: var(--lg-brand);
+}
+.lg-page--themed .brand-hero__orb--two {
+  background: var(--lg-brand-2);
+}
+.lg-page--themed .agreement__link {
+  color: var(--lg-brand);
+}
+.lg-page--themed .login-button {
+  background: var(--lg-brand);
+}
+
+/* 顶部样式：gradient（默认，线上现状）| solid */
+.lg-header--solid .login-backdrop {
+  background: var(--lg-brand);
+}
+.lg-header--solid .brand-title {
+  color: #fff;
+}
+.lg-header--solid .brand-description {
+  color: rgba(255, 255, 255, 0.78);
+}
+.lg-header--solid .brand-copy__eyebrow {
+  color: rgba(255, 255, 255, 0.7);
+}
+.lg-header--solid .brand-copy__name {
+  color: #fff;
+}
+.lg-header--solid .intercept-tip {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+.lg-header--solid .intercept-tip__icon {
+  color: #fff;
+}
+
+/* 卡片样式：shadow（默认，线上现状）| flat | outline */
+.lg-card--flat .login-sheet {
+  box-shadow: none;
+}
+.lg-card--outline .login-sheet {
+  box-shadow: none;
+  border: 1rpx solid var(--lg-brand);
+  border-radius: 40rpx 40rpx 0 0;
+  margin: -50rpx 24rpx 0;
 }

@@ -49,6 +49,42 @@
   font-weight: 700;
 }
 
+/* ── 标签视觉形式（category_tab_style），需与后台 ArticleListRenderer 同规则 ── */
+.dsl-article-list__tabs-bar--pill .dsl-article-list__tab {
+  margin-right: 16rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 999rpx;
+}
+
+.dsl-article-list__tabs-bar--pill .dsl-article-list__tab.is-active {
+  background: #f2f5f9;
+}
+
+.dsl-article-list__tabs-bar--underline .dsl-article-list__tab {
+  position: relative;
+  padding-bottom: 16rpx;
+}
+
+.dsl-article-list__tabs-bar--underline .dsl-article-list__tab.is-active::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4rpx;
+  content: '';
+  background: #0f2744;
+  border-radius: 4rpx;
+}
+
+.dsl-article-list__tabs-bar--bold .dsl-article-list__tab {
+  margin-right: 40rpx;
+  font-weight: 400;
+}
+
+.dsl-article-list__tabs-bar--bold .dsl-article-list__tab.is-active {
+  font-weight: 800;
+}
+
 .dsl-article-list__item-meta-row {
   display: flex;
   flex-wrap: wrap;
@@ -659,4 +695,38 @@
 .dsl-article-list__editorial-meta {
   color: #a39b8d;
   font-size: 22rpx;
+}
+
+/* ── 展示元素扩展（2026-10-06，需与后台 ArticleListRenderer 同规则） ── */
+
+/* 摘要简介：列表 / 卡片 / 紧凑布局下由 show_summary 控制 */
+.dsl-article-list__item-summary {
+  display: -webkit-box;
+  margin-top: 6rpx;
+  overflow: hidden;
+  color: #7a7468;
+  font-size: 22rpx;
+  line-height: 1.5;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* 紧凑布局单屏优先：摘要只留 1 行，否则一行能塞的条目数会掉一大截 */
+.dsl-article-list__item-summary--compact {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  -webkit-line-clamp: 1;
+}
+
+/* 阅读热度：与日期 / 来源同行，弱化处理（是辅助信息不是主信息） */
+.dsl-article-list__item-views {
+  color: #a39b8d;
+}
+
+/* 空状态图标 */
+.dsl-article-list__empty-icon {
+  display: block;
+  margin-bottom: 10rpx;
+  font-size: 52rpx;
+  line-height: 1.2;
 }

@@ -21,6 +21,20 @@ const EMPTY_STATS = [
 ]
 
 /**
+ * 6 个内容模块的兜底显隐。
+ * 🔴 全部 true —— 与线上 mine.wxml 的无条件渲染一致。
+ * 拉到后台配置后由 _buildMinePatch 覆盖。
+ */
+const DEFAULT_MODULES = {
+  userHeader: true,
+  stats: true,
+  memberCard: true,
+  quickAccess: true,
+  continueLearn: true,
+  myPlanet: true,
+}
+
+/**
  * 后台菜单图标（line:* 线条标）→ 小程序可用的 emoji。
  * 后台存的是 line:xxx 标识，这里做一次降级映射；未收录的走 emoji 兜底。
  */
@@ -66,6 +80,17 @@ const MENU_ICON_EMOJI = {
 }
 
 const MENU_ICON_FALLBACK = '📄'
+
+/**
+ * 菜单条件显示归一化：非法/缺省 → always。
+ * 与 services/system.js 的 normalizeMineVisibleOn、管理端 types/miniapp.ts 同口径。
+ */
+function normalizeVisibleOn(raw) {
+  const s = String(raw == null ? '' : raw).trim().toLowerCase()
+  if (s === 'login' || s === 'loggedin' || s === 'logged_in') return 'login'
+  if (s === 'member' || s === 'vip') return 'member'
+  return 'always'
+}
 
 function resolveMenuIconText(icon) {
   const raw = String(icon || '')
@@ -169,6 +194,17 @@ Page({
       showAvatar: true,
       showMemberLevel: true,
     },
+    // 6 个内容模块的显隐（1.30）；缺省全显示 = 线上现状
+    modules: { ...DEFAULT_MODULES },
+    // 头部配色 gradient | solid（1.30）
+    headerStyle: 'gradient',
+    // 卡片样式 shadow | flat | outline（1.30）
+    cardStyle: 'shadow',
+    // 页面级背景色；空串 = 跟随全局
+    minePageBg: '',
+    // 生效主题色的 inline CSS 变量（--brand/--brand-2/--brand-dark/--accent）。
+    // 空串 = 用 mine.wxss 里各皮肤自带的默认变量（= 线上现状）。
+    mineThemeStyle: '',
     // 功能菜单分组（来源于 minePageConfig.menuItems，未配置时用 DEFAULT_MENU_GROUPS 兜底）
     // 两处都按 enabled 过滤：后台关掉的项在兜底路径下也不该露出来
     menuGroups: DEFAULT_MENU_GROUPS.map((g) => ({
@@ -216,20 +252,41 @@ Page({
     const cfg = mine || {}
     this._mineCfg = cfg
     const profile = cfg.userProfile || {}
+    // 1.30：模块显隐直接下发整块，wxml 用 modules.xxx 做 wx:if 整块包裹，
+    // 隐藏时不留任何 margin/padding 空位。缺字段由 system.js 归一化成 true。
+    const modules = cfg.modules && typeof cfg.modules === 'object'
+      ? Object.assign({}, DEFAULT_MODULES, cfg.modules)
+      : { ...DEFAULT_MODULES }
     const patch = {
       mineText: {
         loginTitle: cfg.loginTitle || '点击登录',
         loginSubtitle: cfg.loginSubtitle || '登录后同步收藏、会员与学习记录',
       },
+      modules,
       mineToggles: {
-        showMemberCard: cfg.showMemberCard !== false,
+        // 会员卡显隐 = modules.memberCard && 老字段 showMemberCard（双口径兼容）
+        showMemberCard: modules.memberCard !== false && cfg.showMemberCard !== false,
         showMenuIcons: cfg.showMenuIcons !== false,
         showAvatar: profile.showAvatar !== false,
         showMemberLevel: profile.showMemberLevel !== false,
       },
     }
     if (cfg.styleKey) patch.styleKey = cfg.styleKey
+    if (cfg.headerStyle) patch.headerStyle = cfg.headerStyle
+    if (cfg.cardStyle) patch.cardStyle = cfg.cardStyle
     if (cfg.memberCardTitle) patch.vipTitle = cfg.memberCardTitle
+    if (cfg.pageBackgroundColor) patch.minePageBg = cfg.pageBackgroundColor
+    // 主题色：system.js 已算好最终生效值（inherit→全局色 / page→页面色）。
+    // 这里转成 inline style 变量注入，mine.wxss 里的 --brand* 就靠它覆盖。
+    const theme = cfg.theme
+    if (theme && theme.primary) {
+      patch.mineThemeStyle = [
+        `--brand:${theme.primary}`,
+        `--brand-2:${theme.secondary || theme.primary}`,
+        `--brand-dark:${theme.primary}`,
+        `--accent:${theme.secondary || theme.primary}`,
+      ].join(';') + ';'
+    }
     // memberCardDesc 只用于未登录态；已登录时 vipDesc 由会员概览接口决定
     if (cfg.memberCardDesc && !AuthUtil.isLoggedIn()) {
       patch.vipDesc = cfg.memberCardDesc
@@ -246,10 +303,23 @@ Page({
    * 后台菜单配置 → 分组渲染数据。
    * 口径：后台若配了至少一项启用菜单就完全听后台的（标题/顺序/分组/图标/跳转），
    * 没有配置时才回退到本页内置菜单，避免过去「后台配了不生效」的错觉。
+   *
+   * 1.30 起额外按 `visibleOn` 做**条件显示**（always / login / member）。
+   * 🔴 这只是界面隐藏，不是权限控制：needLogin 的登录校验仍在 onMenuRowTap 里，
+   * 不要因为配了 visibleOn 就把 needLogin 删掉。
    */
   _menuGroupsFromConfig(cfg) {
     const raw = Array.isArray(cfg && cfg.menuItems) ? cfg.menuItems : []
-    const enabled = raw.filter((m) => m && m.enabled !== false && String(m.url || '').trim())
+    const isMember = !!this.data.memberActive || !!this.data.planetMemberActive
+    const isLoggedIn = !!this.data.isLoggedIn
+    const enabled = raw.filter((m) => {
+      if (!m || m.enabled === false || !String(m.url || '').trim()) return false
+      // 条件显示：会员可见 / 登录后显示
+      const rule = normalizeVisibleOn(m.visibleOn)
+      if (rule === 'login' && !isLoggedIn) return false
+      if (rule === 'member' && !(isLoggedIn && isMember)) return false
+      return true
+    })
     if (!enabled.length) return []
     const order = []
     const map = {}
@@ -269,6 +339,17 @@ Page({
       })
     })
     return order.map((name) => map[name])
+  },
+
+  /**
+   * 登录态/会员态变化后，条件显示的菜单项可能需要增减 → 重算 menuGroups。
+   * 在 _loadMineOverview / _refreshUserInfo 之后调用。
+   */
+  _syncConditionalMenus() {
+    if (!this._mineCfg) return
+    const groups = this._menuGroupsFromConfig(this._mineCfg)
+    if (!groups.length) return
+    this.setData({ menuGroups: groups })
   },
 
   /** 菜单右侧的数值角标；匹配不到返回空串，由 wxml 回退显示 › */
@@ -350,7 +431,11 @@ Page({
     if (!isLoggedIn) {
       // guestState() 带写死的会员卡文案，直接 setData 会覆盖刚拉到的后台配置
       // （两者是异步竞态，谁后到谁赢）。这里把配置合并回去。
-      this.setData(this._withMineConfig(guestState()), () => this._syncMenuHints())
+      this.setData(this._withMineConfig(guestState()), () => {
+        this._syncMenuHints()
+        // 未登录态下「登录后显示 / 会员可见」的菜单项要收起来
+        this._syncConditionalMenus()
+      })
       return
     }
     const patched = withDisplayAvatar(userInfo)
@@ -447,7 +532,11 @@ Page({
           inviteCount: Number(data.inviteCount) || 0,
           pendingOrderCount: Number(data.pendingOrderCount) || 0,
           unusedCouponCount: Number(data.unusedCouponCount) || 0,
-        }, () => this._syncMenuHints())
+        }, () => {
+          this._syncMenuHints()
+          // 登录态/会员态已确定，按 visibleOn 重算菜单可见性
+          this._syncConditionalMenus()
+        })
       })
       .catch(() => {
         if (!AuthUtil.isLoggedIn()) {

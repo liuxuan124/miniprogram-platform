@@ -700,6 +700,13 @@
 .product-detail-page .pd-back { position: fixed; }
 
 .eb-cover { position: relative; height: 600rpx; overflow: hidden; }
+/*
+ * 有宣传视频时切 3:4 竖版（750rpx 宽 ÷ 1000rpx 高 = 3:4）。
+ * ⚠️ 只在「有视频」时覆盖 —— .eb-cover 是 ebook/digital 等模板共用的封面容器，
+ * 还叠了渐变（.eb-cover__sc）和书籍封面装饰，直接改它会让无视频场景也跟着变形。
+ * 口径与后台上传校验一致（2026-10-05）：视频只接受竖版 3:4 / 1:1，横版会被拦下。
+ */
+.eb-cover--video { height: 1000rpx; }
 .eb-cover__bg {
   position: absolute; inset: -40rpx; width: auto; height: auto;
   filter: blur(22px) saturate(.8) sepia(.2); opacity: .9;
@@ -822,6 +829,17 @@
   height: 560rpx;
   display: block;
 }
+/*
+ * 有宣传视频时整块切 3:4 竖版（750rpx 宽 ÷ 1000rpx 高）。
+ * ⚠️ video 的 object-fit 必须是 contain —— 容器已是视频比例，
+ * 再用 cover 会把 3:4 裁成「填满容器」的放大裁切，等于白改。
+ * 不用 aspect-ratio：微信小程序 WXSS 对它支持不稳，用固定 rpx 值更可靠。
+ */
+.ph-cover--video,
+.ph-cover--video .ph-cover__swiper,
+.ph-cover--video .ph-cover__img,
+.ph-cover--video .ph-video { height: 1000rpx; }
+
 .ph-cover__sc {
   position: absolute; left: 0; right: 0; bottom: 0; height: 120rpx;
   background: linear-gradient(180deg, transparent, rgba(253,246,236,.96));
@@ -1078,7 +1096,8 @@
 .digi-check-spec-v { color: var(--text); }
 
 /* 虚拟资料包 · 视频主打 */
-.digi-video-full { position: relative; height: 720rpx; background: #000; }
+/* 视频主打模板：这个容器只放视频，直接定 3:4 竖版（750 ÷ 1000） */
+.digi-video-full { position: relative; height: 1000rpx; background: #000; }
 .digi-video-full__el { width: 100%; height: 100%; }
 .digi-video-full__cover { position: relative; width: 100%; height: 100%; }
 .digi-video-full__poster { width: 100%; height: 100%; }

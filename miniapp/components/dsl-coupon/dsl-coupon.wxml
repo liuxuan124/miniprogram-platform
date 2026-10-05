@@ -1,13 +1,20 @@
 <!--components/dsl-coupon/dsl-coupon.wxml — 优惠券组件-->
-<view class="dsl-coupon {{layoutClass}}" style="{{styleString}}">
+<!-- 🔴 auto_hide_when_empty=true 且无券时整块不渲染（页面不留空壳） -->
+<view class="dsl-coupon {{layoutClass}} {{themeClass}}" style="{{styleString}} {{rootStyle}}" wx:if="{{!hidden}}">
   <view class="dsl-coupon__header" wx:if="{{title}}">
     <text class="dsl-coupon__title" style="{{titleStyle}}">{{title}}</text>
-    <text class="dsl-coupon__more" bindtap="onMoreTap">更多</text>
+    <text
+      class="dsl-coupon__more"
+      wx:if="{{showMore}}"
+      style="{{moreStyle}}"
+      data-link="{{moreLink}}"
+      bindtap="onMoreTap"
+    >{{moreText}} ›</text>
   </view>
 
-  <view class="dsl-coupon__list">
+  <view class="dsl-coupon__list" style="{{listStyle}}">
     <view
-      class="dsl-coupon__item {{item.claimed ? 'dsl-coupon__item--claimed' : ''}}"
+      class="dsl-coupon__item {{item.state === 'claim' ? '' : 'dsl-coupon__item--dim'}}"
       wx:for="{{displayCoupons}}"
       wx:key="id"
       data-id="{{item.id}}"
@@ -15,22 +22,23 @@
       bindtap="onTapCoupon"
     >
       <view class="dsl-coupon__item-left">
-        <text class="dsl-coupon__item-amount">{{item.displayValue}}</text>
+        <text class="dsl-coupon__item-amount" style="font-size:{{amountSize}}rpx;color:{{item.amount_color}}">{{item.displayValue}}</text>
       </view>
       <view class="dsl-coupon__item-right">
-        <text class="dsl-coupon__item-name">{{item.name}}</text>
-        <text class="dsl-coupon__item-condition">{{item.condition}}</text>
+        <text class="dsl-coupon__item-name" style="{{nameStyle}}">{{item.name}}</text>
+        <text class="dsl-coupon__item-condition" style="{{condStyle}}">{{item.condition}}</text>
         <text class="dsl-coupon__item-expire" wx:if="{{item.expireText}}">{{item.expireText}}</text>
       </view>
       <view class="dsl-coupon__item-action">
-        <text class="dsl-coupon__item-btn">
-          {{item.claimed ? '已领取' : (claimingId == item.id ? '领取中' : (item.button_text || '领取'))}}
-        </text>
+        <text
+          class="dsl-coupon__item-btn"
+          style="background:{{item.btn_color}};color:#fff;"
+        >{{claimingId == item.id ? '领取中' : item.button_text}}</text>
       </view>
     </view>
   </view>
 
   <view class="dsl-coupon__empty" wx:if="{{!displayCoupons.length}}">
-    <text class="dsl-coupon__empty-text">暂无优惠券</text>
+    <text class="dsl-coupon__empty-text">暂无可用优惠券</text>
   </view>
 </view>

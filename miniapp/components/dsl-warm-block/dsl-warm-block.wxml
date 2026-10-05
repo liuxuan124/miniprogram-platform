@@ -68,23 +68,30 @@
     <text class="wh-hd__t serif">{{config.title || '暖阁出品'}}</text>
     <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '全部作者 ›'}}</text>
   </view>
-  <scroll-view wx:if="{{authors.length}}" class="wh-authors" scroll-x enhanced show-scrollbar="{{false}}">
+  <scroll-view wx:if="{{authors.length || recruitSlot}}" class="wh-authors" scroll-x enhanced show-scrollbar="{{false}}">
     <view
       wx:for="{{authors}}"
       wx:key="key"
       class="wh-author"
-      data-apply="{{item.apply}}"
+      data-home-path="{{item.homePath}}"
       data-id="{{item.id}}"
       data-name="{{item.name}}"
-      data-role="{{item.role}}"
-      data-url="{{item.url}}"
       bindtap="onAuthor"
     >
-      <view wx:if="{{item.apply}}" class="wh-author__av wh-author__av--apply">＋</view>
-      <image wx:elif="{{item.avatar}}" class="wh-author__av" src="{{item.avatar}}" mode="aspectFill" />
+      <image wx:if="{{item.avatar}}" class="wh-author__av" src="{{item.avatar}}" mode="aspectFill" />
       <view wx:else class="wh-author__av wh-author__av--initial">{{item.initial}}</view>
       <text class="wh-author__n">{{item.name}}</text>
       <text wx:if="{{item.role}}" class="wh-author__r">{{item.role}}</text>
+    </view>
+    <!-- 招募位：V121 组件级配置，固定追加在列表末尾（不再混在作者条目里） -->
+    <view
+      wx:if="{{recruitSlot}}"
+      class="wh-author wh-author--recruit"
+      data-path="{{recruitSlot.targetPath}}"
+      bindtap="onRecruit"
+    >
+      <view class="wh-author__av wh-author__av--apply">{{recruitSlot.iconText}}</view>
+      <text class="wh-author__n">{{recruitSlot.label}}</text>
     </view>
   </scroll-view>
   <view wx:else class="wh-feed-empty">{{authorsEmptyText}}</view>
@@ -107,29 +114,65 @@
 </block>
 
 <block wx:elif="{{type === 'warm_columns'}}">
-  <view class="wh-hd">
-    <text class="wh-hd__t serif">{{config.title || '精品专栏'}}</text>
-    <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '全部 ›'}}</text>
-  </view>
-  <scroll-view wx:if="{{warm.columns && warm.columns.length}}" class="wh-rail" scroll-x enhanced show-scrollbar="{{false}}">
-    <view
-      wx:for="{{warm.columns}}"
-      wx:key="id"
-      class="wh-col"
-      data-id="{{item.id}}"
-      data-url="{{item.url}}"
-      bindtap="onColumn"
-    >
-      <view class="wh-col__cv">
-        <image src="{{item.cover}}" mode="aspectFill" />
-        <text wx:if="{{item.badge}}" class="wh-tag {{item.badgeGold ? 'gold' : ''}} wh-col__bdg">{{item.badge}}</text>
-      </view>
-      <text class="wh-col__h">{{item.title}}</text>
-      <text class="wh-col__p">{{item.desc}}</text>
-      <view class="wh-col__pr">{{item.price}} <text wx:if="{{item.origin}}" class="wh-col__s">{{item.origin}}</text></view>
+  <!--
+    🔴 auto_hide_when_empty 时无数据整块不渲染（2026-10-05 新增，需与后台 DslWarmBlock 同规则）。
+    ⚠️ 这里**不注入演示卡片** —— 演示数据只在装修器画布生效，
+    真机出现运营没上架过的假专栏是事故。
+    预计算在 _resolveColumns()，本块只负责渲染。
+  -->
+  <block wx:if="{{columnList.length}}">
+    <view class="wh-hd">
+      <text class="wh-hd__t serif">{{config.title || '精品专栏'}}</text>
+      <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '全部 ›'}}</text>
     </view>
-  </scroll-view>
-  <view wx:else class="wh-feed-empty">暂无专栏</view>
+
+    <!--
+      卡片结构抽成 template：三种布局共用同一份 DOM，只换容器。
+      之前三种布局各写一遍必然走偏（改文案漏两处），wxml 没有组件级抽象，
+      <template> 是这里唯一可靠的复用手段。
+
+      ⚠️ **不能用 {{...item, x:1}} 展开语法**（小程序 wxml 不支持），
+      所以在 _resolveColumns 里就把 columnRadius 拼进每条数据，
+      template 内只读 item.columnRadius —— 单一数据源，零跨作用域传参。
+    -->
+    <template name="columnCard">
+      <view class="wh-col" style="border-radius:{{item.columnRadius}}rpx" data-id="{{item.id}}" data-url="{{item.url}}" bindtap="onColumn">
+        <view class="wh-col__cv">
+          <image wx:if="{{item.cover}}" src="{{item.cover}}" mode="aspectFill" />
+          <view wx:else class="wh-col__cv-ph">封面</view>
+          <text wx:if="{{item.badge}}" class="wh-tag {{item.badgeGold ? 'gold' : ''}} wh-col__bdg">{{item.badge}}</text>
+        </view>
+        <text class="wh-col__h">{{item.title}}</text>
+        <text wx:if="{{item.desc}}" class="wh-col__p">{{item.desc}}</text>
+        <view wx:if="{{item.host || item.lessons}}" class="wh-col__mt">
+          <text wx:if="{{item.host}}" class="wh-col__host">{{item.host}}</text>
+          <text wx:if="{{item.lessons}}" class="wh-col__ls">{{item.lessons}}</text>
+        </view>
+        <view wx:if="{{item.price}}" class="wh-col__pr">{{item.price}} <text wx:if="{{item.origin}}" class="wh-col__s">{{item.origin}}</text></view>
+      </view>
+    </template>
+
+    <scroll-view
+      wx:if="{{columnLayout === 'scroll'}}"
+      class="wh-rail wh-rail--{{columnLayout}}"
+      scroll-x
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <view class="wh-rail__inner" style="gap:{{columnGapRpx}}rpx">
+        <block wx:for="{{columnList}}" wx:key="id">
+          <template is="columnCard" data="{{item}}" />
+        </block>
+      </view>
+    </scroll-view>
+
+    <view wx:else class="wh-rail wh-rail--{{columnLayout}}" style="gap:{{columnGapRpx}}rpx">
+      <block wx:for="{{columnList}}" wx:key="id">
+        <template is="columnCard" data="{{item}}" />
+      </block>
+    </view>
+  </block>
+  <view wx:elif="{{!autoHideColumns}}" class="wh-feed-empty">{{config.empty_text || '暂无专栏'}}</view>
 </block>
 
 <block wx:elif="{{type === 'warm_planet_rec'}}">

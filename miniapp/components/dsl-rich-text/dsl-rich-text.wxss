@@ -20,12 +20,64 @@
 
 .dsl-rich-text__body {
   width: 100%;
+  box-sizing: border-box;
 }
 
+/* ⚠️ 这里必须「继承」而不是写死字号/行高：
+   字号、行高、字色由 _syncBodyStyle 挂在 .dsl-rich-text__body 上，
+   若内层再写死 font-size 会把容器的设置覆盖掉（表现为「样式 Tab 调了没反应」）。
+   老配置没配 base_font_size 时容器算出 28rpx，与原来的写死值一致，视觉零变化。 */
 .dsl-rich-text__content {
-  font-size: 28rpx;
-  line-height: 1.8;
-  color: #333333;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- 空态 ---------- */
+.dsl-rich-text__blank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 144rpx;
+  padding: 24rpx;
+  background: #fafbfd;
+  border: 2rpx dashed #d9e0ea;
+  border-radius: 16rpx;
+}
+
+.dsl-rich-text__blank-text {
+  font-size: 24rpx;
+  color: #9aa4b2;
+}
+
+/* ---------- 🔴 移动端重置：防止外部粘贴内容撑破小程序页面 ---------- */
+.rich-text-content {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.rich-text-content image,
+.rich-text-content img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* 表格：横向可滑动，不撑破页面 */
+.rich-text-content table {
+  display: block;
+  max-width: 100% !important;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rich-text-content pre,
+.rich-text-content code {
+  white-space: pre-wrap;
   word-break: break-all;
-  overflow: hidden;
+}
+
+.rich-text-content p {
+  margin: 0 0 0.8em;
 }

@@ -207,7 +207,8 @@
 
 <!-- ========== 虚拟资料包 · 经典资料包 ========== -->
 <view class="pd-warm pd-digital" wx:elif="{{!loading && detailTemplate === 'digital_classic'}}">
-  <view class="eb-cover digi-cover">
+  <!-- 有视频时容器切 3:4 竖版（eb-cover 默认 600rpx 是 5:4 横版，3:4 视频会两侧留黑边） -->
+  <view class="eb-cover digi-cover {{hasVideo ? 'eb-cover--video' : ''}}">
     <!-- 宣传视频优先：点封面播放 -->
     <view wx:if="{{hasVideo}}" class="digi-video">
       <video
@@ -217,7 +218,7 @@
         poster="{{coverUrl || product.images[0] || product.mainImage}}"
         controls
         autoplay
-        object-fit="cover"
+        object-fit="contain"
         playsinline
         binderror="onVideoError"
       />
@@ -298,7 +299,8 @@
 
 <!-- ========== 实物商品 · 经典电商 ========== -->
 <view class="pd-warm pd-physical" wx:elif="{{!loading && detailTemplate === 'physical_classic'}}">
-  <view class="ph-cover">
+  <!-- 有视频时整块切 3:4 竖版（默认 560rpx 是 4:3，3:4 视频会两侧留黑边） -->
+  <view class="ph-cover {{hasVideo ? 'ph-cover--video' : ''}}">
     <block wx:if="{{hasVideo || coverUrl || (product.images && product.images.length)}}">
       <swiper
         class="ph-cover__swiper"
@@ -319,7 +321,7 @@
               poster="{{coverUrl || product.mainImage}}"
               controls
               autoplay
-              object-fit="cover"
+              object-fit="contain"
               playsinline
               binderror="onVideoError"
             />
@@ -636,7 +638,7 @@
       poster="{{coverUrl || product.mainImage}}"
       controls
       autoplay
-      object-fit="cover"
+      object-fit="contain"
       playsinline
       binderror="onVideoError"
     />

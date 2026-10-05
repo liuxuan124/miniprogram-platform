@@ -16,6 +16,24 @@ const {
   resolveDisplayLogoUrl,
 } = require('../../utils/image-fallback')
 
+/**
+ * 7 个内容模块的兜底显隐。
+ * 🔴 全部 true —— 与线上 login.wxml 的无条件渲染一致。
+ * 拉到后台配置后由 _loadLoginPageConfig 用 resolveLoginModules 的结果覆盖。
+ *
+ * 🔴 协议勾选 / 隐私弹窗 / 登录主按钮**不在**这里：它们是合规项与页面唯一入口，
+ * 不接受任何界面开关，onOneTapLogin 的 agreePrivacy 校验也永远生效。
+ */
+const DEFAULT_LOGIN_MODULES = {
+  brandIdentity: true,
+  heroTitle: true,
+  interceptTip: true,
+  sheetHeading: true,
+  formHint: true,
+  skipButton: true,
+  privacyNote: true,
+}
+
 Page({
   data: {
     loading: false,
@@ -45,6 +63,17 @@ Page({
     showDecorOrbs: true,
     showSecurityBadge: true,
     showBackButton: true,
+    // 7 个内容模块显隐；缺省全显示 = 线上现状
+    modules: { ...DEFAULT_LOGIN_MODULES },
+    // 顶部样式 gradient | solid
+    headerStyle: 'gradient',
+    // 卡片样式 shadow | flat | outline
+    cardStyle: 'shadow',
+    // 页面级背景色；空串 = 跟随 login.wxss 默认底色
+    loginPageBg: '',
+    // 生效主题色的 inline CSS 变量（--lg-brand/--lg-brand-2）。
+    // 空串 = 用 login.wxss 里各皮肤自带的默认变量（= 线上现状）。
+    loginThemeStyle: '',
   },
 
   onLoad(options) {
@@ -78,11 +107,21 @@ Page({
     this._loadLoginPageConfig()
   },
 
-  /** 拉取登录页模板配置（后台 loginPageConfig） */
+  /**
+   * 拉取登录页配置（后台 loginPageConfig）
+   *
+   * 🔴 theme 由 system.js 的 resolveLoginEffectiveTheme 算好：
+   * themeSource=inherit → 全局品牌色；=page 且填了 themeColor → 页面色。
+   * 这里只负责把结果转成 inline CSS 变量注入，login.wxss 的
+   * lg-page--themed 段负责在页面覆盖时接管掉皮肤写死的按钮色。
+   */
   async _loadLoginPageConfig() {
     try {
       const cfg = await SystemService.fetchLoginPageConfig()
       if (!cfg) return
+      const modules = cfg.modules && typeof cfg.modules === 'object'
+        ? Object.assign({}, DEFAULT_LOGIN_MODULES, cfg.modules)
+        : { ...DEFAULT_LOGIN_MODULES }
       this.setData({
         loginPageConfig: cfg,
         styleKey: cfg.styleKey || 'warm',
@@ -97,7 +136,21 @@ Page({
         showDecorOrbs: cfg.showDecorOrbs !== false,
         showSecurityBadge: cfg.showSecurityBadge !== false,
         showBackButton: cfg.showBackButton !== false,
+        modules,
+        headerStyle: cfg.headerStyle || 'gradient',
+        cardStyle: cfg.cardStyle || 'shadow',
+        loginPageBg: cfg.pageBackgroundColor || '',
       })
+      const theme = cfg.theme
+      // 🔴 全局主题为空时不要注入空变量，否则会把各皮肤自带的兜底色顶掉
+      if (theme && theme.primary) {
+        this.setData({
+          loginThemeStyle: [
+            `--lg-brand:${theme.primary}`,
+            `--lg-brand-2:${theme.secondary || theme.primary}`,
+          ].join(';') + ';',
+        })
+      }
     } catch (e) {
       console.warn('[LoginPage] 加载登录页配置失败:', e)
     }

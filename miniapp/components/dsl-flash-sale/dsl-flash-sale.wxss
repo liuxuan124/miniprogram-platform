@@ -1,86 +1,236 @@
+/* components/dsl-flash-sale/dsl-flash-sale.wxss — 限时秒杀 */
+
+/* 🔴 向后兼容：外层 padding/背景/边框/圆角改由 rootStyle 行内注入
+   （block_margin / block_radius / card_surface 三项配置）。
+   旧页面无这些字段时归一化给默认值（白卡 + 10px 边距 + 12px 圆角），外观与原先接近。 */
+
 .dsl-flash {
-  padding: 0;
-  background: transparent;
-  border: none;
-  border-radius: 0;
+  box-sizing: border-box;
 }
 
+/* ---------- 标题栏 ---------- */
 .dsl-flash__head {
   display: flex;
+  gap: 12rpx;
   align-items: center;
-  justify-content: space-between;
   margin-bottom: 16rpx;
-  padding: 16rpx 20rpx;
-  background: #fff7ed;
-  border: 1rpx solid #fed7aa;
-  border-radius: 20rpx;
 }
 
 .dsl-flash__title {
-  color: #9a3412;
-  font-size: 28rpx;
+  display: flex;
+  gap: 6rpx;
+  align-items: center;
   font-weight: 800;
 }
 
-.dsl-flash__countdown {
-  margin-left: auto;
-  margin-right: 12rpx;
-  padding: 4rpx 16rpx;
-  color: #9a3412;
+.dsl-flash__title-icon {
+  flex-shrink: 0;
+  font-size: 1.05em;
+  line-height: 1;
+}
+
+.dsl-flash__more {
+  flex-shrink: 0;
   font-size: 22rpx;
-  background: #ffedd5;
-  border-radius: 999rpx;
 }
 
-.dsl-flash__countdown--expired {
-  color: #64748b;
-  background: #f1f5f9;
+/* ---------- 倒计时 ---------- */
+.dsl-flash__countdown {
+  display: flex;
+  gap: 4rpx;
+  align-items: center;
+  margin-left: auto;
 }
 
-.dsl-flash__tag {
-  padding: 2rpx 12rpx;
+/* 方块翻牌器：底色由行内 themeColor 注入 */
+.dsl-flash__cd-label {
+  margin-right: 4rpx;
+  font-size: 21rpx;
+  color: #a89c8d;
+}
+
+.dsl-flash__cd-cell {
+  min-width: 42rpx;
+  padding: 2rpx 6rpx;
+  font-size: 22rpx;
+  font-weight: 700;
   color: #fff;
-  font-size: 20rpx;
-  background: #ea580c;
-  border-radius: 999rpx;
+  text-align: center;
+  background: #ff4d4f;
+  border-radius: 6rpx;
 }
 
-.dsl-flash__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.dsl-flash__countdown.is-expired .dsl-flash__cd-cell {
+  background: #e3e8f0;
+}
+
+/* 极简纯文本 */
+.dsl-flash__countdown.plain {
+  font-size: 21rpx;
+  color: #8a94a6;
+}
+
+/* ---------- 商品区 ---------- */
+.dsl-flash__items {
+  display: flex;
   gap: 12rpx;
 }
 
+.dsl-flash__items.scroll {
+  flex-direction: row;
+  overflow-x: auto;
+}
+
+.dsl-flash__items.scroll .dsl-flash__item {
+  flex: 0 0 264rpx;
+}
+
+.dsl-flash__items.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dsl-flash__items.feature {
+  flex-direction: column;
+}
+
+/* ---------- 商品卡 ---------- */
 .dsl-flash__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  min-width: 0;
   padding: 12rpx;
-  background: #fff;
-  border: 1rpx solid #edf1f7;
-  border-radius: 20rpx;
-  box-shadow: 0 8rpx 24rpx rgba(28, 43, 76, 0.06);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1rpx solid rgba(0, 0, 0, 0.04);
+  border-radius: 16rpx;
+}
+
+.dsl-flash__items.surface-transparent .dsl-flash__item {
+  background: transparent;
+  border-color: #efe9e0;
+}
+
+/* 单列大图：横向排布 */
+.dsl-flash__items.feature .dsl-flash__item {
+  flex-direction: row;
+  gap: 16rpx;
+  align-items: center;
+  padding: 20rpx;
+}
+
+.dsl-flash__item.is-dim {
+  opacity: 0.62;
+}
+
+.dsl-flash__badge {
+  position: absolute;
+  top: -8rpx;
+  left: -6rpx;
+  padding: 0 10rpx;
+  font-size: 18rpx;
+  font-weight: 700;
+  line-height: 28rpx;
+  color: #fff;
+  border-radius: 6rpx;
 }
 
 .dsl-flash__img {
-  text-align: center;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  height: 92rpx;
   font-size: 36rpx;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 10rpx;
+}
+
+.dsl-flash__items.feature .dsl-flash__img {
+  width: 132rpx;
+  height: 132rpx;
+  font-size: 52rpx;
+}
+
+.dsl-flash__info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4rpx;
+  min-width: 0;
 }
 
 .dsl-flash__name {
-  margin-top: 6rpx;
-  color: #475569;
-  font-size: 22rpx;
+  overflow: hidden;
+  color: #3f3a35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dsl-flash__price-row {
+  display: flex;
+  gap: 8rpx;
+  align-items: baseline;
+  min-width: 0;
 }
 
 .dsl-flash__price {
-  margin-top: 4rpx;
-  color: #dc2626;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: 30rpx;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.dsl-flash__items.feature .dsl-flash__price {
+  font-size: 40rpx;
+}
+
+.dsl-flash__price-sym {
+  font-size: 0.72em;
 }
 
 .dsl-flash__price-origin {
-  margin-left: 8rpx;
-  color: #9ca3af;
-  font-size: 20rpx;
-  font-weight: 400;
+  color: #b3a596;
   text-decoration: line-through;
+  white-space: nowrap;
+}
+
+/* ---------- 进度条 ---------- */
+.dsl-flash__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+  margin-top: 4rpx;
+}
+
+.dsl-flash__progress-track {
+  width: 100%;
+  height: 6rpx;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 999rpx;
+}
+
+.dsl-flash__progress-fill {
+  height: 100%;
+  border-radius: 999rpx;
+}
+
+.dsl-flash__progress-text {
+  color: #a89c8d;
+}
+
+/* ---------- 抢购按钮 ---------- */
+.dsl-flash__btn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 6rpx 20rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  white-space: nowrap;
+  border-radius: 999rpx;
+}
+
+.dsl-flash__items.feature .dsl-flash__btn {
+  align-self: center;
+  padding: 12rpx 28rpx;
 }

@@ -1,6 +1,8 @@
 <!-- pages/login/login.wxml — 手机号快捷登录（登录信息，非完善资料） -->
-<page-meta page-style="{{themePageStyle}}" />
-<view class="login-page lg-page--{{styleKey}}">
+<page-meta page-style="{{themePageStyle}}{{loginPageBg ? ';background-color:' + loginPageBg : ''}}" />
+<!-- lg-page--themed：仅在后台开了「页面独立配色」时才带上，
+     用来把 brand/minimal/wechat 三套皮肤里写死的按钮色接管回 --lg-brand -->
+<view class="login-page lg-page--{{styleKey}} lg-header--{{headerStyle}} lg-card--{{cardStyle}} {{loginPageConfig.theme && loginPageConfig.theme.source === 'page' ? 'lg-page--themed' : ''}}" style="{{loginThemeStyle}}{{loginPageBg ? 'background-color:' + loginPageBg : ''}}">
   <view class="login-backdrop">
     <view class="safe-top">
       <view wx:if="{{showBackButton}}" class="back-button" bindtap="onBack" hover-class="back-button--pressed" aria-label="返回">
@@ -12,45 +14,60 @@
       <view wx:if="{{showDecorOrbs}}" class="brand-hero__orb brand-hero__orb--one"></view>
       <view wx:if="{{showDecorOrbs}}" class="brand-hero__orb brand-hero__orb--two"></view>
 
-      <view class="brand-identity">
-        <image
-          wx:if="{{brandLogoUrl}}"
-          class="brand-mark brand-mark--img"
-          src="{{brandLogoUrl}}"
-          mode="aspectFill"
-          binderror="onBrandLogoError"
-        />
-        <view wx:else class="brand-mark">{{brandMark}}</view>
-        <view class="brand-copy">
-          <text class="brand-copy__eyebrow">{{brandEyebrow}}</text>
-          <text class="brand-copy__name">{{brandName}}</text>
+      <!-- modules.brandIdentity 关掉时整块不渲染，不留空白 -->
+      <block wx:if="{{modules.brandIdentity}}">
+        <view class="brand-identity">
+          <image
+            wx:if="{{brandLogoUrl}}"
+            class="brand-mark brand-mark--img"
+            src="{{brandLogoUrl}}"
+            mode="aspectFill"
+            binderror="onBrandLogoError"
+          />
+          <view wx:else class="brand-mark">{{brandMark}}</view>
+          <view class="brand-copy">
+            <text class="brand-copy__eyebrow">{{brandEyebrow}}</text>
+            <text class="brand-copy__name">{{brandName}}</text>
+          </view>
         </view>
-      </view>
+      </block>
 
-      <text class="brand-title">{{heroTitle}}</text>
-      <text wx:if="{{heroSubtitle}}" class="brand-description">{{heroSubtitle}}</text>
+      <block wx:if="{{modules.heroTitle}}">
+        <text class="brand-title">{{heroTitle}}</text>
+        <text wx:if="{{heroSubtitle}}" class="brand-description">{{heroSubtitle}}</text>
+      </block>
 
-      <view class="intercept-tip" wx:if="{{interceptAction}}">
-        <text class="intercept-tip__icon">✓</text>
-        <text>登录后即可{{interceptAction}}</text>
-      </view>
+      <block wx:if="{{modules.interceptTip}}">
+        <view class="intercept-tip" wx:if="{{interceptAction}}">
+          <text class="intercept-tip__icon">✓</text>
+          <text>登录后即可{{interceptAction}}</text>
+        </view>
+      </block>
     </view>
   </view>
 
   <view class="login-sheet login-sheet--auth">
     <view class="sheet-handle"></view>
 
-    <view wx:if="{{sheetTitle || sheetSubtitle}}" class="sheet-heading">
-      <view>
-        <text wx:if="{{sheetTitle}}" class="sheet-heading__title">{{sheetTitle}}</text>
-        <text wx:if="{{sheetSubtitle}}" class="sheet-heading__description">{{sheetSubtitle}}</text>
+    <block wx:if="{{modules.sheetHeading}}">
+      <view wx:if="{{sheetTitle || sheetSubtitle || (showSecurityBadge && securityBadgeText)}}" class="sheet-heading">
+        <view>
+          <text wx:if="{{sheetTitle}}" class="sheet-heading__title">{{sheetTitle}}</text>
+          <text wx:if="{{sheetSubtitle}}" class="sheet-heading__description">{{sheetSubtitle}}</text>
+        </view>
+        <view wx:if="{{showSecurityBadge && securityBadgeText}}" class="security-badge">
+          <text class="security-badge__dot"></text>
+          <text>{{securityBadgeText}}</text>
+        </view>
       </view>
-      <view wx:if="{{showSecurityBadge && securityBadgeText}}" class="security-badge">
-        <text class="security-badge__dot"></text>
-        <text>{{securityBadgeText}}</text>
-      </view>
-    </view>
+    </block>
 
+    <!--
+      🔴 合规项：协议勾选**不提供隐藏开关**，永远渲染。
+      下面的 agreePrivacy / open-type="agreePrivacyAuthorization" 与
+      onOneTapLogin 里的合规校验是绑定的，删掉会造成无法授权登录。
+      modules 只控制它周围的提示文案，不控制它本身。
+    -->
     <view class="agreement {{privacyError ? 'agreement--error' : ''}} {{agreePrivacy ? 'agreement--on' : ''}}">
       <button
         wx:if="{{!agreePrivacy}}"
@@ -79,8 +96,10 @@
       </view>
     </view>
 
-    <text wx:if="{{formHint}}" class="form-hint">{{formHint}}</text>
-    <text wx:else class="form-hint form-hint--muted">勾选协议后即可授权手机号登录</text>
+    <block wx:if="{{modules.formHint}}">
+      <text wx:if="{{formHint}}" class="form-hint">{{formHint}}</text>
+      <text wx:else class="form-hint form-hint--muted">勾选协议后即可授权手机号登录</text>
+    </block>
 
     <button
       class="login-button {{loading ? 'login-button--disabled' : ''}} {{canSubmit ? '' : 'login-button--pending'}}"
@@ -93,17 +112,21 @@
       <text class="login-button__title">{{loading ? '正在登录…' : loginButtonText}}</text>
     </button>
 
-    <button
-      wx:if="{{skipButtonText}}"
-      class="login-skip"
-      bindtap="onBack"
-      disabled="{{loading}}"
-      hover-class="login-skip--pressed"
-    >{{skipButtonText}}</button>
+    <block wx:if="{{modules.skipButton}}">
+      <button
+        wx:if="{{skipButtonText}}"
+        class="login-skip"
+        bindtap="onBack"
+        disabled="{{loading}}"
+        hover-class="login-skip--pressed"
+      >{{skipButtonText}}</button>
+    </block>
 
-    <view class="sheet-footer">
-      <text class="privacy-note">{{privacyNoteText}}</text>
-    </view>
+    <block wx:if="{{modules.privacyNote}}">
+      <view wx:if="{{privacyNoteText}}" class="sheet-footer">
+        <text class="privacy-note">{{privacyNoteText}}</text>
+      </view>
+    </block>
   </view>
 
   <view wx:if="{{showPrivacyPopup}}" class="privacy-layer" catchtouchmove="noop">

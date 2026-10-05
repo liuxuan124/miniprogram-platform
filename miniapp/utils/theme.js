@@ -107,6 +107,24 @@ function isColorLike(value) {
  */
 function normalizePageBackground(page, theme) {
   const bg = page && typeof page === 'object' ? page.background : null
+  // 🔴 image 分支（2026-10-06）：与后台 normalizePageBackground 同规则。
+  // 没有这一段时 bg.type==='image' 会掉到末尾 → 回落站点主题色，
+  // 后台明明选了背景图、真机却是纯色，且没有任何报错提示。
+  if (bg && bg.type === 'image') {
+    const url = String((bg.image && bg.image.url) || '').trim()
+    if (url) {
+      const mode = bg.image.mode
+      return {
+        type: 'image',
+        image: {
+          url,
+          mode: mode === 'tile-top' || mode === 'center' ? mode : 'cover',
+          fixed: !(bg.image && bg.image.fixed === false),
+        },
+      }
+    }
+    return { type: 'solid', color: resolvePageBackgroundColor(page, theme) }
+  }
   if (bg && (bg.type === 'solid' || bg.type === 'gradient')) {
     if (bg.type === 'solid' && isColorLike(bg.color)) {
       return { type: 'solid', color: String(bg.color).trim() }
@@ -136,8 +154,18 @@ function normalizePageBackground(page, theme) {
   return { type: 'solid', color: resolvePageBackgroundColor(page, theme) }
 }
 
-/** 背景 → CSS background 值；solid 返回纯色，gradient 返回 linear-gradient */
+/** 背景 → CSS background 值；solid 返回纯色，gradient 返回 linear-gradient，image 返回 url(...) */
 function backgroundToCss(bg) {
+  // 🔴 image 分支（2026-10-06 新增）：与后台 admin/src/utils/page-background.ts 同规则。
+  // 不加这一段的话 bg.type==='image' 会掉到末尾返回 bg.color（undefined），
+  // 页面背景变成空白 —— 典型的「后台配了、真机没生效」。
+  if (bg && bg.type === 'image' && bg.image && bg.image.url) {
+    const url = bg.image.url
+    const fixed = bg.image.fixed === false ? 'scroll' : 'fixed'
+    if (bg.image.mode === 'tile-top') return `url(${url}) center top / auto repeat-x`
+    if (bg.image.mode === 'center') return `url(${url}) center / auto no-repeat ${fixed}`
+    return `url(${url}) center / cover no-repeat ${fixed}`
+  }
   if (bg && bg.type === 'gradient' && bg.gradient && Array.isArray(bg.gradient.stops) && bg.gradient.stops.length >= 2) {
     const stops = bg.gradient.stops
       .slice()
@@ -155,6 +183,9 @@ function backgroundEndpointColors(bg) {
     const stops = bg.gradient.stops.slice().sort((a, b) => a.offset - b.offset)
     return { top: stops[0].color, bottom: stops[stops.length - 1].color }
   }
+  // 🔴 背景图页没有「端点色」概念，橡皮筋与遮罩需要一个可读色。
+  // 用中性浅灰兜底（不透明），别给空串 —— 空串会让 iOS 橡皮筋露出下层内容。
+  if (bg && bg.type === 'image') return { top: '#f2f3f5', bottom: '#f2f3f5' }
   const color = (bg && bg.color) || '#FDF6EC'
   return { top: color, bottom: color }
 }
@@ -162,9 +193,9 @@ function backgroundEndpointColors(bg) {
 /**
  * 装修页背景一键解析：
  * {
- *   color:        纯色（渐变页取终点色，供导航栏/page-meta 使用）
- *   gradientCss:  渐变 background 值；纯色页为 ''
- *   topColor / bottomColor: 渐变端点色（橡皮筋对齐、遮罩 auto）
+ *   color:        纯色（渐变/图页取终点色，供导航栏/page-meta 使用）
+ *   gradientCss:  background 值（渐变 / 背景图）；纯色页为 ''
+ *   topColor / bottomColor: 端点色（橡皮筋对齐、遮罩 auto）
  * }
  */
 function resolvePageBackground(page, theme) {
@@ -175,7 +206,9 @@ function resolvePageBackground(page, theme) {
     color: endpoints.bottom,
     topColor: endpoints.top,
     bottomColor: endpoints.bottom,
-    gradientCss: bg.type === 'gradient' ? backgroundToCss(bg) : '',
+    // 🔴 image 也要输出（2026-10-06）：页面容器只认 gradientCss 这一个通道，
+    // 只在 gradient 时给值 = 背景图永远进不到真机。
+    gradientCss: (bg.type === 'gradient' || bg.type === 'image') ? backgroundToCss(bg) : '',
   }
 }
 

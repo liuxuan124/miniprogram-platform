@@ -1,11 +1,33 @@
 <!--components/dsl-product-list/dsl-product-list.wxml — 商品列表-->
 <view class="dsl-product-list" style="{{styleString}}">
+  <!-- 内置标题行：showTitle=false 时整行不渲染（不靠空字符串糊过去） -->
   <view
-    class="dsl-product-list__grid dsl-product-list__grid--{{layout}}"
+    class="dsl-product-list__section-header dsl-product-list__section-header--{{sectionStyle}} dsl-product-list__section-header--{{sectionAlign}} {{sectionDivider ? 'has-divider' : ''}}"
+    wx:if="{{showTitle && (sectionTitle || sectionSubtitle)}}"
+  >
+    <view class="dsl-product-list__section-bars" wx:if="{{sectionStyle === 'bar'}}">
+      <view class="dsl-product-list__section-bar is-down"></view>
+      <view class="dsl-product-list__section-bar is-up"></view>
+    </view>
+    <view class="dsl-product-list__section-text">
+      <text class="dsl-product-list__section-title" style="{{sectionTitleStyle}}">{{sectionTitle}}</text>
+      <text class="dsl-product-list__section-sub" wx:if="{{sectionSubtitle}}" style="{{sectionSubtitleStyle}}">{{sectionSubtitle}}</text>
+    </view>
+    <text
+      class="dsl-product-list__section-more"
+      wx:if="{{showMore}}"
+      style="{{sectionMoreStyle}}"
+      data-link="{{moreLink}}"
+      catchtap="onTapMore"
+    >{{moreText}}</text>
+  </view>
+
+  <view
+    class="dsl-product-list__grid dsl-product-list__grid--{{layout}} card-{{cardStyle}}"
     style="{{gridGapStyle}}"
   >
-    <!-- 列表布局：横卡 + 正方形图留白 + 标题/副文案/价格评分 -->
-    <block wx:if="{{layout === 'list'}}">
+    <!-- 横向单列（旧 list）：横卡 + 正方形图留白 + 标题/副文案/价格评分 -->
+    <block wx:if="{{layout === 'row'}}">
       <view
         class="dsl-product-list__row"
         wx:for="{{displayData}}"
@@ -25,23 +47,34 @@
           <view wx:else class="dsl-product-list__thumb-ph" style="{{item._artStyle}}">
             <text>{{item._glyph || '🛍️'}}</text>
           </view>
+          <text wx:if="{{item._badge}}" class="dsl-product-list__badge" style="{{badgeStyle}}">{{item._badge}}</text>
         </view>
         <view class="dsl-product-list__body">
-          <text class="dsl-product-list__row-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
+          <text wx:if="{{showTitleInCard}}" class="dsl-product-list__row-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
           <text class="dsl-product-list__row-sub" style="{{salesStyle}}">{{item._meta}}</text>
           <view class="dsl-product-list__row-foot">
-            <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__row-price" style="{{priceStyle}}">{{item._priceLabel}}</text>
+            <text
+              wx:if="{{config.show_price !== false}}"
+              class="dsl-product-list__row-price"
+              style="{{item._isFree ? freePriceStyle : priceStyle}}"
+            >{{item._priceLabel}}</text>
+            <text
+              wx:if="{{showOriginalPrice && item._originalPrice}}"
+              class="dsl-product-list__row-origin"
+              style="{{salesStyle}}"
+            >¥{{item._originalPrice}}</text>
             <text wx:if="{{showRating}}" class="dsl-product-list__row-rate">{{item._ratingLine}}</text>
-            <text wx:elif="{{config.show_sales !== false}}" class="dsl-product-list__row-sales" style="{{salesStyle}}">{{item._salesLabel}}</text>
+            <text wx:elif="{{showSales}}" class="dsl-product-list__row-sales" style="{{salesStyle}}">{{item._salesLabel}}</text>
+            <text wx:if="{{ctaText}}" class="dsl-product-list__cta" style="{{ctaStyle}}" data-id="{{item.id}}" catchtap="onCtaTap">{{ctaText}}</text>
           </view>
         </view>
       </view>
     </block>
 
-    <!-- 宫格 / 瀑布流 -->
+    <!-- 宫格 / 瀑布流 / 横向滑动 -->
     <block wx:else>
       <view
-        class="dsl-product-list__item"
+        class="dsl-product-list__item {{item._isFree ? 'is-free' : ''}}"
         wx:for="{{displayData}}"
         wx:key="_key"
         data-id="{{item.id}}"
@@ -59,10 +92,11 @@
           <view wx:else class="dsl-product-list__item-placeholder">
             <text>🛍️</text>
           </view>
+          <text wx:if="{{item._badge}}" class="dsl-product-list__badge" style="{{badgeStyle}}">{{item._badge}}</text>
         </view>
 
         <view class="dsl-product-list__item-info">
-          <text class="dsl-product-list__item-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
+          <text wx:if="{{showTitleInCard}}" class="dsl-product-list__item-name text-ellipsis-2" style="{{titleStyle}}">{{item.name || item.title}}</text>
           <view
             class="dsl-product-list__item-tag"
             wx:if="{{config.show_tag && (item.tag || config.tag_text)}}"
@@ -71,9 +105,19 @@
           </view>
           <view class="dsl-product-list__item-bottom">
             <view class="dsl-product-list__item-meta-row">
-              <text wx:if="{{config.show_price !== false}}" class="dsl-product-list__item-price" style="{{priceStyle}}">{{item._priceLabel}}</text>
-              <text wx:if="{{config.show_sales !== false}}" class="dsl-product-list__item-sales" style="{{salesStyle}}">{{item._salesLabel}}</text>
+              <text
+                wx:if="{{config.show_price !== false}}"
+                class="dsl-product-list__item-price"
+                style="{{item._isFree ? freePriceStyle : priceStyle}}"
+              >{{item._priceLabel}}</text>
+              <text
+                wx:if="{{showOriginalPrice && item._originalPrice}}"
+                class="dsl-product-list__item-origin"
+                style="{{salesStyle}}"
+              >¥{{item._originalPrice}}</text>
+              <text wx:if="{{showSales}}" class="dsl-product-list__item-sales" style="{{salesStyle}}">{{item._salesLabel}}</text>
             </view>
+            <text wx:if="{{ctaText}}" class="dsl-product-list__cta" style="{{ctaStyle}}" data-id="{{item.id}}" catchtap="onCtaTap">{{ctaText}}</text>
           </view>
         </view>
       </view>

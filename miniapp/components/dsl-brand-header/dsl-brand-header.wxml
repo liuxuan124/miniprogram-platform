@@ -6,20 +6,32 @@
   >
     <view class="dsl-brand-header__safe" style="height:{{statusBarHeight}}px;"></view>
     <view class="dsl-brand-header__bar" style="{{barStyle}}">
-      <view wx:if="{{logoUrl || logoText}}" class="dsl-brand-header__brand">
+      <!-- Logo 区：按 logo_mode 决定显示图片 / 文字 / 图文 / 都不显示 -->
+      <view wx:if="{{logoMode !== 'none'}}" class="dsl-brand-header__brand" bindtap="onTapBrand">
         <image
-          wx:if="{{logoUrl}}"
+          wx:if="{{showsLogoImage && logoUrl}}"
           class="dsl-brand-header__logo"
           src="{{logoUrl}}"
-          mode="aspectFit"
-          style="height:{{logoHeight}}rpx;max-width:{{logoMaxWidth}}rpx;"
+          mode="{{logoFitMode}}"
+          style="{{logoStyle}}"
         />
-        <text wx:elif="{{logoText}}" class="dsl-brand-header__logo-text" style="{{logoTextStyle}}">{{logoText}}</text>
+        <text wx:if="{{showsLogoText && logoText}}" class="dsl-brand-header__logo-text" style="{{logoTextStyle}}">{{logoText}}</text>
       </view>
-      <view wx:if="{{showDivider && (logoUrl || logoText)}}" class="dsl-brand-header__divider" style="{{dividerStyle}}"></view>
+
+      <view wx:if="{{showDivider}}" class="dsl-brand-header__divider" style="{{dividerStyle}}"></view>
+
       <view class="dsl-brand-header__text">
-        <text class="dsl-brand-header__title" style="{{titleStyle}}">{{titleText}}</text>
-        <text wx:if="{{subtitleText}}" class="dsl-brand-header__subtitle" style="{{subtitleStyle}}">{{subtitleText}}</text>
+        <!-- 空态：Logo 与标题都空时的占位，避免顶栏塌成 0 高 -->
+        <view wx:if="{{isBlank}}" class="dsl-brand-header__blank">点击配置品牌信息</view>
+        <block wx:else>
+          <text class="dsl-brand-header__title" style="{{titleStyle}}">{{titleText}}</text>
+          <text wx:if="{{subtitleText}}" class="dsl-brand-header__subtitle" style="{{subtitleStyle}}">{{subtitleText}}</text>
+        </block>
+      </view>
+
+      <!-- 右侧快捷入口 -->
+      <view wx:if="{{showAction}}" class="dsl-brand-header__action" bindtap="onTapAction">
+        <text class="dsl-brand-header__action-icon">{{actionGlyph}}</text>
       </view>
     </view>
   </view>

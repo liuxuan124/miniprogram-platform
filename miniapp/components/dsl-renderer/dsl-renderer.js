@@ -4,6 +4,8 @@ const { executeAction, isImageUrl, navigatePage, parseStyle, appendNavStackStyle
 const { resolveNavIconUrl } = require('../../utils/nav-icon-url')
 const { normalizeWarm, isWarmType, fmtTime } = require('../../utils/warm-kit')
 const { resolveMediaUrl } = require('../../utils/media-url')
+const { normalizeSearchProps, buildSearchStyle } = require('../../utils/search-props')
+const { normalizeCategoryNavProps } = require('../../utils/category-nav-props')
 
 /** 预处理 items，标记 icon 是否为真实图片 URL */
 function processIconItems(items) {
@@ -68,6 +70,13 @@ Component({
     /** 已格式化的时间文本（mm:ss），wxml 直接渲染 */
     audioCurText: '0:00',
     audioDurText: '0:00',
+    /** 搜索组件：占位词轮播下标 */
+    searchPhIndex: 0,
+    /** 搜索组件：弹窗搜索可见态与输入词 */
+    popupSearchOpen: false,
+    popupKeyword: '',
+    /** 分类导航（双行分页）：当前页下标，用于底部指示条 */
+    categoryPagerIndex: 0,
   },
 
   observers: {
@@ -82,10 +91,12 @@ Component({
       if (this.data.component) {
         this._processComponent(this.data.component)
       }
+      this._startSearchPlaceholderTimer()
     },
     detached() {
       this._destroyWarmAudio()
       this._stickyObserver = null
+      this._stopSearchPlaceholderTimer()
     },
   },
 
@@ -100,6 +111,60 @@ Component({
       const type = component.type
       const props = { ...(component.props || {}) }
       const runtimeData = Array.isArray(component.runtimeData) ? component.runtimeData : []
+
+      if (type === 'search') {
+        const cfg = normalizeSearchProps(props)
+        props._placeholders = cfg.placeholders
+        props._placeholderInterval = cfg.placeholderInterval
+        props._phText = cfg.placeholderText
+        props._scopes = cfg.scopes
+        props._scopeText = cfg.scopeText
+        props._activityOnly = cfg.activityOnly
+        props._rightAction = cfg.rightAction
+        props._rightActionText = cfg.rightActionText
+        props._tapTarget = cfg.tapTarget
+        props._linkUrl = cfg.linkUrl
+        props._shape = cfg.shape
+        props._align = cfg.align
+        props._textColor = cfg.textColor
+        props._bgColor = cfg.bgColor
+        props._borderWidth = cfg.borderWidth
+        props._borderColor = cfg.borderColor
+        props._sticky = cfg.sticky
+        props._stickyBg = cfg.stickyBg || cfg.bgColor
+        props._boxStyle = buildSearchStyle(cfg)
+        // 右侧按钮底色：跟随框体底色的深色版，保证白字可读
+        props._btnColor = '#ffffff'
+      }
+
+      if (type === 'category_nav') {
+        // 归一化只做一次；wxml 读 `_` 前缀字段，避免散落 fallback
+        const cfg = normalizeCategoryNavProps(props)
+        props._title = cfg.title
+        props._showTitle = cfg.showTitle
+        props._layout = cfg.layout
+        props._columns = cfg.columns
+        props._pageSize = cfg.pageSize
+        props._pageColumns = cfg.pageColumns
+        props._pages = cfg.pages
+        props._items = cfg.items
+        props._iconShape = cfg.iconShape
+        props._iconRadius = cfg.iconShape === 'none' ? 0 : cfg.iconRadius
+        props._titleColor = cfg.titleColor
+        props._subtitleColor = cfg.subtitleColor
+        props._subtitleSize = cfg.subtitleSize
+        props._surface = cfg.surface
+
+        // 分页切片在 JS 里算好：WXML 嵌套 wx:for 会让内层 index 覆盖外层，
+        // 且 item0 不是合法变量 —— 那种写法会静默不渲染。
+        const groups = []
+        for (let i = 0; i < cfg.pages; i += 1) {
+          const slice = cfg.items.slice(i * cfg.pageSize, (i + 1) * cfg.pageSize)
+          // pageKey 给稳定 key：wxml wx:key 用它做 diff
+          groups.push({ pageKey: 'cnav_page_' + i, items: slice })
+        }
+        props._pageGroups = groups
+      }
 
       if (type === 'activity_list' && runtimeData.length) {
         props.items = runtimeData.map((item) => ({
@@ -427,6 +492,13 @@ Component({
         const radiusCss = `border-radius:${(Number.isFinite(r) ? r : 0) * 2}rpx;overflow:hidden`
         styleString = styleString ? `${styleString};${radiusCss}` : radiusCss
       }
+      // 搜索组件：框体样式由 props 决定（圆角/底色/边框/对齐/吸顶），
+      // 通用 styleString 只剩外边距 —— 两者拼起来，props 的视觉优先级更高。
+      if (normalized.type === 'search') {
+        styleString = [styleString, normalized.props && normalized.props._boxStyle]
+          .filter(Boolean)
+          .join(';')
+      }
       this.setData({
         comp: {
           ...normalized,
@@ -437,10 +509,65 @@ Component({
         },
       })
       this._syncWarmState(normalized)
+      if (normalized.type === 'search') {
+        this._syncSearchPlaceholder()
+        this._startSearchPlaceholderTimer()
+        // 组件被替换/隐藏时收起弹窗，避免残留遮罩挡住整页
+        if (this.data.popupSearchOpen && !(normalized.props && normalized.props._visible !== false)) {
+          this.setData({ popupSearchOpen: false, popupKeyword: '' })
+        }
+      }
       if (normalized.type === 'layout_sticky_wrapper') {
         // 等 DOM 落地后再挂观察者
         this._stickyObserver = null
         setTimeout(() => this._ensureStickyObserver(), 0)
+      }
+    },
+
+    /* ---------------- 搜索组件：占位词轮播 ---------------- */
+
+    /**
+     * 把归一化后的搜索配置摊进 props（wxml 直接读 `comp.props._xxx`）。
+     * 🔴 归一化只在 _normalizeByType 里做一次，这里只做「摊平 + 起轮播」，
+     *    避免 wxml 里写一堆 fallback 判断。
+     */
+    _syncSearchPlaceholder() {
+      const props = (this.data.comp && this.data.comp.props) || {}
+      const list = Array.isArray(props._placeholders) ? props._placeholders : []
+      if (!list.length) return
+      let idx = Number(this.data.searchPhIndex) || 0
+      if (idx >= list.length) idx = 0
+      if (idx !== this.data.searchPhIndex) this.setData({ searchPhIndex: idx })
+      this.setData({ 'comp.props._phText': list[idx] })
+    },
+
+    _startSearchPlaceholderTimer() {
+      this._stopSearchPlaceholderTimer()
+      const props = (this.data.comp && this.data.comp.props) || {}
+      const list = Array.isArray(props._placeholders) ? props._placeholders : []
+      if (list.length <= 1) return
+      // 间隔兜底 ≥1s：运营若把值清空成 0，setInterval(0) 会疯狂切换
+      const seconds = Math.max(1, Number(props._placeholderInterval) || 3)
+      const self = this
+      this._searchPhTimer = setInterval(function () {
+        if (!self.data.comp || (self.data.comp.props || {})._shape === undefined) {
+          self._stopSearchPlaceholderTimer()
+          return
+        }
+        const total = ((self.data.comp.props || {})._placeholders || []).length
+        if (total <= 1) {
+          self._stopSearchPlaceholderTimer()
+          return
+        }
+        self.setData({ searchPhIndex: (Number(self.data.searchPhIndex) + 1) % total })
+        self._syncSearchPlaceholder()
+      }, seconds * 1000)
+    },
+
+    _stopSearchPlaceholderTimer() {
+      if (this._searchPhTimer) {
+        clearInterval(this._searchPhTimer)
+        this._searchPhTimer = null
       }
     },
 
@@ -794,19 +921,128 @@ Component({
       wx.makePhoneCall({ phoneNumber: phone })
     },
 
+    noop() {},
+
+    /**
+     * 分类导航（双行分页）：横向滚动 → 底部指示条跟随。
+     *
+     * 页宽用 `query` 实测 scroll-view 宽度最准，拿不到时回落 windowWidth
+     * （每页恰好占满一屏，windowWidth 就是正确的页宽）。
+     */
+    onCategoryPagerScroll(e) {
+      const props = (this.data.comp && this.data.comp.props) || {}
+      const pages = Number(props._pages) || 1
+      if (pages <= 1) return
+
+      const detail = (e && e.detail) || {}
+      const scrollLeft = Number(detail.scrollLeft) || 0
+      let pageWidth = 0
+      if (this._pagerRect && this._pagerRect.width) {
+        pageWidth = this._pagerRect.width
+      } else {
+        const sys = wx.getSystemInfoSync()
+        pageWidth = Number(sys && sys.windowWidth) || 375
+      }
+
+      const index = Math.min(pages - 1, Math.max(0, Math.round(scrollLeft / pageWidth)))
+      if (index === this.data.categoryPagerIndex) return
+      this.setData({ categoryPagerIndex: index })
+    },
+
+    /**
+     * 点击搜索框主体：按 tap_target 分流。
+     *
+     * 🔴 向后兼容：默认 search 模式必须保持老行为——
+     *   只勾「活动」→ 活动列表页；其余 → /pages/search/search。
+     *   老DSL（scope 单值）已被 normalizeSearchProps 映射成同样结果。
+     */
     onSearchTap() {
       const props = (this.data.comp && this.data.comp.props) || {}
-      const linkFromProps = String(props.link_url || props.linkUrl || '').trim()
-      if (linkFromProps) {
-        navigatePage(linkFromProps)
+      const tapTarget = props._tapTarget || 'search'
+
+      // 🔴 向后兼容：老 DSL 可能只有 link_url、没有 tap_target。
+      //    历史上 link_url 优先级最高，这里保留该优先级，避免升级后台后老页面跳转变了。
+      const legacyLink = String(props.link_url || props.linkUrl || '').trim()
+      if (legacyLink && tapTarget === 'search') {
+        navigatePage(legacyLink)
         return
       }
-      const scope = (props.scope || 'all').toString()
-      let link = '/pages/search/search'
-      if (scope === 'product') link = '/pages/search/search'
-      if (scope === 'article' || scope === 'content') link = '/pages/search/search'
-      if (scope === 'activity') link = '/pkg-extra/activity-list/activity-list'
-      navigatePage(link)
+
+      if (tapTarget === 'popup') {
+        this.setData({ popupSearchOpen: true, popupKeyword: '' })
+        return
+      }
+      if (tapTarget === 'link') {
+        const url = legacyLink || String(props._linkUrl || '').trim()
+        if (url) {
+          navigatePage(url)
+          return
+        }
+        // 没配落地页不该白屏，回落到默认搜索页
+        this._gotoDefaultSearch()
+        return
+      }
+      this._gotoDefaultSearch()
+    },
+
+    /** 默认落地：只勾活动进活动列表，其余进搜索页 */
+    _gotoDefaultSearch() {
+      const props = (this.data.comp && this.data.comp.props) || {}
+      if (props._activityOnly) {
+        navigatePage('/pkg-extra/activity-list/activity-list')
+        return
+      }
+      navigatePage('/pages/search/search')
+    },
+
+    /** 右侧动作位：搜索按钮 / 扫一扫 / 分类 */
+    onSearchActionTap() {
+      const props = (this.data.comp && this.data.comp.props) || {}
+      const action = props._rightAction || 'none'
+
+      if (action === 'scan') {
+        try {
+          wx.scanCode({
+            scanType: ['qrCode', 'barCode'],
+            success(res) {
+              const val = (res && res.result) || ''
+              if (!val) return
+              wx.showToast({ title: '已识别', icon: 'none' })
+              navigatePage(val)
+            },
+            fail() {},
+          })
+        } catch (e) {
+          wx.showToast({ title: '当前环境不支持扫码', icon: 'none' })
+        }
+        return
+      }
+
+      if (action === 'category') {
+        navigatePage('/pkg-content/product-list/product-list')
+        return
+      }
+
+      // 默认 = 搜索按钮：与点框体一致，走落地目标
+      this.onSearchTap()
+    },
+
+    closePopupSearch() {
+      this.setData({ popupSearchOpen: false })
+    },
+
+    onPopupKeywordInput(e) {
+      this.setData({ popupKeyword: (e && e.detail && e.detail.value) || '' })
+    },
+
+    doPopupSearch() {
+      const kw = String(this.data.popupKeyword || '').trim()
+      if (!kw) {
+        wx.showToast({ title: '请输入关键词', icon: 'none' })
+        return
+      }
+      this.setData({ popupSearchOpen: false })
+      navigatePage(`/pages/search/search?q=${encodeURIComponent(kw)}`)
     },
 
     onAiEntryTap() {

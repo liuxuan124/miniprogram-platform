@@ -1,5 +1,6 @@
 const orderService = require('../../services/order')
 const SystemService = require('../../services/system')
+const supportService = require('../../services/support')
 const { StorageUtil } = require('../../utils/storage')
 const { post, upload } = require('../../utils/request')
 const { AuthUtil } = require('../../utils/auth')
@@ -161,6 +162,7 @@ Page({
     emojis: ['😊', '👍', '🙏', '🎉', '😅', '❤️', '👌', '😭'],
     sessionId: '',
     orderId: '',
+    ticketId: '',
     deliveryCard: null,
     botAvatar: BOT_AVATAR,
     meAvatar: ME_AVATAR,
@@ -170,6 +172,8 @@ Page({
     this._orderId = (q && q.orderId) || ''
     this._customerCorpId = ''
     this._customerServiceUrl = ''
+    this._ticketCreated = false
+    this._ticketCreating = false
     this.setData({ orderId: this._orderId })
     this._restore()
     if (this._orderId) this._injectOrderDelivery(this._orderId)
@@ -307,6 +311,9 @@ Page({
   onTransferHuman() {
     const corpId = this._customerCorpId || ''
     const csUrl = this._customerServiceUrl || ''
+    // 用户主动转人工 = 最明确的咨询意图，先落库再跳企微，
+    // 否则企微对话与后台工单两套数据对不上，运营只能看到一半
+    this._createTicket('用户在小程序内点击「转人工」')
     if (typeof wx.openCustomerServiceChat === 'function' && corpId) {
       wx.openCustomerServiceChat({
         extInfo: { url: csUrl },
@@ -315,7 +322,7 @@ Page({
         fail: () => {
           wx.showModal({
             title: '人工客服',
-            content: '在线客服暂时不可用。请通过「我的 - 联系客服」留言，或在工作日 9:00–18:00 添加企业微信「暖阁小助手」。',
+            content: '在线客服暂时不可用。已为你登记咨询，客服会在工作时间内回复；也可在工作日 9:00–18:00 添加企业微信「暖阁小助手」。',
             showCancel: false,
           })
         },
@@ -324,10 +331,10 @@ Page({
     }
     const missingHint = corpId
       ? ''
-      : '后台尚未配置企业微信 corpId（可在 joinGroupConfig / miniappBrandConfig 中设置 customerServiceCorpId）。'
+      : '后台尚未配置企业微信 corpId（可在客服中心配置 customerServiceCorpId）。'
     wx.showModal({
       title: '人工客服',
-      content: `${missingHint}请通过「我的 - 联系客服」留言，或在工作日 9:00–18:00 添加企业微信「暖阁小助手」。`.trim(),
+      content: `${missingHint}已为你登记咨询，客服会在工作时间内回复；也可在工作日 9:00–18:00 添加企业微信「暖阁小助手」。`.trim(),
       showCancel: false,
     })
   },
@@ -401,6 +408,9 @@ Page({
       }
       this._push({ role: 'service', type: 'text', text }, sessionId)
       this.setData({ sending: false, typing: false })
+      // AI 明确判定要转人工，或压根没答上来，才落库建工单 ——
+      // 后端 AiChatVO 已有 isTransferHuman 字段，不要靠匹配答案文案猜
+      this._maybeCreateTicket(question, answer, res)
     } catch (e) {
       const flow = QUICK_FLOWS[question]
       if (flow) {
@@ -414,7 +424,48 @@ Page({
         text: '暂时无法连接智能客服。你可以点下方「转人工」，或先试试上方常见问题。',
       })
       this.setData({ sending: false, typing: false })
+      // AI 接口整体不可用 = 用户完全没被服务到，这是最该建单的情况
+      this._createTicket(question)
     }
+  },
+
+  /**
+   * 判定是否需要建工单。
+   * 判据（按优先级）：① 后端 isTransferHuman=true 明确要求转人工；
+   *   ② 答案为空 —— AI 没产出任何内容。
+   * ⚠️ 不要用「答案里包含『无法连接』等字样」这类文案匹配：
+   *   AI 正常回答里也可能出现「未找到」这种词，会把正常问答误判成需转人工。
+   */
+  _maybeCreateTicket(question, answer, res) {
+    if (this._ticketCreated) return
+    const q = String(question || '').trim()
+    if (!q || !AuthUtil.isLoggedIn()) return
+    const transferFlag = !!(res && (res.isTransferHuman === true || res.is_transfer_human === true))
+    const blank = !String(answer || '').trim()
+    if (!transferFlag && !blank) return
+    this._createTicket(q)
+  },
+
+  _createTicket(content) {
+    if (this._ticketCreating) return
+    this._ticketCreating = true
+    supportService
+      .createTicket(content, { source: 'chat', orderId: this._orderId || this.data.orderId || '' })
+      .then((res) => {
+        this._ticketCreated = true
+        if (res && res.ticketId) this.setData({ ticketId: res.ticketId })
+        this._push({
+          role: 'service',
+          type: 'text',
+          text: '已为你转接人工，客服会在工作时间内回复，也可在「我的 - 通知」里看到进度。',
+        })
+      })
+      .catch(() => {
+        // 建单失败不打扰用户：AI 已经答过了，静默降级
+      })
+      .finally(() => {
+        this._ticketCreating = false
+      })
   },
 
   onPickOrder() {

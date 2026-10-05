@@ -334,3 +334,112 @@
   color: #a39b8d;
   font-size: 22rpx;
 }
+
+/* ================= 本轮新增：卡片要素 ================= */
+
+/* 专栏 / 话题胶囊 */
+.dsl-article-feed__column {
+  display: inline-block;
+  align-self: flex-start;
+  max-width: 100%;
+  margin-bottom: 8rpx;
+  padding: 2rpx 14rpx;
+  overflow: hidden;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: var(--brand, #c08e6e);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: rgba(192, 142, 110, 0.1);
+  border-radius: 999rpx;
+}
+
+/* 摘要导读 */
+.dsl-article-feed__excerpt {
+  display: -webkit-box;
+  margin-top: 8rpx;
+  overflow: hidden;
+  font-size: 24rpx;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+}
+
+/* 作者栏 */
+.dsl-article-feed__author {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dsl-article-feed__avatar {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 8rpx;
+  border-radius: 50%;
+}
+
+.dsl-article-feed__author-name {
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 认证 V */
+.dsl-article-feed__v {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24rpx;
+  height: 24rpx;
+  margin-left: 6rpx;
+  font-size: 16rpx;
+  font-weight: 700;
+  color: #fff;
+  background: #2b6cb0;
+  border-radius: 50%;
+}
+
+/* 互动热度 */
+.dsl-article-feed__metric {
+  margin-left: 16rpx;
+}
+
+/* 状态角标 */
+.dsl-article-feed__badges {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dsl-article-feed__badge {
+  margin-left: 8rpx;
+  padding: 2rpx 10rpx;
+  font-size: 20rpx;
+  line-height: 1.5;
+  color: #fff;
+  background: rgba(192, 57, 43, 0.9);
+  border-radius: 6rpx;
+}
+
+/* CTA */
+.dsl-article-feed__cta {
+  margin-left: auto;
+  font-size: 22rpx;
+  color: var(--brand, #c08e6e);
+  white-space: nowrap;
+}
+
+/* 封面居左 */
+.dsl-article-feed__list--cover-left .dsl-article-feed__item--list {
+  flex-direction: row-reverse;
+}
+
+/* 独立卡片：白底圆角浮层 */
+.dsl-article-feed__list--card {
+  background: transparent;
+}
+
+.dsl-article-feed__list--card .dsl-article-feed__item--list {
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.05);
+}
