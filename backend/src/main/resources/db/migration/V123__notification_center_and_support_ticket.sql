@@ -57,8 +57,8 @@ SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA=@db AND TABLE_NAME='mp_support_ticket' AND COLUMN_NAME='source');
 SET @sql := IF(@exist=0,
     'ALTER TABLE mp_support_ticket
-       ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT '' COMMENT ''chat|feedback|order|manual'' AFTER status,
-       ADD COLUMN order_id BIGINT NULL COMMENT '关联订单号（虚拟商品咨询）'' AFTER source,
+       ADD COLUMN source VARCHAR(16) NOT NULL DEFAULT ''chat'' COMMENT ''来源：chat|feedback|order|manual'' AFTER status,
+       ADD COLUMN order_id BIGINT NULL COMMENT ''关联订单号（虚拟商品咨询）'' AFTER source,
        ADD COLUMN unread TINYINT NOT NULL DEFAULT 1 COMMENT ''1=用户侧有未读'' AFTER last_reply',
     'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;

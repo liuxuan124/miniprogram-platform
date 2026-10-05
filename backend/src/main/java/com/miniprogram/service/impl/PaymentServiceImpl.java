@@ -65,6 +65,8 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
     private final ObjectMapper objectMapper;
     private final SubscribeMessageService subscribeMessageService;
     private final UserNoticeService userNoticeService;
+    /** 客服 IM 桥接：支付成功推运营告警（V125） */
+    private final com.miniprogram.service.ImEventBridgeService imEventBridgeService;
     private final MembershipAccessService membershipAccessService;
     private final PurchaseEntitlementService purchaseEntitlementService;
     private final FulfillmentOrchestratorService fulfillmentOrchestratorService;
@@ -358,6 +360,8 @@ public class PaymentServiceImpl extends BaseServiceImpl<PaymentMapper, Payment>
         } catch (Exception e) {
             log.warn("订阅消息入队失败 orderNo={}", order.getOrderNo(), e);
         }
+        // 客服 IM：支付成功推运营告警（企微 / 桌面通知，内部已 try-catch）
+        imEventBridgeService.onOrderPaid(order);
     }
 
     private String firstProductName(Long orderId) {

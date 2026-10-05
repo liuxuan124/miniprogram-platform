@@ -66,6 +66,8 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
     private final MembershipAccessService membershipAccessService;
     private final IosVirtualPayPolicyService iosVirtualPayPolicyService;
     private final CommerceVirtualRefundService commerceVirtualRefundService;
+    /** 客服 IM 桥接：发货时自动往会话推物流卡（V125） */
+    private final com.miniprogram.service.ImEventBridgeService imEventBridgeService;
 
     /**
      * 订单状态机合法流转
@@ -499,6 +501,8 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         } catch (Exception e) {
             log.warn("发货订阅消息失败 orderNo={}", order.getOrderNo(), e);
         }
+        // 客服 IM：把物流卡直接推进买家的开放会话（内部已 try-catch，不会影响发货）
+        imEventBridgeService.onOrderShipped(order);
     }
 
     private String firstShippedProductName(Long orderId) {
