@@ -2,5 +2,7 @@
   "navigationBarTitleText": "作者作品",
   "navigationBarBackgroundColor": "#FDF6EC",
   "enablePullDownRefresh": true,
-  "usingComponents": {}
+  "usingComponents": {
+    "author-card": "/components/author-card/author-card"
+  }
 }
