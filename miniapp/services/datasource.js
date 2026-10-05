@@ -69,6 +69,10 @@ function resolveDataSourceRequest(dataSource) {
   }
   delete params.category_id
   delete params.publish_date
+  // sort_by 转为后端 sortBy 下发（后端支持 hot/popular/newest/vip），不再本地截取后排序
+  if (params.sort_by != null && params.sortBy == null) {
+    params.sortBy = params.sort_by
+  }
   delete params.sort_by
   delete params.is_recommended
   // display_mode 仅前端流式分页使用，不传给后端（在 fetchData 内剔除 requestParams）

@@ -63,10 +63,13 @@ const props = withDefaults(defineProps<{
   releaseId?: number | string | null
   title?: string
   hint?: string
+  /** 指定 H5 预览要落到哪个页面（去掉前导斜杠的页面路径），不传则进默认首页 */
+  screenPath?: string
 }>(), {
   mode: 'draft',
   title: '扫码预览',
   hint: '',
+  screenPath: '',
 })
 
 defineEmits<{ 'update:modelValue': [boolean] }>()
@@ -130,6 +133,8 @@ async function loadH5() {
     } else {
       query.source = props.mode === 'live' ? 'live' : 'draft'
     }
+    const screen = String(props.screenPath || '').replace(/^\//, '')
+    if (screen) query.screen = screen
     const { href } = router.resolve({ path: '/h5/miniapp-preview', query })
     url.value = `${window.location.origin}${href}`
     dataUrl.value = await QRCode.toDataURL(url.value, {

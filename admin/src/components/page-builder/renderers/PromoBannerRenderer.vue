@@ -45,9 +45,39 @@ const buttonBg = computed(() => String(p.value.button_bg || '#f3dcaa'))
 const buttonColor = computed(() => String(p.value.button_color || '#3a2708'))
 const showGlow = computed(() => p.value.show_glow !== false)
 
-const bannerStyle = computed(() => ({
-  background: `linear-gradient(135deg, ${gradientFrom.value} 0%, ${gradientMid.value} 60%, ${gradientTo.value} 100%)`,
-}))
+/**
+ * 背景类型：显式 bg_type 优先；未设置时按「有渐变色」反推，
+ * 保证历史页面（只有 gradient_from/to）外观不变。
+ */
+const bgType = computed<'solid' | 'gradient'>(() => {
+  if (p.value.bg_type) return p.value.bg_type === 'solid' ? 'solid' : 'gradient'
+  return p.value.gradient_from || p.value.gradient_to ? 'gradient' : 'solid'
+})
+
+/** 中间色可选：留空 / 关闭开关时退化为两色渐变 */
+const useGradientMid = computed(() =>
+  p.value.use_gradient_mid !== undefined ? Boolean(p.value.use_gradient_mid) : Boolean(p.value.gradient_mid),
+)
+
+/** 角度可配；未配置时沿用历史默认 135deg */
+const gradientAngle = computed(() => {
+  const n = Number(p.value.gradient_angle)
+  return Number.isFinite(n) ? n : 135
+})
+
+const backgroundColor = computed(() => String(p.value.background_color || gradientFrom.value))
+
+const bannerStyle = computed(() => {
+  if (bgType.value === 'solid') {
+    return { background: backgroundColor.value }
+  }
+  const stops = useGradientMid.value
+    ? `${gradientFrom.value} 0%, ${gradientMid.value} 60%, ${gradientTo.value} 100%`
+    : `${gradientFrom.value} 0%, ${gradientTo.value} 100%`
+  return {
+    background: `linear-gradient(${gradientAngle.value}deg, ${stops})`,
+  }
+})
 
 function goLink(link: string, label: string) {
   if (!props.previewMode) return

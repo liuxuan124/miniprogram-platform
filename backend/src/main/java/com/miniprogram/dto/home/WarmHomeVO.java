@@ -21,6 +21,18 @@ public class WarmHomeVO {
     private FeatureCard feature;
     private List<ColumnCard> columns = new ArrayList<>();
     private PlanetBrief planet;
+    /**
+     * 多星球推荐卡片列表（warm_planet_rec 组件用）。
+     * 装修器选「多星球」模式时渲染本列表；单星球模式只渲染 {@link #planet}。
+     */
+    private List<PlanetBrief> planets = new ArrayList<>();
+    /** 用户当前生效的主星球 id（user.main_planet_id 有效时= 该值，否则 = 配置 primary） */
+    private String primaryPlanetId;
+    /**
+     * true = 用户已主动设置主星球，首页星球区只展示该星球；
+     * false = 展示 {@link #planets} 全部候选（多卡横滑）。
+     */
+    private boolean primaryOnly;
     private List<FeedCard> feed = new ArrayList<>();
     private VipBar vipBar;
 
@@ -48,10 +60,26 @@ public class WarmHomeVO {
 
     @Data
     public static class PlanetBrief {
+        /** communities.id，供小程序端跳介绍页 / setMainPlanet 用 */
+        private String planetId;
         private String title;
         private String members;
         private String cta;
         private List<Map<String, Object>> items = new ArrayList<>();
+        /** 星球 emoji（社区配置），缺省 🪐 */
+        private String emoji;
+        /** 星球封面（社区配置），可空 */
+        private String cover;
+        /** 一句话介绍（社区 subtitle），列表卡副标题 */
+        private String subtitle;
+        /** 该用户是否已加入本星球（付费档有效） */
+        private Boolean joined;
+        /** 是否为用户当前主星球 */
+        private Boolean primary;
+        /** 介绍页路径（后端按 communities 配置生成，缺省兜底） */
+        private String introUrl;
+        /** 动态流路径 */
+        private String feedUrl;
     }
 
     @Data

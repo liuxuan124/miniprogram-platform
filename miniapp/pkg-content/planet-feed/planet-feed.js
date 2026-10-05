@@ -119,6 +119,26 @@ Page({
   },
 
   onSwitchPlanet() {
-    wx.navigateTo({ url: '/pkg-content/planet-list/planet-list' })
+    const sheet = this.selectComponent('#planet-switch-sheet')
+    if (sheet && typeof sheet.open === 'function') {
+      sheet.open()
+      return
+    }
+    // 兜底：组件未挂载时退回列表页
+    wx.navigateTo({ url: '/pkg-content/planet-list/planet-list', fail: () => {} })
+  },
+
+  /** 半屏切到别的星球后，本页跟着换成那颗的动态流 */
+  onSwitchChange(e) {
+    const id = (e && e.detail && e.detail.planetId) || ''
+    if (!id) return
+    this.setData({ planetId: id, page: 1, hasMore: false, list: [] })
+    this._load(true)
+  },
+
+  onSwitchIntro(e) {
+    const id = (e && e.detail && e.detail.planetId) || ''
+    if (!id) return
+    wx.navigateTo({ url: `/pkg-content/planet-intro/planet-intro?planetId=${encodeURIComponent(id)}` })
   },
 })

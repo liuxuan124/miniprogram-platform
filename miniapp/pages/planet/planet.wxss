@@ -4,3 +4,34 @@
 page {
   background: var(--warm-bg, #fdf6ec);
 }
+
+/* 点过「先逛逛」后的非阻断提示条：不弹窗、不拦浏览，点 ✕ 收起 */
+.pl-picktip {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 16rpx 20rpx;
+  border-radius: 20rpx;
+  background: #f8ecdd;
+  border: 1rpx solid rgba(180, 83, 9, 0.18);
+}
+.pl-picktip__tx {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #6b5443;
+}
+.pl-picktip__go {
+  flex-shrink: 0;
+  font-size: 23rpx;
+  font-weight: 750;
+  color: #c2410c;
+}
+.pl-picktip__x {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  color: #a1897a;
+  padding: 0 4rpx;
+}

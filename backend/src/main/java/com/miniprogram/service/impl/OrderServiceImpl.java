@@ -255,6 +255,7 @@ public class OrderServiceImpl extends BaseServiceImpl<OrderMapper, Order>
         order.setRemark(dto.getRemark());
         order.setAddressSnapshot(toJsonString(dto.getAddressSnapshot()));
         order.setSourceContentId(dto.getSourceContentId());
+        order.setChannelId(dto.getChannelId());
         order.setUserCouponId(dto.getUserCouponId());
         this.save(order);
 

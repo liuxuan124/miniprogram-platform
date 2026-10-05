@@ -51,7 +51,7 @@
               <span>{{ r }}</span>
             </label>
             <div v-if="!(p.rights || []).length" class="faint">暂未配置权益文案</div>
-            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <div class="plan-actions" style="display:flex;gap:8px;flex-wrap:wrap">
               <button type="button" class="btn sm" @click="editPlan(p)">编辑</button>
               <button type="button" class="btn sm danger" @click="remove(p)">删除</button>
             </div>

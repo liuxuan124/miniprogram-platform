@@ -1,6 +1,6 @@
 <template>
   <div class="form-entry-props">
-    <el-form label-width="88px" size="small" class="form-entry-props__form">
+    <el-form label-width="72px" size="small" class="form-entry-props__form">
       <el-form-item label="关联表单">
         <el-select
           :model-value="selectedFormId"

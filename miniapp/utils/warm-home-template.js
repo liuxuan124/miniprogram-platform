@@ -70,6 +70,12 @@ function shouldRenderHomeAsFullDsl(components) {
   return list.some((c) => c.type !== 'warm_home' && !isNativeHomeType(c.type))
 }
 
+/**
+ * 星球推荐块属性归一化。
+ * 2026-10-04 多星球改造后：卡片内容与跳转都由后端按 planetId 下发，
+ * props 只保留「展示策略」（多卡/单卡、勾选哪些星球、最多几张、点了去哪），
+ * 旧的 feed_url 不再决定卡片跳转（保留字段仅为兼容，回落 planet-feed）。
+ */
 function normalizeWarmPlanetRecProps(props) {
   const p = Object.assign({}, props || {})
   const more = String(p.more_url || p.moreUrl || '').trim()
@@ -87,6 +93,16 @@ function normalizeWarmPlanetRecProps(props) {
   } else {
     p.feed_url = feed
   }
+  // 展示策略
+  p.planet_mode = p.planet_mode === 'single' ? 'single' : 'multi'
+  p.planet_action = ['intro', 'feed', 'always_feed'].indexOf(String(p.planet_action)) >= 0
+    ? p.planet_action
+    : 'auto'
+  p.planet_ids = Array.isArray(p.planet_ids)
+    ? p.planet_ids.map((x) => String(x || '').trim()).filter(Boolean)
+    : []
+  const limit = Number(p.planet_limit)
+  p.planet_limit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 12) : 0
   return p
 }
 

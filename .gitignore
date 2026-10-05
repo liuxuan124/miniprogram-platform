@@ -92,3 +92,30 @@ miniapp/utils/dev-config.js
 
 # 服务器构建产物
 backend/app.jar
+
+# ===== 2026-10-05 新增：构建/部署中间产物（不入库）=====
+# vite 构建服务热更新残留
+admin/vite.config.ts.timestamp-*.mjs
+# admin 临时验证构建目录（正式产物是 admin/dist，已在上面忽略）
+admin/dist-*/
+# 已部署的 admin 静态包
+admin/admin-static-deploy.tgz
+*.tgz.sha256
+
+# 运营截图/评审证据（本地保留，不入库）
+output/
+docs/.shots-*.png
+prototypes-warm/.shots/
+prototypes-warm-publish/.shots/
+prototypes/.shots/
+
+# 小红书素材中间数据（可从飞书/源站重新拉取）
+scripts/xhs_*.json
+scripts/xhs_*.log
+
+# 会话/应用生成物
+*.genie
+.genie/
+
+# MCP 连接器自带依赖（凭据在 ~/.workbuddy/credentials/mp.env，不在仓库）
+tools/mcp-miniprogram/node_modules/

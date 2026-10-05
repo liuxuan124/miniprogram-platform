@@ -1,6 +1,6 @@
 <template>
   <div class="video-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="视频地址">
         <div class="field-col">
           <el-input :model-value="videoSrc" @input="updateSrc($event)" placeholder="视频URL 或点击下方本地上传" />

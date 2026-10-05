@@ -3,13 +3,17 @@ const warmPlanet = require('../../data/warm-planet')
 const { resolveMediaUrl } = require('../../utils/media-url')
 const { StorageUtil } = require('../../utils/storage')
 const { openWarmShareSheet } = require('../../utils/share')
+const { AuthUtil } = require('../../utils/auth')
 const { isUnusableImageUrl } = require('../../utils/image-fallback')
 const { picsum } = require('../../data/warm-media')
+const { putDemoMoment } = require('../../utils/planet-demo-cache')
 
 const MOMENT_LIKES_KEY = 'moment_likes'
 const MOMENT_FAVS_KEY = 'moment_favorites'
 
 function readMomentIds(key) {
+  // 未登录不返回任何互动态，避免游客态脏数据被当成已点赞/已收藏展示
+  if (!AuthUtil.isLoggedIn()) return []
   const raw = StorageUtil.get(key)
   if (!raw) return []
   if (Array.isArray(raw)) return raw.map(String)
@@ -18,6 +22,7 @@ function readMomentIds(key) {
 }
 
 function writeMomentIds(key, ids) {
+  if (!AuthUtil.isLoggedIn()) return
   const map = {}
   ;(ids || []).forEach((id) => {
     const k = String(id)
@@ -28,6 +33,25 @@ function writeMomentIds(key, ids) {
 
 function hasMomentId(key, id) {
   return readMomentIds(key).includes(String(id))
+}
+
+/**
+ * 归一化后台配置的分段：丢空 key / 空显示名，去重 key（防 wx:key 重复告警 + 防两段显示同样内容）。
+ * 与 admin/src/utils/preview-planet.ts 的 normalizePlanetSegs 同口径。
+ */
+function normalizeSegs(raw) {
+  if (!Array.isArray(raw)) return []
+  const seen = {}
+  const out = []
+  raw.forEach((it) => {
+    const key = String((it && it.key != null ? it.key : '')).trim()
+    const label = String((it && it.label != null ? it.label : '')).trim()
+    if (!key || !label) return
+    if (seen[key]) return
+    seen[key] = true
+    out.push({ key, label })
+  })
+  return out
 }
 
 function isTruthyDemo(v) {
@@ -65,16 +89,31 @@ function mapFeedItem(item) {
   }
   const attachments = Array.isArray(item.attachments) ? item.attachments : []
   let file = item.file || null
-  if (!file && attachments.length) {
-    const a = attachments[0] || {}
-    file = {
+  // 附件卡片：一条动态可挂多份资料（如「五年展望 + 5-8 月月报」），
+  // 统一映射成 files 数组渲染；item.file 保留兼容旧数据/后台自定义卡片。
+  // 权限提示按后端 enrichAttachments 回填的字段走：
+  //   canDownload=true  → 「可直接下载」（free 资料）
+  //   否则              → lockedReason || 「星球会员可看」（member 资料）
+  const files = attachments.map((a) => {
+    const open = a.canRead === true || a.canDownload === true
+    const tip = open
+      ? (a.canDownload === true ? '可直接下载' : '可在线阅读')
+      : (a.lockedReason || a.previewText || '星球会员可看')
+    return {
       name: a.name || '附件.pdf',
-      meta: [formatFileSize(a.size), item.viewCount ? `${item.viewCount} 人看过` : '', '星球会员可看'].filter(Boolean).join(' · '),
+      meta: [formatFileSize(a.size), item.viewCount ? `${item.viewCount} 人看过` : '', tip]
+        .filter(Boolean)
+        .join(' · '),
       fileId: a.fileId || '',
+      open,
     }
-  }
+  })
+  if (!file && files.length) file = files[0]
   const id = item.id || item.uid || ''
   const isDemo = !!item.isDemo || !item.id
+  // roleText 需带上 item.tag —— 星主/打卡常只打在 tag 单值上（如演示数据、线上接口
+  // 返回的 tag 字段），只看 tags 数组会漏判，「只看星主」会筛出空列表。
+  const roleText = tagStr + ' ' + String(item.tag || '')
   return {
     uid: String(item.uid || id || Math.random()),
     id,
@@ -83,6 +122,15 @@ function mapFeedItem(item) {
     hot: item.hot != null ? !!item.hot : (/热议|热/.test(tagStr) || Number(item.likeCount) > 200),
     author,
     authorInitial: item.authorInitial || String(author).slice(0, 1),
+    // 「只看星主」页签依据：显式角色字段优先，其次按 tag/作者名兜底判定
+    isHost: item.isHost != null
+      ? !!item.isHost
+      : (String(item.authorRole || item.author_role || '').indexOf('星主') >= 0
+        || /星主|官方/.test(roleText)
+        || /星主|主理|owner/i.test(String(author))),
+    isHomework: item.isHomework != null
+      ? !!item.isHomework
+      : (/作业|打卡|交作业/.test(roleText)),
     tagGold: item.tagGold || (isPinned ? '置顶' : (/精华/.test(tagStr) ? '精华' : '')),
     tag: item.tag || tags.find((t) => /星主|提问|打卡|官方|特约/.test(String(t))) || '',
     avatar: (() => {
@@ -100,6 +148,7 @@ function mapFeedItem(item) {
     liked: hasMomentId(MOMENT_LIKES_KEY, id),
     favorited: hasMomentId(MOMENT_FAVS_KEY, id),
     file,
+    files: files.length ? files : (file ? [file] : []),
     type: item.type || '',
   }
 }
@@ -124,12 +173,16 @@ Component({
   methods: {
     _load() {
       const c = this.data.config || {}
-      const segs = Array.isArray(c.segs) && c.segs.length ? c.segs : warmPlanet.SEGS
+      const configured = normalizeSegs(c.segs)
+      const segs = configured.length ? configured : warmPlanet.SEGS
       const pageSize = Number(c.page_size) || 20
       const resourcesUrl = c.resources_url || '/pkg-content/resources/resources'
       const manual = String(c.source_mode || 'auto') === 'manual'
+      // 运营可能把默认的 all 段删掉：选中项必须落在实际存在的分段里，
+      // 否则首屏没有任何高亮、且落到「不过滤」分支，看起来像白屏/点了没反应。
+      const activeSeg = segs.some((s) => s.key === this.data.activeSeg) ? this.data.activeSeg : (segs[0] && segs[0].key) || 'all'
       // 保留 DEMO 列表，不先清空；只更新 tabs
-      this.setData({ segs, resourcesUrl })
+      this.setData({ segs, resourcesUrl, activeSeg })
       if (manual && Array.isArray(c.items) && c.items.length) {
         this._applySeg(c.items.map(mapFeedItem), true)
         return
@@ -150,6 +203,15 @@ Component({
       else if (key === 'essence') list = allList.filter((i) => i.type === 'essence' || i.tagGold === '精华')
       else if (key === 'ask') list = allList.filter((i) => i.type === 'ask' || /提问/.test(i.tag || ''))
       else if (key === 'checkin') list = allList.filter((i) => i.type === 'checkin' || /打卡/.test(i.tag || ''))
+      // 「只看星主」：按 isHost 判定，未打标的内容不误入
+      else if (key === 'host') list = allList.filter((i) => i.isHost)
+      // 「作业」：按 isHomework 判定（作业/打卡类）
+      else if (key === 'homework') list = allList.filter((i) => i.isHomework)
+      // 白名单外的 key（如运营手填的 seg / 自造 key）：不报错但也不筛选，
+      // 只会静默返回全量 —— 打一条 warn，避免排查时误判成「控件坏了」。
+      else if (!['all', 'resources'].includes(key)) {
+        console.warn('[dsl-planet-feed] 未定义的分区 key，该分段点了不会筛选：', key)
+      }
       this.setData({
         allList,
         list,
@@ -187,9 +249,16 @@ Component({
     onOpen(e) {
       const ds = e.currentTarget.dataset || {}
       const demo = isTruthyDemo(ds.demo) || !!this.data.usingDemo
+      // 演示数据没有服务端详情，把这条落缓存，详情页据此渲染同一条内容
+      if (demo) {
+        const item = (this.data.list || [])[Number(ds.index)]
+            || (this.data.list || []).find((i) => String(i.id || i.uid) === String(ds.id || ds.uid))
+        if (item) putDemoMoment(item)
+      }
       wx.navigateTo({ url: this._momentNavUrl(ds.id || ds.uid, demo) })
     },
     onLikeTap(e) {
+      if (!AuthUtil.requireLoginQuiet('点赞')) return
       const ds = e.currentTarget.dataset || {}
       const list = (this.data.list || []).slice()
       const i = Number(ds.index)
@@ -219,6 +288,7 @@ Component({
       wx.navigateTo({ url: this._momentNavUrl(ds.id || ds.uid, isTruthyDemo(ds.demo) || this.data.usingDemo) })
     },
     onFavoriteTap(e) {
+      if (!AuthUtil.requireLoginQuiet('收藏')) return
       const ds = e.currentTarget.dataset || {}
       const list = (this.data.list || []).slice()
       const i = Number(ds.index)
@@ -243,6 +313,7 @@ Component({
       wx.showToast({ title: favorited ? '已收藏' : '已取消收藏', icon: 'none' })
     },
     onShareTap(e) {
+      if (!AuthUtil.requireLoginQuiet('分享')) return
       const ds = e.currentTarget.dataset || {}
       const item = (this.data.list || [])[Number(ds.index)] || {}
       const demo = isTruthyDemo(ds.demo) || !!item.isDemo || !!this.data.usingDemo
@@ -255,12 +326,24 @@ Component({
         contentId: mid,
       })
     },
-    onMoreTap() {
+    onMoreTap(e) {
       wx.showActionSheet({
         itemList: ['举报', '不感兴趣'],
         success: (res) => {
-          if (res.tapIndex === 0) wx.showToast({ title: '已收到举报', icon: 'none' })
-          else if (res.tapIndex === 1) wx.showToast({ title: '将减少此类内容', icon: 'none' })
+          if (res.tapIndex === 0) {
+            // 2026-10-05：原来只弹 toast 不发请求，举报永远进不了后台。
+            // 现在真发到 /api/v1/mp/report，落 mp_copyright_complaint。
+            const ds = (e && e.currentTarget && e.currentTarget.dataset) || {}
+            const targetId = ds.id || ds.uid
+            if (!targetId) {
+              wx.showToast({ title: '暂无可举报的内容', icon: 'none' })
+              return
+            }
+            const { reportWithReason, TARGET } = require('../../utils/report')
+            reportWithReason({ targetType: TARGET.PLANET_POST, targetId, presetTitle: '这条动态' })
+          } else if (res.tapIndex === 1) {
+            wx.showToast({ title: '将减少此类内容', icon: 'none' })
+          }
         },
       })
     },

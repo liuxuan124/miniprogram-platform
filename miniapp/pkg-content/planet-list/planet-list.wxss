@@ -5,6 +5,32 @@
   background: #fdf6ec;
 }
 
+/* pick 态底部有固定出口，底部多留一截 */
+.pcl-page--pick {
+  padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
+}
+
+/* pick 态引导头：深色渐变，压住首屏 */
+.pcl-lead {
+  margin: -28rpx -32rpx 24rpx;
+  padding: 40rpx 32rpx 36rpx;
+  color: #fff;
+  background: linear-gradient(150deg, #7c2d12 0%, #b45309 55%, #d97706 100%);
+}
+.pcl-lead__t {
+  display: block;
+  font-size: 44rpx;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.pcl-lead__s {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.88);
+}
+
 .pcl-hd { margin-bottom: 28rpx; }
 .pcl-hd__t {
   display: block;
@@ -74,10 +100,54 @@
   background: #f5e8d8;
   color: #c2410c;
 }
+.pcl-card__badge--gray {
+  background: #f0eae2;
+  color: #8b7a6b;
+}
 .pcl-card--primary .pcl-card__badge {
   background: rgba(255, 255, 255, 0.22);
   color: #fff;
 }
+
+/* 星球人数 / 今日动态 */
+.pcl-card__n {
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  font-size: 22rpx;
+  color: #a1897a;
+}
+.pcl-dot {
+  margin: 0 10rpx;
+  color: #c9b6a5;
+}
+.pcl-card--primary .pcl-card__n { color: rgba(255, 255, 255, 0.82); }
+
+/* pick 态：卖点三条，帮用户判断该选哪颗 */
+.pcl-card__hl {
+  padding: 2rpx 26rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+}
+.pcl-card__hli {
+  display: flex;
+  align-items: flex-start;
+  gap: 10rpx;
+}
+.pcl-card__hic {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  line-height: 1.4;
+}
+.pcl-card__htx {
+  flex: 1;
+  min-width: 0;
+  font-size: 22rpx;
+  line-height: 1.5;
+  color: #6b5443;
+}
+.pcl-card--primary .pcl-card__htx { color: rgba(255, 255, 255, 0.9); }
 
 .pcl-card__ft {
   margin-top: 22rpx;
@@ -102,6 +172,10 @@
   border-radius: 999rpx;
   background: #f5e8d8;
 }
+.pcl-card__set--ghost {
+  background: transparent;
+  border: 1rpx solid #e3c9a8;
+}
 .pcl-card--primary .pcl-card__set {
   background: rgba(255, 255, 255, 0.22);
   color: #fff;
@@ -112,3 +186,35 @@
   color: #c2410c;
 }
 .pcl-card--primary .pcl-card__today { color: #fff; }
+
+/* pick 态底部出口：吸底，不随内容滚走 */
+.pcl-foot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 18rpx 32rpx calc(18rpx + env(safe-area-inset-bottom));
+  background: rgba(253, 246, 236, 0.96);
+  backdrop-filter: blur(18rpx);
+  border-top: 1rpx solid rgba(120, 72, 40, 0.12);
+}
+.pcl-foot__btn {
+  height: 88rpx;
+  border-radius: 999rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #c2410c;
+  background: #fbe6d4;
+}
+.pcl-foot__tip {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 20rpx;
+  line-height: 1.6;
+  text-align: center;
+  color: #a1897a;
+}

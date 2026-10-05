@@ -66,6 +66,15 @@ public class MiniProgramUser implements Serializable {
     @TableField("source_channel")
     private String sourceChannel;
 
+    /**
+     * V116 账号来源：real=真实注册用户 / system=后台配置账号 / test=联调测试账号；NULL=未知。
+     * 判据是 openid 形态（dev-/test-/mock- 或 source_channel=local-dev → test，o 开头 → real），
+     * <b>不能按「有没有作者身份」倒推</b> —— 作者也是真人登录的，只是额外配了身份。
+     */
+    @Schema(description = "账号来源：real真实注册 / system后台配置 / test联调测试")
+    @TableField("account_type")
+    private String accountType;
+
     @Schema(description = "最近访问时间")
     @TableField("last_visit_at")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

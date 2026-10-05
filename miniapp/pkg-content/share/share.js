@@ -277,6 +277,7 @@ Page({
   },
 
   onFav() {
+    if (!AuthUtil.requireLoginQuiet('收藏')) return
     const id = String(this.data.contentId || '').trim()
     const favorited = !this.data.favorited
     if (id) {
@@ -310,7 +311,18 @@ Page({
     })
   },
 
-  onReport() { wx.showToast({ title: '已收到反馈', icon: 'none' }) },
+  onReport() {
+    // 2026-10-05：原来是 wx.showToast('已收到反馈') 的假实现，不发请求。
+    // 现在真发到 /api/v1/mp/report，落 mp_copyright_complaint，运营在审核中心能看到。
+    const { reportWithReason, TARGET } = require('../../utils/report')
+    // 优先报内容本身（contentId 来自分享时带的 content id），没有再退到短码
+    const targetId = this.data.contentId || this.data.shortCode
+    if (!targetId) {
+      wx.showToast({ title: '暂无可举报的内容', icon: 'none' })
+      return
+    }
+    reportWithReason({ targetType: TARGET.CONTENT, targetId, presetTitle: '这个分享内容' })
+  },
   onCancel() {
     if (this.data.showPoster) {
       this.setData({ showPoster: false })

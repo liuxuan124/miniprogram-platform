@@ -34,6 +34,12 @@ public class Product implements Serializable {
     @Schema(description = "主图URL")
     private String mainImage;
 
+    @Schema(description = "宣传视频URL（详情页首屏轮播首项，可空）")
+    private String videoUrl;
+
+    @Schema(description = "宣传视频封面图URL（为空则回退主图）")
+    private String videoPosterUrl;
+
     @Schema(description = "图片列表JSON")
     private String images;
 
@@ -73,11 +79,17 @@ public class Product implements Serializable {
     @Schema(description = "测试商品：1是 0否")
     private Integer isTest;
 
-    @Schema(description = "商品类型: physical/digital/service/membership/ebook/column/resource_pack")
+    @Schema(description = "商品类型: physical/digital/service/membership/ebook/column/resource_pack/ticket")
     private String productType = "physical";
 
     @Schema(description = "商品类型 JSON 数组，可多选")
     private String productTypes;
+
+    @Schema(description = "关联作者档案ID（mp_author.id；为空=官方/未指定）")
+    private Long authorId;
+
+    @Schema(description = "详情模板ID（覆盖按 productType 的自动分流；空=自动判断；column_classic/column_compact/column_story/ebook_classic/ebook_reader/ebook_showcase/digital_classic/digital_checklist/digital_video/physical_classic/physical_minimal/physical_story）")
+    private String detailTemplate;
 
     @Schema(description = "支付成功后自动履约（数字商品）")
     private Integer autoFulfill;
@@ -106,6 +118,15 @@ public class Product implements Serializable {
 
     @Schema(description = "付费档位 ID（mp_membership_plan）；会员商品必填，scope 以档位为准")
     private Long membershipPlanId;
+
+    @Schema(description = "买赠：支付成功后额外赠送的会员天数，0=不赠送")
+    private Integer giftMembershipDays;
+
+    @Schema(description = "买赠：支付成功后自动加入的星球社区 ID")
+    private String giftPlanetId;
+
+    @Schema(description = "买赠：赠送星球天数（星球门禁走订购，需有期限），0=不赠送")
+    private Integer giftPlanetDays;
 
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

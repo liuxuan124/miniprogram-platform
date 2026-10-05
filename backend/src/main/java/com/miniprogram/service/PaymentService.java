@@ -30,6 +30,12 @@ public interface PaymentService extends IService<Payment> {
     void syncPaidFromWechat(Long userId, Long orderId);
 
     /**
+     * 对账专用：跳过 userId 权限校验，直接查微信并补开通。
+     * 供 PaymentReconcileJob 定时任务调用，幂等（订单已 paid 时直接 return）。
+     */
+    void reconcilePaidOrder(com.miniprogram.entity.Order order);
+
+    /**
      * 取消/超时关单时关闭微信侧未支付订单（失败不阻断本地关单）
      */
     void closeWxPayIfPending(com.miniprogram.entity.Order order);

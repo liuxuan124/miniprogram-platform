@@ -81,19 +81,26 @@ public class PlanetStatsServiceImpl implements PlanetStatsService {
 
     @Override
     public List<Map<String, Object>> pickHomeTopicItems() {
+        return pickHomeTopicItems(null, null);
+    }
+
+    @Override
+    public List<Map<String, Object>> pickHomeTopicItems(String planetId, String defaultPlanetId) {
+        // 多星球场景必须按星球取各自热点；单星球（历史行为）传null 时 scope 等价 planetPublished()
+        LambdaQueryWrapper<Content> scope = planetPublishedScoped(planetId, defaultPlanetId);
         List<Map<String, Object>> out = new ArrayList<>();
         Set<Long> used = new LinkedHashSet<>();
 
-        Content hot = first(planetPublished().orderByDesc(Content::getLikeCount).orderByDesc(Content::getId).last("LIMIT 1"));
+        Content hot = first(scope.clone().orderByDesc(Content::getLikeCount).orderByDesc(Content::getId).last("LIMIT 1"));
         addItem(out, used, hot, "热议");
 
-        Content essence = first(planetPublished()
+        Content essence = first(scope.clone()
                 .eq(Content::getIsEssence, 1)
                 .orderByDesc(Content::getPublishedAt)
                 .orderByDesc(Content::getId)
                 .last("LIMIT 1"));
         if (essence == null || used.contains(essence.getId())) {
-            essence = first(planetPublished()
+            essence = first(scope.clone()
                     .and(w -> w.like(Content::getTags, "精华").or().like(Content::getTags, "essence"))
                     .orderByDesc(Content::getLikeCount)
                     .orderByDesc(Content::getId)
@@ -101,7 +108,7 @@ public class PlanetStatsServiceImpl implements PlanetStatsService {
         }
         addItem(out, used, essence, "精华");
 
-        Content ask = first(planetPublished()
+        Content ask = first(scope.clone()
                 .and(w -> w.like(Content::getTags, "提问")
                         .or().like(Content::getTags, "问答")
                         .or().like(Content::getTags, "ask")
@@ -112,7 +119,7 @@ public class PlanetStatsServiceImpl implements PlanetStatsService {
         addItem(out, used, ask, "提问");
 
         if (out.size() < 3) {
-            List<Content> latest = contentMapper.selectList(planetPublished()
+            List<Content> latest = contentMapper.selectList(scope.clone()
                     .orderByDesc(Content::getPublishedAt)
                     .orderByDesc(Content::getId)
                     .last("LIMIT 8"));
@@ -124,6 +131,15 @@ public class PlanetStatsServiceImpl implements PlanetStatsService {
             }
         }
         return out;
+    }
+
+    @Override
+    public long countTodayPlanetPosts(String planetId, String defaultPlanetId) {
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        Long n = contentMapper.selectCount(planetPublishedScoped(planetId, defaultPlanetId)
+                .and(w -> w.ge(Content::getPublishedAt, start)
+                        .or(q -> q.isNull(Content::getPublishedAt).ge(Content::getCreateTime, start))));
+        return n == null ? 0L : n;
     }
 
     @Override

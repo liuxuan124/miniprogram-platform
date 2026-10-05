@@ -91,7 +91,7 @@
           <div class="head" style="margin-bottom: 12px">
             <div>
               <h2 class="h2">品牌配色</h2>
-              <div class="sub">主色用于导航选中态、按钮和强调组件</div>
+              <div class="sub">主色用于导航选中态、按钮和强调组件；改动会自动存入草稿</div>
             </div>
           </div>
           <div class="swatches">
@@ -104,26 +104,53 @@
               :style="{ background: c }"
               :aria-label="`主色 ${c}`"
               :aria-pressed="shownTheme === c"
-              :disabled="savingTheme"
               @click="pickTheme(c)"
             />
+            <label class="sw-custom" title="自定义品牌色">
+              <span class="sw-custom__dot" :style="{ background: shownTheme || '#B4430F' }" />
+              <span class="sw-custom__txt">自定义</span>
+              <input
+                type="color"
+                class="sw-custom__input"
+                :value="normalizeHex(shownTheme) || '#B4430F'"
+                aria-label="自定义主色"
+                @input="onCustomColor(($event.target as HTMLInputElement).value)"
+              />
+            </label>
+            <label class="hex-field" title="输入品牌 VI 标准色号">
+              <span class="hex-field__hash">#</span>
+              <input
+                class="hex-field__input"
+                :value="hexInput"
+                maxlength="6"
+                placeholder="HEX"
+                aria-label="HEX 色值"
+                @input="onHexInput(($event.target as HTMLInputElement).value)"
+                @blur="commitHex"
+                @keyup.enter="commitHex"
+              />
+            </label>
           </div>
-          <p class="faint" style="margin: 8px 0 0; font-size: 12px; line-height: 1.5">
-            选色后先保存草稿；点顶部「保存并同步」后才会更新线上可读配置（全页主色含登录、我的等）。
-          </p>
-          <div v-if="themeDirty" class="theme-bar">
-            <span class="faint">未保存 · 右侧预览已按 {{ pendingTheme }} 显示</span>
-            <button type="button" class="btn sm" :disabled="savingTheme" @click="discardTheme">
-              放弃
+          <div class="draft-state" :class="`draft-state--${draftState}`">
+            <span v-if="draftState === 'saving'">正在存入草稿…</span>
+            <span v-else-if="draftState === 'saved'">已存入草稿</span>
+            <span v-else-if="draftState === 'error'">草稿未保存，请检查网络</span>
+            <span v-else class="faint">配色改动自动保存，顶部「保存并同步」后生效</span>
+            <button
+              v-if="themeDirty"
+              type="button"
+              class="link"
+              @click="discardTheme"
+            >
+              放弃改动
             </button>
-            <button type="button" class="btn sm primary" :disabled="savingTheme" @click="saveTheme">
-              {{ savingTheme ? '保存中…' : '保存草稿' }}
-            </button>
-          </div>
-          <div v-else-if="undoTheme" class="theme-bar">
-            <span class="faint">主色草稿已保存，待同步到线上</span>
-            <button type="button" class="link" :disabled="savingTheme" @click="revertTheme">
-              撤销，改回 {{ undoTheme }}
+            <button
+              v-if="undoTheme"
+              type="button"
+              class="link"
+              @click="revertTheme"
+            >
+              改回 {{ undoTheme }}
             </button>
           </div>
         </section>
@@ -132,7 +159,7 @@
           <div class="head" style="margin-bottom: 12px">
             <div>
               <h2 class="h2">品牌信息</h2>
-              <div class="sub">小程序名、登录文案等；保存草稿后需「保存并同步」才更新线上</div>
+              <div class="sub">小程序名、登录文案等；改动会自动存入草稿</div>
             </div>
           </div>
           <div class="brand-fields">
@@ -149,9 +176,35 @@
               <input v-model="brandForm.brandEyebrow" class="input" maxlength="32" />
             </label>
           </div>
-          <button type="button" class="btn sm primary" :disabled="savingBrand" style="margin-top:12px" @click="saveBrand">
-            {{ savingBrand ? '保存中…' : '保存品牌信息' }}
-          </button>
+          <div class="brand-upload">
+            <span class="kv__label">品牌 Logo</span>
+            <div class="brand-upload__row">
+              <span class="brand-upload__preview">
+                <img v-if="brandLogoUrl" :src="brandLogoUrl" alt="品牌 Logo 预览" />
+                <span v-else class="brand-upload__ph">
+                  <MiniIcon name="img" :size="18" />
+                </span>
+              </span>
+              <div class="brand-upload__ops">
+                <button type="button" class="btn sm" :disabled="logoUploading" @click="pickLogoFile">
+                  <MiniIcon name="upload" :size="14" />
+                  {{ logoUploading ? '上传中…' : '本地上传' }}
+                </button>
+                <AssetPickerButton label="从素材库选" :disabled="logoUploading" @select="onLogoPicked" />
+                <button v-if="brandLogoUrl" type="button" class="link" @click="clearLogo">移除</button>
+              </div>
+              <input
+                ref="logoInputRef"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                class="hidden-file"
+                @change="onLogoFileChosen"
+              />
+            </div>
+            <p class="faint" style="margin: 6px 0 0; font-size: 12px; line-height: 1.5">
+              建议正方形 PNG（≥ 512×512），用于分享卡片、登录弹窗与个人中心头部。
+            </p>
+          </div>
         </section>
 
       </div>
@@ -182,26 +235,64 @@
         <el-form-item label="标题">
           <el-input v-model="editTab.text" maxlength="8" show-word-limit placeholder="例如：首页" />
         </el-form-item>
-        <el-form-item label="图标">
-          <el-select
-            :model-value="editTab.icon || editTab.iconPath || ''"
-            filterable
-            placeholder="选择导航图标"
-            style="width: 100%"
-            @change="(v: string) => { if (editTab) editTab = { ...editTab, icon: v, selectedIcon: v, iconPath: v, selectedIconPath: v } }"
-          >
-            <el-option
-              v-for="ic in NAV_FLAT_ICONS"
-              :key="ic.id"
-              :label="ic.label"
-              :value="ic.src"
+        <el-form-item label="未选中图标">
+          <div class="icon-pick">
+            <el-select
+              v-model="editTabIcon"
+              filterable
+              placeholder="选择未选中图标"
+              class="icon-pick__sel"
+              @change="onPickIcon('icon', String($event))"
             >
-              <span style="display:inline-flex;align-items:center;gap:8px">
-                <img :src="ic.src" alt="" width="18" height="18" style="object-fit:contain" />
-                {{ ic.label }}
-              </span>
-            </el-option>
-          </el-select>
+              <el-option
+                v-for="ic in NAV_FLAT_ICONS"
+                :key="'n-' + ic.id"
+                :label="ic.label"
+                :value="ic.src"
+              >
+                <span style="display:inline-flex;align-items:center;gap:8px">
+                  <img :src="ic.src" alt="" width="18" height="18" style="object-fit:contain" />
+                  {{ ic.label }}
+                </span>
+              </el-option>
+            </el-select>
+            <button type="button" class="btn sm soft" @click="pickTabIconFile('icon')">上传</button>
+            <input
+              ref="iconFileRef"
+              type="file"
+              accept="image/png,image/jpeg"
+              class="hidden-file"
+              @change="onTabIconFileChosen"
+            />
+          </div>
+        </el-form-item>
+        <el-form-item label="选中图标">
+          <div class="icon-pick">
+            <el-select
+              v-model="editTabSelectedIcon"
+              filterable
+              clearable
+              placeholder="留空则复用未选中图标"
+              class="icon-pick__sel"
+              @change="onPickIcon('selectedIcon', String($event))"
+            >
+              <el-option
+                v-for="ic in NAV_FLAT_ICONS"
+                :key="'s-' + ic.id"
+                :label="ic.label"
+                :value="ic.src"
+              >
+                <span style="display:inline-flex;align-items:center;gap:8px">
+                  <img :src="ic.src" alt="" width="18" height="18" style="object-fit:contain" />
+                  {{ ic.label }}
+                </span>
+              </el-option>
+            </el-select>
+            <button type="button" class="btn sm soft" @click="pickTabIconFile('selectedIcon')">上传</button>
+          </div>
+          <p class="faint" style="margin:6px 0 0;font-size:12px;line-height:1.5">
+            选中态留空时，小程序端按「xxx.png → xxx-active.png」推断，不填也能正常显示。
+          </p>
         </el-form-item>
         <el-form-item label="绑定页面">
           <el-select
@@ -238,9 +329,11 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="drawerVisible = false">取消</el-button>
-        <el-button type="primary" class="mw-btn-primary" :loading="savingTabs" @click="saveTabEdit">
-          保存
+        <span class="faint" style="margin-right: auto; font-size: 12px">
+          关闭即自动存入草稿
+        </span>
+        <el-button type="primary" class="mw-btn-primary" @click="closeTabDrawer">
+          完成
         </el-button>
       </template>
     </el-drawer>
@@ -248,7 +341,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import draggable from 'vuedraggable'
@@ -257,6 +350,9 @@ import MiniSkeleton from '@/components/mini/MiniSkeleton.vue'
 import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
 import MiniOpsConceptBanner from '@/components/mini/MiniOpsConceptBanner.vue'
 import DevicePreview from '@/components/mini/DevicePreview.vue'
+import AssetPickerButton from '@/components/AssetPickerButton.vue'
+import { useSilentDraft } from '@/composables/useSilentDraft'
+import { uploadFileItem } from '@/api/files'
 import { createEmptyTab, normalizeTabBarItems } from '@/utils/tabbar'
 import type { NavTab } from '@/types/miniapp'
 import {
@@ -288,8 +384,6 @@ const loading = ref(false)
 /** 首屏用骨架屏，之后的刷新才用遮罩，避免每次操作都闪灰屏 */
 const loaded = ref(false)
 const savingTabs = ref(false)
-const savingTheme = ref(false)
-const savingBrand = ref(false)
 const brandForm = ref<MiniappBrandConfig>({ ...DEFAULT_MINIAPP_BRAND_CONFIG })
 const site = ref<MiniSiteVO>({})
 const pending = ref<PendingChangeItem[]>([])
@@ -303,6 +397,11 @@ const mpMenuConfigured = ref(false)
 const drawerVisible = ref(false)
 const drawerIndex = ref<number | null>(null)
 const editTab = ref<MiniTabBarItem | null>(null)
+/** 未选中图标 / 选中图标：两个 select 各自独立绑定，值变化时写回 editTab */
+const editTabIcon = ref('')
+const editTabSelectedIcon = ref('')
+/** 打开抽屉时的未选中图标原值：用于判断「选中态是否还是跟随着未选中态」 */
+const editTabIconPrev = ref('')
 /** 绑定选择器的值：数字=装修页 id；`sys:<path>`=系统页；null=未绑定 */
 const editPageId = ref<number | string | null>(null)
 
@@ -342,15 +441,23 @@ function systemPageByPath(path?: string | null) {
   return SYSTEM_PAGES.find((s) => s.path === p) || null
 }
 
-/** 已选但未保存的主色；空串表示与草稿一致 */
+/** 已选但尚未落库的主色；空串表示与草稿一致 */
 const pendingTheme = ref('')
-/** 保存成功后可一键改回的上一个主色 */
+/** 落库成功后可一键改回的上一个主色 */
 const undoTheme = ref('')
+/** HEX 输入框的原始文本（允许用户输入到一半的非法值） */
+const hexInput = ref('')
+const logoInputRef = ref<HTMLInputElement | null>(null)
+const logoUploading = ref(false)
 
 type SortableTab = MiniTabBarItem & { __key: string }
 const sortableTabBar = ref<SortableTab[]>([])
 
 const templateLabel = computed(() => site.value.templateName || '自定义模板')
+const brandLogoUrl = computed(() => {
+  const b = site.value.brand as Record<string, unknown> | undefined
+  return String(b?.logoUrl || b?.logo || '')
+})
 const tabBar = computed(() => site.value.tabBar || [])
 const pendingPreview = computed(() => pending.value.slice(0, 5))
 const pendingCountText = computed(() => {
@@ -377,6 +484,62 @@ const currentTheme = computed(() => {
 /** 色板选中环跟着"正在看的颜色"走，而不是已落库的颜色 */
 const shownTheme = computed(() => pendingTheme.value || currentTheme.value)
 const themeDirty = computed(() => !!pendingTheme.value && pendingTheme.value !== currentTheme.value)
+
+/** 把任意写法归一成 #RRGGBB；无法识别时返回空串 */
+function normalizeHex(input?: string | null): string {
+  const raw = String(input || '').trim().replace(/^#/, '')
+  if (/^[0-9a-fA-F]{6}$/.test(raw)) return `#${raw.toUpperCase()}`
+  if (/^[0-9a-fA-F]{3}$/.test(raw)) {
+    return `#${raw.split('').map((c) => c + c).join('').toUpperCase()}`
+  }
+  return ''
+}
+
+/** 主题色静默落草稿 */
+const themeDraft = useSilentDraft()
+const draftState = computed(() => themeDraft.state.value)
+
+function onCustomColor(hex: string) {
+  const v = normalizeHex(hex)
+  if (!v) return
+  hexInput.value = v.slice(1)
+  applyTheme(v)
+}
+
+function onHexInput(text: string) {
+  hexInput.value = text.replace(/[^0-9a-fA-F]/g, '').slice(0, 6)
+}
+
+function commitHex() {
+  const v = normalizeHex(hexInput.value)
+  if (!v) {
+    // 非法值：回填当前生效色，不静默吞掉用户的输入意图
+    hexInput.value = currentTheme.value ? currentTheme.value.slice(1) : ''
+    ElMessage.warning('HEX 色值格式不对，请输入 3 位或 6 位，例如 C08E6E')
+    return
+  }
+  applyTheme(v)
+}
+
+/** 选色：立刻反映到右侧预览，并静默写入草稿（无保存按钮） */
+function applyTheme(color: string) {
+  const before = currentTheme.value
+  if (color === before) {
+    pendingTheme.value = ''
+    return
+  }
+  pendingTheme.value = color
+  hexInput.value = color.slice(1)
+  bumpPreviewRevision()
+  void themeDraft.schedule(async () => {
+    await writeTheme(color)
+    pendingTheme.value = ''
+    if (before) {
+      undoTheme.value = before
+      window.setTimeout(() => { undoTheme.value = '' }, 15000)
+    }
+  })
+}
 
 const bindablePages = computed(() =>
   pageOptions.value.filter((p) => {
@@ -527,35 +690,98 @@ function openLivePreview() {
   qrVisible.value = true
 }
 
-/** 选色只改预览，不落库——主色影响面大，必须先看到再决定 */
+/** 色板点击入口：走统一的 applyTheme，行为与自定义吸色/HEX 完全一致 */
 function pickTheme(color: string) {
-  if (savingTheme.value) return
-  pendingTheme.value = color === currentTheme.value ? '' : color
-  bumpPreviewRevision()
+  applyTheme(color)
 }
 
 function discardTheme() {
   pendingTheme.value = ''
+  hexInput.value = currentTheme.value ? currentTheme.value.slice(1) : ''
+  bumpPreviewRevision()
 }
 
-async function saveBrand() {
-  if (savingBrand.value) return
-  savingBrand.value = true
+/** 品牌 Logo 写入草稿（与其它字段同一静默通道） */
+async function writeBrandLogo(url: string) {
+  const raw = site.value.brand && typeof site.value.brand === 'object'
+    ? { ...site.value.brand }
+    : {}
+  const updated = await updateMiniSite({
+    brandConfig: { ...raw, logoUrl: url } as unknown as Record<string, unknown>,
+  })
+  site.value = { ...site.value, ...updated }
+  void refreshMiniPending(true)
+}
+
+function pickLogoFile() {
+  logoInputRef.value?.click()
+}
+
+async function onLogoFileChosen(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+    ElMessage.warning('Logo 请上传 PNG / JPG / WebP')
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.warning('Logo 请控制在 2MB 以内')
+    return
+  }
+  logoUploading.value = true
   try {
-    const payload = normalizeBrandConfig(brandForm.value)
-    const updated = await updateMiniSite({
-      brandConfig: payload as unknown as Record<string, unknown>,
-    })
-    site.value = { ...site.value, ...updated, brand: payload as unknown as Record<string, unknown> }
-    brandForm.value = payload
-    ElMessage.success('品牌信息已保存草稿')
-    void refreshMiniPending(true)
+    const res = await uploadFileItem(file, { name: `brand-logo-${Date.now()}` })
+    const url = String((res as { url?: string; fileUrl?: string })?.url
+      || (res as { fileUrl?: string })?.fileUrl || '')
+    if (!url) throw new Error('上传成功但未返回可访问地址')
+    // 先把品牌文本字段的防抖写入刷掉：否则随后这次 logo 写入会用旧 brandConfig 覆盖掉
+    await brandDraft.flush(writeBrandFields)
+    await writeBrandLogo(url)
+    ElMessage.success('Logo 已更新')
   } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '保存失败')
+    ElMessage.error(e instanceof Error ? e.message : 'Logo 上传失败')
   } finally {
-    savingBrand.value = false
+    logoUploading.value = false
   }
 }
+
+function onLogoPicked(url: string) {
+  void brandDraft.flush(writeBrandFields).then(() => writeBrandLogo(url))
+}
+
+function clearLogo() {
+  void brandDraft.flush(writeBrandFields).then(() => writeBrandLogo(''))
+}
+
+/**
+ * 品牌信息静默落草稿。
+ * 关键点：提交前先 flush 掉防抖队列，否则「改完标题立刻传 Logo」会用旧的 brandConfig
+ * 覆盖掉 Logo（两者都写同一个 brandConfig 字段，是真正的丢数据路径）。
+ */
+const brandDraft = useSilentDraft(800)
+let brandCommitted = ''
+
+async function writeBrandFields() {
+  const payload = normalizeBrandConfig(brandForm.value)
+  const updated = await updateMiniSite({
+    brandConfig: payload as unknown as Record<string, unknown>,
+  })
+  site.value = { ...site.value, ...updated, brand: payload as unknown as Record<string, unknown> }
+  brandForm.value = payload
+  brandCommitted = JSON.stringify(payload)
+}
+
+watch(
+  () => brandForm.value,
+  () => {
+    const next = JSON.stringify(normalizeBrandConfig(brandForm.value))
+    if (!brandCommitted || next === brandCommitted) return
+    void brandDraft.schedule(writeBrandFields)
+  },
+  { deep: true },
+)
 
 async function writeTheme(color: string) {
   const prev = (site.value.theme && typeof site.value.theme === 'object') ? { ...site.value.theme } : {}
@@ -588,48 +814,17 @@ async function writeTheme(color: string) {
   void refreshMiniPending(true)
 }
 
-async function saveTheme() {
-  const color = pendingTheme.value
-  if (!color || savingTheme.value) return
-  const before = currentTheme.value
-  savingTheme.value = true
-  try {
-    await writeTheme(color)
-    pendingTheme.value = ''
-    ElMessage({
-      type: 'success',
-      duration: 6000,
-      showClose: true,
-      dangerouslyUseHTMLString: false,
-      message: `品牌主色已保存草稿（${color}），记得点「保存并同步」`,
-    })
-    undoTheme.value = before || ''
-    window.setTimeout(() => { undoTheme.value = '' }, 15000)
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '保存配色失败')
-  } finally {
-    savingTheme.value = false
-  }
-}
-
 async function revertTheme() {
   const color = undoTheme.value
   if (!color) return
-  savingTheme.value = true
-  try {
+  const ok = await themeDraft.flush(async () => {
     await writeTheme(color)
-    undoTheme.value = ''
-    ElMessage.success('已撤销，主色恢复为 ' + color)
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '撤销失败')
-  } finally {
-    savingTheme.value = false
-  }
-}
-
-async function onTabDragEnd() {
-  const next = sortableTabBar.value.map(({ __key: _k, ...rest }) => rest)
-  await persistTabBar(next, '导航顺序已保存')
+  })
+  if (!ok) return
+  undoTheme.value = ''
+  pendingTheme.value = ''
+  hexInput.value = color.slice(1)
+  ElMessage.success(`主色已恢复为 ${color}`)
 }
 
 function openTabDrawer(index?: number) {
@@ -648,6 +843,7 @@ function openTabDrawer(index?: number) {
   const idx = drawerIndex.value ?? 0
   const current = list[idx] || { text: '', pagePath: '' }
   editTab.value = { ...current }
+  syncIconFieldsFromTab()
   if (current.pageId != null && current.pageId !== '') {
     editPageId.value = Number(current.pageId)
   } else {
@@ -655,6 +851,69 @@ function openTabDrawer(index?: number) {
     editPageId.value = sys ? `${SYSTEM_VALUE_PREFIX}${sys.path}` : null
   }
   drawerVisible.value = true
+}
+
+/* ---------- 双图标（未选中 / 选中） ---------- */
+
+const iconFileRef = ref<HTMLInputElement | null>(null)
+/** 本次上传要写入哪个字段 */
+const iconUploadTarget = ref<'icon' | 'selectedIcon'>('icon')
+
+/** 从 editTab 同步到两个独立 v-model，避免直接改 editTab 时 select 显示不同步 */
+function syncIconFieldsFromTab() {
+  const t = editTab.value
+  editTabIcon.value = String(t?.icon || t?.iconPath || '')
+  editTabSelectedIcon.value = String(t?.selectedIcon || '')
+  editTabIconPrev.value = editTabIcon.value
+}
+
+function onPickIcon(field: 'icon' | 'selectedIcon', value: string) {
+  if (!editTab.value) return
+  const next = { ...editTab.value }
+  if (field === 'icon') {
+    next.icon = value
+    next.iconPath = value
+    // 未选中态改了，选中态若还是同一个旧值就跟着改，避免两态看起来一样
+    if (!next.selectedIcon || next.selectedIcon === editTabIconPrev.value) {
+      next.selectedIcon = value
+      next.selectedIconPath = value
+    }
+  } else {
+    next.selectedIcon = value
+    next.selectedIconPath = value
+  }
+  editTab.value = next
+  syncIconFieldsFromTab()
+}
+
+function pickTabIconFile(field: 'icon' | 'selectedIcon') {
+  iconUploadTarget.value = field
+  iconFileRef.value?.click()
+}
+
+async function onTabIconFileChosen(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  if (!/^image\/(png|jpeg)$/.test(file.type)) {
+    ElMessage.warning('导航图标请上传 PNG 或 JPG')
+    return
+  }
+  if (file.size > 512 * 1024) {
+    ElMessage.warning('导航图标请控制在 512KB 以内')
+    return
+  }
+  try {
+    const res = await uploadFileItem(file, { name: `tabbar-icon-${Date.now()}` })
+    const url = String((res as { url?: string; fileUrl?: string })?.url
+      || (res as { fileUrl?: string })?.fileUrl || '')
+    if (!url) throw new Error('上传成功但未返回可访问地址')
+    onPickIcon(iconUploadTarget.value, url)
+    ElMessage.success('图标已更新')
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '图标上传失败')
+  }
 }
 
 function addTabSlot() {
@@ -697,37 +956,44 @@ function onBindPage(id: number | string | null) {
   }
 }
 
-async function persistTabBar(next: MiniTabBarItem[], successMsg = '导航已保存') {
-  savingTabs.value = true
-  try {
-    // 「我的」未绑定装修页时，路径回落到系统页，避免残留旧路径（如 pages/custom/warm-mine）
-    // 被当成装修页去拉 DSL。显式绑定了装修页则尊重选择，不做干预。
-    const normalized = normalizeTabBarItems(next as NavTab[]).map((tab) => {
-      const t = tab as MiniTabBarItem
-      const bound = t.pageId != null && String(t.pageId) !== ''
-      return isMineTab(t) && !bound
-        ? { ...tab, pageId: '', pageName: '', pagePath: 'pages/mine/mine' }
-        : tab
-    })
-    if (normalized.length < 2) {
-      ElMessage.warning('底部导航至少保留 2 个入口')
-      savingTabs.value = false
-      return
-    }
-    const updated = await updateMiniSite({ tabBar: normalized })
-    site.value = { ...site.value, ...updated, tabBar: updated.tabBar || next }
-    syncSortableFromSite()
-    bumpPreviewRevision()
-    ElMessage.success(successMsg)
-    await load()
-  } catch (e: unknown) {
-    ElMessage.error(e instanceof Error ? e.message : '保存导航失败')
-  } finally {
-    savingTabs.value = false
+async function persistTabBar(next: MiniTabBarItem[], successMsg = '') {
+  // 「我的」未绑定装修页时，路径回落到系统页，避免残留旧路径（如 pages/custom/warm-mine）
+  // 被当成装修页去拉 DSL。显式绑定了装修页则尊重选择，不做干预。
+  const normalized = normalizeTabBarItems(next as NavTab[]).map((tab) => {
+    const t = tab as MiniTabBarItem
+    const bound = t.pageId != null && String(t.pageId) !== ''
+    return isMineTab(t) && !bound
+      ? { ...tab, pageId: '', pageName: '', pagePath: 'pages/mine/mine' }
+      : tab
+  })
+  if (normalized.length < 2) {
+    ElMessage.warning('底部导航至少保留 2 个入口')
+    return false
   }
+  const updated = await updateMiniSite({ tabBar: normalized })
+  site.value = { ...site.value, ...updated, tabBar: updated.tabBar || next }
+  syncSortableFromSite()
+  bumpPreviewRevision()
+  void refreshMiniPending(true)
+  if (successMsg) ElMessage.success(successMsg)
+  return true
 }
 
-async function saveTabEdit() {
+/** 导航草稿静默通道：与配色/品牌同一套防抖与失败提示 */
+const tabDraft = useSilentDraft(600)
+
+function scheduleTabBar(next: MiniTabBarItem[], successMsg = '') {
+  return tabDraft.schedule(async () => {
+    await persistTabBar(next, successMsg)
+  })
+}
+
+/**
+ * 抽屉编辑：字段变更即静默写入草稿。
+ * 「完成」按钮只负责关闭 + 强制 flush（把防抖队列里那次写入立刻落库），
+ * 不再有独立的「保存」动作。
+ */
+function commitTabEdit() {
   if (!editTab.value || drawerIndex.value == null) return
   // 系统页无需也不允许绑定装修页，跳过「请先绑定页面」校验
   if (!isMineTab(editTab.value) && isTabUnbound(editTab.value)) {
@@ -742,10 +1008,45 @@ async function saveTabEdit() {
     pagePath: editTab.value.pagePath,
     pageId: editTab.value.pageId,
     pageName: editTab.value.pageName,
+    icon: editTab.value.icon,
+    selectedIcon: editTab.value.selectedIcon,
   }
-  await persistTabBar(next)
   focusPreviewOnTab(editTab.value)
+  void scheduleTabBar(next)
+}
+
+async function closeTabDrawer() {
+  commitTabEdit()
   drawerVisible.value = false
+  // 等最后一次写入真正落到服务端再让用户离开，避免「关抽屉瞬间丢改动」
+  await tabDraft.flush(async () => {
+    await persistTabBar(site.value.tabBar || [])
+  })
+}
+
+// 抽屉里的字段（标题/绑定页/图标）变化 → 静默排一次写入
+watch(
+  () => (editTab.value ? { ...editTab.value } : null),
+  (val, prev) => {
+    if (!val || drawerIndex.value == null) return
+    if (JSON.stringify(val) === JSON.stringify(prev)) return
+    commitTabEdit()
+  },
+  { deep: true },
+)
+
+/** 「我的」固定末位：拖到中间时自动弹回，不静默改写用户的拖拽意图 */
+function onTabDragEnd() {
+  const list = [...sortableTabBar.value]
+  const mineIdx = list.findIndex((t) => isMineTab(t))
+  if (mineIdx > 0 && mineIdx !== list.length - 1) {
+    const [mine] = list.splice(mineIdx, 1)
+    list.push(mine)
+    syncSortableFromSite()
+    ElMessage.info('「我的」固定在最后一个入口，已自动放回末位')
+  }
+  const next = list.map(({ __key: _k, ...rest }) => rest)
+  void scheduleTabBar(next)
 }
 
 async function load() {
@@ -805,6 +1106,14 @@ async function load() {
 }
 
 onMounted(load)
+
+// 离开页面前把防抖队列里未落库的改动写掉，避免「改完立刻切走丢改动」
+onUnmounted(() => {
+  void brandDraft.flush(writeBrandFields)
+  void themeDraft.flush(async () => {
+    if (pendingTheme.value) await writeTheme(pendingTheme.value)
+  })
+})
 </script>
 
 <style scoped lang="scss">
@@ -938,6 +1247,140 @@ onMounted(load)
   .btn, .link { margin-left: auto; }
   .btn + .btn, .btn + .link { margin-left: 0; }
 }
+
+/* ---------- 静默草稿状态条 ---------- */
+.draft-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line2);
+  font-size: 12px;
+  color: var(--text-2);
+  min-height: 30px;
+  .link { margin-left: auto; }
+  .link + .link { margin-left: 0; }
+}
+.draft-state--saving { color: var(--text-2); }
+.draft-state--saved { color: var(--ok, #1F7A4D); }
+.draft-state--error { color: var(--danger, #B42318); }
+
+/* ---------- 自定义吸色 + HEX ---------- */
+.swatches {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sw-custom {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px dashed var(--line2);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: var(--text-2);
+  transition: border-color .15s, background .15s;
+  &:hover { border-color: var(--accent, #B4430F); background: var(--surface-2, #FAF8F4); }
+}
+.sw-custom__dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, .12);
+  flex: none;
+}
+.sw-custom__input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+.hex-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  background: var(--surface-1, #fff);
+  transition: border-color .15s;
+  &:focus-within { border-color: var(--accent, #B4430F); }
+}
+.hex-field__hash {
+  font-size: 12.5px;
+  color: var(--text-3, #999);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.hex-field__input {
+  width: 66px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .5px;
+  color: var(--text-1, #2C2C2A);
+  text-transform: uppercase;
+  &::placeholder { color: var(--text-3, #BBB); letter-spacing: 1px; }
+}
+
+/* ---------- 品牌 Logo ---------- */
+.brand-upload {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line2);
+}
+.kv__label {
+  display: block;
+  font-size: 12.5px;
+  color: var(--text-2);
+  margin-bottom: 8px;
+}
+.brand-upload__row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.brand-upload__preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1px solid var(--line2);
+  background: var(--surface-2, #FAF8F4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: none;
+  img { width: 100%; height: 100%; object-fit: cover; }
+}
+.brand-upload__ph { color: var(--text-3, #BBB); }
+.brand-upload__ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hidden-file { display: none; }
+
+/* ---------- 导航双图标 ---------- */
+.icon-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.icon-pick__sel { flex: 1; min-width: 0; }
 
 .empty-mini {
   display: flex;

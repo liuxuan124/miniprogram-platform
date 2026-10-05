@@ -26,4 +26,10 @@ public class ProductQueryDTO extends PageDTO {
 
     @Schema(description = "排序: created_desc/sales_desc/price_asc/price_desc")
     private String sort;
+
+    @Schema(description = "商品ID列表（逗号分隔，用于手动选品/秒杀区定点取品）")
+    private String ids;
+
+    @Schema(description = "作者档案ID筛选（后台按作者管其专栏/付费内容）")
+    private Long authorId;
 }

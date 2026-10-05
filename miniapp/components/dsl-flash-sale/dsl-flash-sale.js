@@ -1,9 +1,15 @@
 // components/dsl-flash-sale/dsl-flash-sale.js — 限时秒杀
+const { executeAction } = require('../../utils/render')
+
 Component({
   properties: {
     config: {
       type: Object,
       value: {},
+    },
+    runtimeData: {
+      type: Array,
+      value: [],
     },
     styleString: {
       type: String,
@@ -21,8 +27,8 @@ Component({
   },
 
   observers: {
-    'config': function (config) {
-      this._buildItems(config)
+    'config, runtimeData': function (config, runtimeData) {
+      this._buildItems(config, runtimeData)
       this._startCountdown(config)
       this._buildFontStyles(config)
     },
@@ -30,7 +36,7 @@ Component({
 
   lifetimes: {
     attached() {
-      this._buildItems(this.data.config)
+      this._buildItems(this.data.config, this.data.runtimeData)
       this._startCountdown(this.data.config)
       this._buildFontStyles(this.data.config)
     },
@@ -49,15 +55,46 @@ Component({
       })
     },
 
-    _buildItems(config) {
+    _buildItems(config, runtimeData) {
       const limit = Math.max(Number(config && config.limit) || 4, 1)
-      const items = [
-        { name: '限时爆款A', price: '69.00' },
-        { name: '限时爆款B', price: '89.00' },
-        { name: '限时爆款C', price: '129.00' },
-        { name: '限时爆款D', price: '199.00' },
-      ].slice(0, limit)
+      const rd = Array.isArray(runtimeData) ? runtimeData : []
+      const raw = config && Array.isArray(config.items) ? config.items : []
+      // 优先级：数据源商品（实时价格/自动跳转）> config.items 静态配置 > 演示占位
+      const items = (rd.length
+        ? rd.map((p) => {
+            const pid = (p && (p.id != null ? p.id : p.productId)) || ''
+            return {
+              name: String((p && (p.name || p.productName)) || ''),
+              price: String((p && p.price) != null ? p.price : ''),
+              originalPrice: String((p && (p.originalPrice || p.original_price)) || ''),
+              link: pid !== '' ? '/pkg-content/product-detail/product-detail?id=' + pid : '',
+            }
+          })
+        : raw.length
+          ? raw.map((it) => ({
+              name: String((it && it.name) || ''),
+              price: String((it && it.price) || ''),
+              originalPrice: String((it && (it.original_price || it.originalPrice)) || ''),
+              link: String((it && (it.link_url || it.link)) || '').trim(),
+            }))
+          : [
+              { name: '限时爆款A', price: '69.00', originalPrice: '', link: '' },
+              { name: '限时爆款B', price: '89.00', originalPrice: '', link: '' },
+              { name: '限时爆款C', price: '129.00', originalPrice: '', link: '' },
+              { name: '限时爆款D', price: '199.00', originalPrice: '', link: '' },
+            ]
+      ).slice(0, limit)
       this.setData({ items })
+    },
+
+    onTapItem(e) {
+      const link = String((e.currentTarget.dataset && e.currentTarget.dataset.url) || '').trim()
+      if (!link) return
+      if (/^https?:\/\//i.test(link)) {
+        executeAction({ type: 'webview', url: link })
+        return
+      }
+      executeAction({ type: 'page', path: link })
     },
 
     _startCountdown(config) {

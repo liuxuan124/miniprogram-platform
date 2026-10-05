@@ -1,5 +1,5 @@
 <page-meta page-style="{{themePageStyle}}" />
-<view class="ct-page {{stage === 1 ? 'has-bar' : ''}}">
+<view class="ct-page {{stage === 1 ? 'has-bar' : 'is-editor'}}">
   <block wx:if="{{stage === 1}}">
     <view class="ct-topbar" style="padding-top: {{statusBarHeight}}px;">
       <view class="ct-topbar__row" style="height: {{navBarHeight}}px; padding-right: {{navPadRight}}px;">
@@ -91,19 +91,20 @@
     <view class="ct-spacer"></view>
   </block>
 
-  <!-- 阶段二：发布编辑器（独立状态，非双 Tab） -->
+  <!-- 阶段二：发布编辑器（小红书风格重设计） -->
   <block wx:else>
     <view class="ct-etop-bar" style="padding-top: {{statusBarHeight}}px;">
       <view class="ct-etop" style="height: {{navBarHeight}}px; padding-right: {{navPadRight}}px;">
         <text class="ct-etop__cc" bindtap="onEditorCancel">取消</text>
         <text class="ct-etop__tt">{{editorTitle}}</text>
-        <view class="ct-etop__pb {{editorUnlocked ? '' : 'off'}}" bindtap="onPublishDemo">发布</view>
+        <view class="ct-etop__ph"></view>
       </view>
     </view>
     <view style="height: {{statusBarHeight + navBarHeight}}px;"></view>
 
     <view class="ct-stage2 {{editorUnlocked ? '' : 'is-locked'}}">
 
+      <!-- 内容类型：下划线 Tab -->
       <view class="ct-types">
         <view
           wx:for="{{publishTypes}}"
@@ -111,20 +112,58 @@
           class="ct-type {{publishType === item.key ? 'on' : ''}}"
           data-key="{{item.key}}"
           bindtap="onPublishTypeTap"
-        >{{item.label}}</view>
+        >{{item.label}}<view class="ct-type__bar" wx:if="{{publishType === item.key}}"></view></view>
       </view>
 
+      <!-- ===== 视频发布（小红书式） ===== -->
+      <block wx:if="{{publishType === 'video'}}">
+        <view class="ct-vhd">
+          <view class="ct-vhd__lb">视频封面</view>
+          <view class="ct-vratio">
+            <text class="ct-vratio__lb">比例</text>
+            <view class="ct-vratio__seg">
+              <view class="ct-vratio__opt {{videoRatio === '3:4' ? 'on' : ''}}" data-ratio="3:4" bindtap="onRatioTap">3:4</view>
+              <view class="ct-vratio__opt {{videoRatio === '1:1' ? 'on' : ''}}" data-ratio="1:1" bindtap="onRatioTap">1:1</view>
+            </view>
+          </view>
+        </view>
+
+        <view class="ct-vbox {{videoRatio === '1:1' ? 'is-square' : ''}}">
+          <view class="ct-vbox__empty" wx:if="{{!videoPath}}" bindtap="onPickVideo">
+            <view class="ct-vbox__plus">＋</view>
+            <view class="ct-vbox__hint">选择视频</view>
+            <view class="ct-vbox__sub">支持 mp4 · 建议 3 分钟内 · 50MB 内</view>
+          </view>
+          <block wx:else>
+            <video
+              class="ct-vbox__video"
+              src="{{videoPath}}"
+              poster="{{videoCover}}"
+              object-fit="cover"
+              controls
+              show-center-play-btn
+            ></video>
+            <view class="ct-vbox__dur" wx:if="{{videoDurationText}}">{{videoDurationText}}</view>
+          </block>
+        </view>
+        <view class="ct-vops" wx:if="{{videoPath}}">
+          <view class="ct-vops__op" bindtap="onPickVideo">↻ 换一个视频</view>
+          <view class="ct-vops__op is-danger" catchtap="onRemoveVideo">删除</view>
+        </view>
+      </block>
+
+      <!-- ===== 编辑区 ===== -->
       <view class="ct-editor">
         <input
           class="ct-editor__ti"
-          placeholder="写个标题吧"
+          placeholder="{{publishType === 'video' ? '填写标题会有更多赞哦' : '写个标题吧'}}"
           placeholder-class="ct-editor__ph"
           value="{{draftTitle}}"
           maxlength="80"
           disabled="{{!editorUnlocked}}"
           bindinput="onDraftTitleInput"
         />
-        <view class="ct-imgs">
+        <view class="ct-imgs" wx:if="{{publishType !== 'video'}}">
           <view class="ct-img" wx:for="{{draftImages}}" wx:key="*this">
             <image src="{{item}}" mode="aspectFill" />
             <view class="ct-img__x" data-index="{{index}}" catchtap="onRemoveImage">×</view>
@@ -133,7 +172,7 @@
         </view>
         <textarea
           class="ct-editor__bdy"
-          placeholder="开始写下正文…"
+          placeholder="{{publishType === 'video' ? '视频简介：说说这条视频讲了什么…' : '开始写下正文…'}}"
           placeholder-class="ct-editor__ph"
           value="{{draftBody}}"
           maxlength="5000"
@@ -148,6 +187,7 @@
           <text class="ct-opts__ic">#️⃣</text>
           <text>添加话题</text>
           <text class="ct-opts__vv">{{draftTopics || '选填'}}</text>
+          <text class="ct-opts__ar">›</text>
         </view>
         <view class="ct-opts__li" bindtap="onToggleSyncPlanet">
           <text class="ct-opts__ic">🪐</text>
@@ -169,7 +209,7 @@
         <view class="ct-lockmask__card">
           <text class="ct-lockmask__ic">🔒</text>
           <view class="ct-lockmask__h">发布器尚未开放</view>
-          <view class="ct-lockmask__p">通过阶段一申请并审核通过后，即可在此直接发布长文与图文笔记</view>
+          <view class="ct-lockmask__p">通过阶段一申请并审核通过后，即可在此发布图文笔记、长文与视频</view>
           <view class="ct-lockmask__btn" bindtap="onBackToApply">去提交申请</view>
         </view>
       </view>
@@ -181,5 +221,12 @@
   <view class="ct-submit ghost" bindtap="onGoEditor" wx:if="{{editorUnlocked}}" style="margin-bottom:16rpx">去发布内容</view>
   <view class="ct-submit {{submitting ? 'ct-submit--off' : ''}}" bindtap="onSubmit">
     {{submitting ? '提交中…' : ((applyStatus === 'pending' || applyStatus === 'rejected' || applyStatus === 'denied') ? '重新提交申请' : '提交申请')}}
+  </view>
+</view>
+
+<!-- 阶段二底部发布栏（小红书式） -->
+<view class="ct-pubbar" wx:if="{{stage === 2}}">
+  <view class="ct-pubbar__btn {{submitting ? 'is-off' : ''}}" bindtap="onPublishDemo">
+    {{submitting ? '发布中…' : '发布'}}
   </view>
 </view>

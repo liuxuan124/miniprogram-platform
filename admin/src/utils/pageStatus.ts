@@ -81,10 +81,19 @@ function normalizeLegacyStatus(raw: string | number | null | undefined): string 
  * 页面分组：按「页面从哪来」分，而不是按「绑在哪」分。
  * 旧口径把底部导航当成一个分类，槽位（导航1~导航5）和页面混在一组里，
  * 既看不出页面类型，计数也没有信息量。
+ *
+ * 除 5 套标准分组外，用户可在「设置分组」里输入自定义分组名，
+ * 自定义分组按字符串值存入 mp_page.page_group（VARCHAR(32)），
+ * 列表渲染时排在活动与专题之后、归档之前。
  */
-export type PageGroup = 'system' | 'decorate' | 'ai' | 'activity' | 'archived'
+export type StandardPageGroup = 'system' | 'decorate' | 'ai' | 'activity' | 'archived'
+export type PageGroup = string
 
-export const PAGE_GROUP_LABELS: Record<PageGroup, string> = {
+/** 标准分组顺序（归档恒为最后一组，自定义组排在 activity 之后、archived 之前） */
+export const STANDARD_PAGE_GROUPS: StandardPageGroup[] = ['system', 'decorate', 'ai', 'activity']
+export const ALL_STANDARD_GROUPS: StandardPageGroup[] = [...STANDARD_PAGE_GROUPS, 'archived']
+
+export const PAGE_GROUP_LABELS: Record<StandardPageGroup, string> = {
   system: '系统页',
   decorate: '装修页',
   ai: 'AI 页面',
@@ -92,12 +101,29 @@ export const PAGE_GROUP_LABELS: Record<PageGroup, string> = {
   archived: '归档',
 }
 
-export const PAGE_GROUP_SUB: Record<PageGroup, string> = {
+export const PAGE_GROUP_SUB: Record<StandardPageGroup, string> = {
   system: '小程序内置原生页 · 不可装修，只能改配置或换绑导航位',
   decorate: '装修器搭出的页面 · 可自由编排',
   ai: 'AI 生成器产出 · 可继续在装修器里改',
   activity: '专题 / 会场页 · 可设入口到期时间',
   archived: '被替换或不再使用的页面，可随时恢复',
+}
+
+/** 某个分组是否是标准分组（非自定义） */
+export function isStandardPageGroup(key: string): key is StandardPageGroup {
+  return (ALL_STANDARD_GROUPS as string[]).includes(key)
+}
+
+/** 分组显示名：标准分组取预设，自定义分组直接用 key */
+export function resolveGroupLabel(key: string): string {
+  if (isStandardPageGroup(key)) return PAGE_GROUP_LABELS[key]
+  return key
+}
+
+/** 分组副标题：标准分组取预设，自定义分组无副标题 */
+export function resolveGroupSub(key: string): string {
+  if (isStandardPageGroup(key)) return PAGE_GROUP_SUB[key]
+  return '自定义分组'
 }
 
 /** AI 生成器建页的路径前缀（历史数据兜底用） */
@@ -120,19 +146,61 @@ export type MiniSystemPage = {
   name: string
   /** 一句话说明它是什么、能改什么 */
   desc: string
+  /**
+   * 点「配置」该去哪。默认是「外观」（底部导航/主色都在这儿），
+   * 但系统页各有各的配置台——「我的」的模板与菜单在 /page-builder/mine，
+   * 只会跳「外观」的话等于把人送到一个改不了它的地方。
+   */
+  configRoute?: string
+  /** 「配置」按钮的文案，缺省为「配置」 */
+  configLabel?: string
+  /**
+   * 不在页面管理的「系统页」组里列出。
+   * 四个 Tab 壳页（首页/发现/星球/商城）本身只是 DSL 薄壳，真实内容由
+   * 绑定的装修页承载（装修页组里已有同名行），再列一行重复且无自身内容；
+   * 但路径匹配（navBoundIsSystem / tabSlotByPath）仍需它们，故只藏不删。
+   */
+  hideInList?: boolean
 }
 
 export const MINI_SYSTEM_PAGES: MiniSystemPage[] = [
-  { route: '/pages/index/index', path: 'pages/index/index', name: '首页', desc: '未绑装修页时渲染内置首页' },
-  { route: '/pages/discover/discover', path: 'pages/discover/discover', name: '发现', desc: '内容发现流（内置壳）' },
-  { route: '/pages/planet/planet', path: 'pages/planet/planet', name: '星球', desc: '星球社区（内置壳）' },
-  { route: '/pages/shop/shop', path: 'pages/shop/shop', name: '商城', desc: '商品商城（内置壳）' },
-  { route: '/pages/mine/mine', path: 'pages/mine/mine', name: '我的', desc: '个人中心 · 登录 / 订单 / 优惠券 / 地址' },
-  { route: '/pages/login/login', path: 'pages/login/login', name: '登录', desc: '微信授权登录' },
-  { route: '/pages/search/search', path: 'pages/search/search', name: '搜索', desc: '全局搜索' },
+  { route: '/pages/index/index', path: 'pages/index/index', name: '首页', desc: '未绑装修页时渲染内置首页', hideInList: true },
+  { route: '/pages/discover/discover', path: 'pages/discover/discover', name: '发现', desc: '内容发现流（内置壳）', hideInList: true },
+  { route: '/pages/planet/planet', path: 'pages/planet/planet', name: '星球', desc: '星球社区（内置壳）', hideInList: true },
+  { route: '/pages/shop/shop', path: 'pages/shop/shop', name: '商城', desc: '商品商城（内置壳）', hideInList: true },
+  {
+    route: '/pages/mine/mine',
+    path: 'pages/mine/mine',
+    name: '我的',
+    desc: '个人中心 · 登录 / 订单 / 优惠券 / 地址',
+    configRoute: '/page-builder/mine',
+    configLabel: '配置模板',
+  },
+  { route: '/pages/login/login', path: 'pages/login/login', name: '登录', desc: '微信授权登录', configRoute: '/page-builder/login', configLabel: '配置模板' },
+  { route: '/pages/search/search', path: 'pages/search/search', name: '搜索', desc: '全局搜索', hideInList: true },
 ]
 
-/** 无后端 pageGroup 时按来源推断分组 */
+/** 页面管理列表里展示的系统页（Tab 壳页 hideInList 不列，路径匹配仍用全量清单） */
+export function listableSystemPages(): MiniSystemPage[] {
+  return MINI_SYSTEM_PAGES.filter((s) => !s.hideInList)
+}
+
+/** 系统页「配置」的目标路由；未指定时统一回落到外观页 */
+export function systemPageConfigRoute(sp: MiniSystemPage): string {
+  return sp.configRoute || '/mini/appearance'
+}
+
+/** 该路径是否是「我的」系统页（唯一带模板库/菜单编排能力的系统页） */
+export function isMineSystemPage(sp: MiniSystemPage): boolean {
+  return String(sp.path || '').replace(/^\/+/, '') === 'pages/mine/mine'
+}
+
+/** 该路径是否是「登录」系统页（带 4 套登录模板库，配置在 /page-builder/login） */
+export function isLoginSystemPage(sp: MiniSystemPage): boolean {
+  return String(sp.path || '').replace(/^\/+/, '') === 'pages/login/login'
+}
+
+/** 无后端 pageGroup 时按来源推断分组（返回值可能是标准分组或自定义分组名） */
 export function inferPageGroup(row: {
   pageGroup?: string | null
   page_group?: string | null
@@ -140,17 +208,21 @@ export function inferPageGroup(row: {
   type?: string | number | null
   path?: string | null
   name?: string | null
-}): PageGroup {
+}): string {
   // 归档优先：归档态压过来源类型，否则归档页会散落到各类型组里
   if (row.archived === true || row.archived === 1) return 'archived'
-  const explicit = String(row.pageGroup || row.page_group || '').toLowerCase()
-  if (explicit === 'archived') return 'archived'
-  if (explicit === 'ai') return 'ai'
-  const path = String(row.path || '')
-  // 显式标记之外，用路径兜底识别 AI 建页（历史数据没有 pageGroup='ai'）
-  if (isAiPagePath(path)) return 'ai'
-  if (explicit === 'activity') return 'activity'
-  if (String(row.type ?? '') === '2' || path.includes('/activity')) return 'activity'
-  // 旧值 tab / content 一律落到装修页：它们都是装修器产出的页面
-  return 'decorate'
+  const explicit = String(row.pageGroup || row.page_group || '').trim()
+  if (!explicit) {
+    // 无显式值时按来源兜底推断
+    const path = String(row.path || '')
+    if (isAiPagePath(path)) return 'ai'
+    if (String(row.type ?? '') === '2' || path.includes('/activity')) return 'activity'
+    return 'decorate'
+  }
+  if (explicit.toLowerCase() === 'archived') return 'archived'
+  // AI 路径兜底：历史数据没有 pageGroup='ai'，用路径识别
+  if (explicit.toLowerCase() === 'ai') return 'ai'
+  if (isStandardPageGroup(explicit.toLowerCase())) return explicit.toLowerCase()
+  // 非标准值 → 自定义分组，原样返回（保留大小写）
+  return explicit
 }

@@ -1,6 +1,6 @@
 <template>
   <div class="float-button-props">
-    <el-form label-width="80px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="文案">
         <el-input :model-value="data.title || ''" @input="emit('update', { title: $event })" placeholder="客服" />
         <div class="field-hint">仅作标识/预览提示，按钮固定为圆形图标样式</div>

@@ -126,7 +126,8 @@
     <div class="config-block">
       <div class="block-title">
         功能菜单
-        <el-button text type="primary" size="small" @click="addMenuItem">
+        <span class="block-tip">每项可独立设置跳转目标</span>
+        <el-button text type="primary" size="small" @click="openLib">
           <el-icon><Plus /></el-icon> 添加菜单
         </el-button>
       </div>
@@ -149,7 +150,24 @@
             </span>
             <div class="menu-fields">
               <el-input v-model="item.title" placeholder="菜单名称" size="small" @input="emitUpdate" />
-              <el-input v-model="item.url" placeholder="页面路径 / action标识" size="small" @input="emitUpdate" />
+              <MineTargetPicker
+                v-model="item.url"
+                :need-login="item.needLogin"
+                :menu-title="item.title"
+                @update:modelValue="emitUpdate"
+                @update:needLogin="(v: boolean) => onNeedLogin(index, v)"
+              />
+              <el-select
+                v-model="item.group"
+                size="small"
+                filterable
+                allow-create
+                default-first-option
+                placeholder="分组名（同组显示在同一张卡）"
+                @change="emitUpdate"
+              >
+                <el-option v-for="g in groupOptions" :key="g" :label="g" :value="g" />
+              </el-select>
             </div>
             <div class="menu-actions">
               <el-switch v-model="item.enabled" size="small" @change="emitUpdate" />
@@ -160,6 +178,24 @@
           </div>
         </template>
       </draggable>
+
+      <el-dialog v-model="libDialogVisible" title="从菜单库添加" width="480px" destroy-on-close>
+        <p class="lib-hint">菜单库收录小程序内真实存在的功能入口，勾选后一次性追加到列表末尾，之后仍可改名称与目标。</p>
+        <el-checkbox-group v-model="pickedLib" class="lib-list">
+          <label v-for="s in MINE_MENU_LIBRARY" :key="s.key" class="lib-row">
+            <el-checkbox :label="s.key">{{ s.title }}</el-checkbox>
+            <span class="lib-meta">{{ s.group }}</span>
+            <span class="lib-url">{{ s.url }}</span>
+          </label>
+        </el-checkbox-group>
+        <p v-if="libConflict" class="lib-conflict">已勾选的 {{ libConflict }} 项在列表里已存在，将被忽略。</p>
+        <template #footer>
+          <el-button @click="addBlankItem">新建空白项</el-button>
+          <el-button type="primary" :disabled="!pickedLib.length" @click="confirmLibAdd">
+            添加选中{{ pickedLib.length ? `（${pickedLib.length}）` : '' }}
+          </el-button>
+        </template>
+      </el-dialog>
 
       <el-dialog v-model="iconDialogVisible" title="选择图标" width="440px" destroy-on-close>
         <div class="icon-tabs">
@@ -213,6 +249,8 @@ import { computed, ref, watch } from 'vue'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import type { MineMenuItem, MinePageConfig } from '@/types/miniapp'
+import MineTargetPicker from './MineTargetPicker.vue'
+import { MINE_MENU_LIBRARY, seedToMenuItem } from './mineTemplates'
 import MenuIconDisplay from './MenuIconDisplay.vue'
 import {
   DEFAULT_MENU_LINE_ICON,
@@ -262,8 +300,23 @@ function updateTabLabel(key: string, value: string) {
   })
 }
 
+const groupOptions = computed(() => {
+  const set = new Set<string>(['内容与订单', '会员与服务', '常用工具'])
+  for (const it of menuItems.value) {
+    const g = String(it.group || '').trim()
+    if (g) set.add(g)
+  }
+  return Array.from(set)
+})
+
 function emitUpdate() {
   emit('update:modelValue', { ...props.modelValue, menuItems: [...menuItems.value] })
+}
+
+function onNeedLogin(index: number, value: boolean) {
+  if (!menuItems.value[index]) return
+  menuItems.value[index].needLogin = value === true
+  emitUpdate()
 }
 
 function addMenuItem() {
@@ -272,10 +325,42 @@ function addMenuItem() {
     icon: DEFAULT_MENU_LINE_ICON,
     title: '新菜单',
     url: '',
+    needLogin: false,
     enabled: true,
     group: '',
   })
   emitUpdate()
+}
+
+const libDialogVisible = ref(false)
+const pickedLib = ref<string[]>([])
+
+function openLib() {
+  pickedLib.value = []
+  libDialogVisible.value = true
+}
+
+const pendingLibKeys = computed(() => pickedLib.value.filter((key) => {
+  const seed = MINE_MENU_LIBRARY.find((s) => s.key === key)
+  if (!seed) return false
+  return !menuItems.value.some((m) => m.url === seed.url || m.title === seed.title)
+}))
+
+const libConflict = computed(() => pickedLib.value.length - pendingLibKeys.value.length)
+
+function confirmLibAdd() {
+  pendingLibKeys.value.forEach((key, i) => {
+    const seed = MINE_MENU_LIBRARY.find((s) => s.key === key)
+    if (!seed) return
+    menuItems.value.push(seedToMenuItem(seed, i))
+  })
+  emitUpdate()
+  libDialogVisible.value = false
+}
+
+function addBlankItem() {
+  addMenuItem()
+  libDialogVisible.value = false
 }
 
 function removeMenuItem(index: number) {
@@ -314,9 +399,18 @@ function confirmMenuIcon() {
 .compact-form .el-form-item__label { font-size: 12px; }
 
 .menu-list { display: flex; flex-direction: column; gap: 6px; }
-.menu-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; transition: 0.14s; }
+.menu-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border: 1px solid #e3e8f0; border-radius: 8px; background: #fff; transition: 0.14s; }
 .menu-item:hover { border-color: #a0b4d0; }
 .menu-item.hidden { opacity: 0.5; }
+.block-tip { margin-left: 8px; font-size: 12px; font-weight: 400; color: #9aa3b2; }
+.lib-hint { margin: 0 0 10px; font-size: 12px; color: #7b8493; line-height: 1.5; }
+.lib-list { display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow-y: auto; }
+.lib-row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+.lib-row:hover { background: #f5f7fa; }
+.lib-row :deep(.el-checkbox) { margin-right: 0; }
+.lib-meta { font-size: 11px; color: #8b93a7; flex-shrink: 0; }
+.lib-url { margin-left: auto; font-size: 11px; color: #b3bac6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-conflict { margin: 8px 0 0; font-size: 12px; color: #e6a23c; }
 .drag-handle { cursor: grab; color: #a0b4d0; font-size: 14px; }
 .drag-handle:active { cursor: grabbing; }
 .menu-icon { width: 40px; height: 40px; display: grid; place-items: center; font-size: 22px; cursor: pointer; border-radius: 8px; background: #f0f4ff; }

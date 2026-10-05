@@ -44,6 +44,14 @@ function isServiceProduct(item) {
 
 function deliveryMeta(item) {
   if (isVirtualProduct(item)) {
+    // 人工履约的商品不能说「自动发货」：付款后由客服人工开通，不是直出
+    const mode = String(item.deliveryMode || item.delivery_mode || '').toLowerCase()
+    if (mode === 'manual') {
+      return { badge: '人工开通', ship: '下单后开通' }
+    }
+    if (mode === 'redeem_code') {
+      return { badge: '卡密兑换', ship: '虚拟发货' }
+    }
     return { badge: '自动发货', ship: '虚拟发货' }
   }
   if (isServiceProduct(item)) {

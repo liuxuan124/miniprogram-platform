@@ -1,4 +1,5 @@
 <!-- pages/index/index.wxml — 默认暖阁原生区块；可插入通用装修组件 -->
+  <global-resource />
 <env-badge />
 <page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
 <block wx:if="{{dslMode && !dslPending}}">
@@ -34,6 +35,13 @@
     </view>
   </block>
 </block>
+<!-- 首发骨架：装修 DSL 首帧到达前不渲染暖阁原生兜底页，
+     否则冷启动会先闪出「暖阁首页」再切成后台装修的首页（体验版实测问题） -->
+<view
+  wx:elif="{{dslPending}}"
+  class="wh-boot"
+  style="background-color:{{pageBackgroundColor || '#FDF6EC'}}"
+></view>
 <view wx:else class="wh">
   <block wx:for="{{homeBlocks}}" wx:key="id">
     <dsl-warm-block
@@ -50,6 +58,8 @@
       bind:feature="onFeature"
       bind:column="onColumn"
       bind:planet="goPlanet"
+      bind:mainplanet="onMainPlanetChange"
+      bind:planetintro="onPlanetIntro"
       bind:seg="onSeg"
       bind:retry="onRetry"
     />
@@ -67,3 +77,4 @@
   />
   <login-sheet id="global-login-sheet" />
 </view>
+

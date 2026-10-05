@@ -79,6 +79,34 @@ function normalizeNavLabel(label) {
   return label || ''
 }
 
+/**
+ * 归一化一张星球卡。
+ * 组件展示字段全部用驼峰，wxml 直接取；url 缺省走 pkg-content（后端给的 /pages/... 会由 render 别名兜底，
+ * 这里直接给可用的分包路径，少一层依赖）。
+ *
+ * planetId 兜底很关键：后端未升级时 /home/warm 的 planet 没有 planetId 字段，
+ * 若严格过滤会让整块星球区空白（发版顺序是后端先上，但灰度/回滚期仍要保底）。
+ */
+function mapPlanet(p) {
+  if (!p) return null
+  const planetId = String(p.planetId || p.id || '').trim() || 'warm-main'
+  const items = (Array.isArray(p.items) ? p.items : []).filter(Boolean)
+  return {
+    planetId,
+    title: p.title || '',
+    members: p.members || '',
+    cta: p.cta || '',
+    items,
+    emoji: p.emoji || '🪐',
+    cover: p.cover || '',
+    subtitle: p.subtitle || '',
+    joined: !!p.joined,
+    primary: !!p.primary,
+    introUrl: p.introUrl || `/pkg-content/planet-intro/planet-intro?planetId=${encodeURIComponent(planetId)}`,
+    feedUrl: p.feedUrl || `/pkg-content/planet-feed/planet-feed?planetId=${encodeURIComponent(planetId)}`,
+  }
+}
+
 function buildWarmView(apiData, components) {
   const layout = getNavLayout()
   const greetBlock = (components || []).find((c) => c && c.type === 'warm_greet')
@@ -102,6 +130,15 @@ function buildWarmView(apiData, components) {
     brandName = String(brand.appName || brand.name || '').trim()
   } catch (e) { /* ignore */ }
 
+  const legacyPlanet = mapPlanet(apiData && apiData.planet)
+  // 多星球：后端 planets 优先；为空时把旧单卡包成 1 张。
+  // 旧后端连 planet.title 都没有时也留一个空壳，保证组件有卡可渲染而不是整块空白。
+  const listPlanets = Array.isArray(apiData && apiData.planets) && apiData.planets.length
+    ? apiData.planets.map(mapPlanet).filter(Boolean)
+    : (legacyPlanet ? [legacyPlanet] : [mapPlanet({ planetId: 'warm-main' })])
+  const primaryOnly = !!(apiData && apiData.primaryOnly)
+  const primaryPlanetId = String((apiData && apiData.primaryPlanetId) || (legacyPlanet && legacyPlanet.planetId) || '')
+
   return {
     statusBarHeight: layout.statusBarHeight || 20,
     greetTitle: (typeof tpl === 'string' && tpl.trim()) ? tpl.trim() : ((apiData && apiData.greetTemplate) || '你好'),
@@ -119,7 +156,10 @@ function buildWarmView(apiData, components) {
     authors: (apiData && apiData.authors) || [],
     feature: mapFeature(apiData && apiData.feature),
     columns: ((apiData && apiData.columns) || []).map(mapColumn),
-    planet: (apiData && apiData.planet) || { title: '', members: '', items: [], cta: '' },
+    planet: legacyPlanet || { planetId: '', title: '', members: '', items: [], cta: '', emoji: '🪐' },
+    planets: listPlanets,
+    primaryPlanetId,
+    primaryOnly,
     segs,
     feedAll,
     feed: filterFeedBySeg(feedAll, activeSeg),

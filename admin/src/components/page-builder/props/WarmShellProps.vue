@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="88px" size="small">
+  <el-form label-width="72px" size="small">
     <el-alert
       :title="isHome
         ? '点左侧「暖阁首页模板」会展开成问候条、作者、精选等可组合区块，再按需增删排序。真机首页还会读系统「暖阁首页配置」。'

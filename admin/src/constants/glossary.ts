@@ -7,7 +7,7 @@ import { resolveIndustryProfile } from './industry-profiles'
 export const GLOSSARY = {
   content: { key: 'content', label: '内容', aliases: ['内容列表'], deprecated: ['知识库'] },
   product: { key: 'product', label: '商品', aliases: ['商城', '商品管理'], deprecated: ['知识库'] },
-  file: { key: 'file', label: '资料文件', aliases: ['资料库'], deprecated: ['文件库'] },
+  file: { key: 'file', label: '文件库', aliases: ['资料库', '资料', '文件管理'], deprecated: ['资料文件'] },
   knowledge: { key: 'knowledge', label: 'AI 语料库', aliases: ['语料库', '语料源'], deprecated: ['知识库'] },
   planet: { key: 'planet', label: '星球', aliases: ['知识星球'], deprecated: ['出海星球'] },
   member: { key: 'member', label: '会员', aliases: ['会员中心'], deprecated: [] },

@@ -11,6 +11,9 @@ public class FileItemDTO {
 
     private String summary;
 
+    /** 自定义图标 URL（可选） */
+    private String iconUrl;
+
     private Long groupId;
 
     /** 上传后返回的相对 storageKey 或从 url 解析 */

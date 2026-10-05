@@ -12,14 +12,22 @@ import com.miniprogram.entity.ActivitySignup;
 import com.miniprogram.entity.FormData;
 import com.miniprogram.entity.MemberLevel;
 import com.miniprogram.entity.MemberPointsLog;
+import com.miniprogram.entity.MembershipPlan;
+import com.miniprogram.entity.MemberSubscription;
 import com.miniprogram.entity.MiniProgramUser;
 import com.miniprogram.entity.Order;
 import com.miniprogram.mapper.ActivitySignupMapper;
 import com.miniprogram.mapper.FormDataMapper;
 import com.miniprogram.mapper.MemberLevelMapper;
 import com.miniprogram.mapper.MemberPointsLogMapper;
+import com.miniprogram.mapper.MembershipPlanMapper;
+import com.miniprogram.mapper.MemberSubscriptionMapper;
 import com.miniprogram.mapper.MiniProgramUserMapper;
+import com.miniprogram.entity.MemberTag;
+import com.miniprogram.entity.UserMemberTag;
+import com.miniprogram.mapper.MemberTagMapper;
 import com.miniprogram.mapper.OrderMapper;
+import com.miniprogram.mapper.UserMemberTagMapper;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.MiniProgramUserService;
 import com.miniprogram.user.UserSourceChannels;
@@ -35,6 +43,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -57,6 +66,10 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
     private final ActivitySignupMapper activitySignupMapper;
     private final MemberLevelMapper memberLevelMapper;
     private final MemberPointsLogMapper memberPointsLogMapper;
+    private final MemberTagMapper memberTagMapper;
+    private final UserMemberTagMapper userMemberTagMapper;
+    private final MemberSubscriptionMapper memberSubscriptionMapper;
+    private final MembershipPlanMapper membershipPlanMapper;
 
     @Override
     public PageResult<MiniProgramUserVO> listUsers(MiniProgramUserQueryDTO queryDTO) {
@@ -105,8 +118,7 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
         return vo;
     }
 
-    private LambdaQueryWrapper<MiniProgramUser> buildListWrapper(MiniProgramUserQueryDTO queryDTO) {
-        LambdaQueryWrapper<MiniProgramUser> wrapper = new LambdaQueryWrapper<>();
+    private LambdaQueryWrapper<MiniProgramUser> buildListWrapper(MiniProgramUserQueryDTO queryDTO) {        LambdaQueryWrapper<MiniProgramUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(MiniProgramUser::getTenantId, SecurityUtils.getCurrentTenantId());
         if (StringUtils.hasText(queryDTO.getKeyword())) {
             String keyword = queryDTO.getKeyword().trim();
@@ -121,6 +133,36 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
             List<String> values = UserSourceChannels.filterValues(queryDTO.getSource());
             wrapper.in(MiniProgramUser::getSourceChannel, values);
         }
+        // V116 账号来源筛选：real 真实注册 / system 后台配置 / test 联调测试
+        if (StringUtils.hasText(queryDTO.getAccountType())) {
+            wrapper.eq(MiniProgramUser::getAccountType, queryDTO.getAccountType().trim());
+        }
+        // V119 付费会员筛选：真源 mp_member_subscription（scope=platform 且未过期）。
+        // 用 EXISTS 而不是 member_expire_at —— 后者是赠礼镜像字段，可能与订购表不一致。
+        if (StringUtils.hasText(queryDTO.getPayStatus())) {
+            String pay = queryDTO.getPayStatus().trim();
+            String activePlatformSub = "SELECT 1 FROM mp_member_subscription s"
+                    + " WHERE s.user_id = mp_user.id AND s.scope = 'platform' AND s.status = 'active'"
+                    + " AND (s.expire_at IS NULL OR s.expire_at > NOW())";
+            if ("paid".equalsIgnoreCase(pay)) {
+                wrapper.exists(activePlatformSub);
+            } else if ("none".equalsIgnoreCase(pay)) {
+                wrapper.notExists(activePlatformSub);
+            }
+        }
+        // V119 角色标签筛选：下推到 SQL，避免前端只过滤当前页导致「表格空但 total 仍是全量」
+        if (queryDTO.getRoleTagId() != null) {
+            wrapper.exists("SELECT 1 FROM mp_user_member_tag t WHERE t.user_id = mp_user.id AND t.tag_id = {0}",
+                    queryDTO.getRoleTagId());
+        }
+        // V119 重复账号筛选：手机号在 mp_user 内出现 ≥2 次。
+        // inSql 子查询走的是同一张表，MyBatis-Plus 的 @TableLogic 不会作用在裸 SQL 上，
+        // 所以这里显式带 deleted = 0，与 listDuplicateGroups 的口径保持一致。
+        if (Boolean.TRUE.equals(queryDTO.getDuplicateOnly())) {
+            wrapper.inSql(MiniProgramUser::getPhone,
+                    "SELECT phone FROM mp_user WHERE deleted = 0 AND phone IS NOT NULL AND phone <> ''"
+                            + " GROUP BY phone HAVING COUNT(*) > 1");
+        }
         return wrapper;
     }
 
@@ -134,6 +176,18 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
         Map<Long, Integer> formCounts = countByUserId("mp_form_data", userIds);
         Map<Long, Integer> actCounts = countByUserId("mp_activity_signup", userIds);
         Map<Long, BigDecimal> spentMap = sumSpentByUser(userIds);
+        // V116：角色标签名（作者/主理人等），一次批量查完不做 N+1
+        Map<Long, String> roleTagNames = loadRoleTagNames(userIds);
+        // V119：有效平台付费档 + 到期时间（一次批量查完）
+        Map<Long, MemberSubscription> activePlatformSubs = loadActivePlatformSubs(userIds);
+        Map<Long, String> planNames = loadPlanNames(
+                activePlatformSubs.values().stream()
+                        .map(MemberSubscription::getPlanId)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList());
+        // V119：同手机号账号数（用于列表上标「重复」）
+        Map<String, Integer> phoneCounts = countPhones(users);
 
         List<MiniProgramUserVO> result = new ArrayList<>(users.size());
         for (MiniProgramUser user : users) {
@@ -144,6 +198,17 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
             vo.setFormCount(formCounts.getOrDefault(uid, 0));
             vo.setActCount(actCounts.getOrDefault(uid, 0));
             vo.setTotalSpent(spentMap.getOrDefault(uid, BigDecimal.ZERO));
+            vo.setRoleTags(roleTagNames.get(uid));
+            // V119：付费档位 + 重复账号计数
+            MemberSubscription sub = activePlatformSubs.get(uid);
+            if (sub != null) {
+                vo.setPlanName(planNames.get(sub.getPlanId()));
+                vo.setMemberExpireAt(sub.getExpireAt());
+            } else {
+                // 无有效订购时保留用户表上的镜像到期时间，便于运营判断「曾是会员但已过期」
+                vo.setMemberExpireAt(user.getMemberExpireAt());
+            }
+            vo.setDuplicateCount(user.getPhone() == null ? 1 : phoneCounts.getOrDefault(user.getPhone(), 1));
             vo.setTags(buildTags(vo));
             if (withTimeline) {
                 vo.setActivities(buildActivities(user));
@@ -158,9 +223,157 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
         return result;
     }
 
+    /**
+     * V116 账号来源展示名。
+     * real=真实注册用户 / system=后台配置账号 / test=联调测试账号 / 空=未知（历史数据）。
+     */
+    private static String accountTypeLabel(String type) {
+        if (!StringUtils.hasText(type)) {
+            return "未知";
+        }
+        return switch (type.trim()) {
+            case "real" -> "真实注册";
+            case "system" -> "后台配置";
+            case "test" -> "联调测试";
+            default -> type;
+        };
+    }
+
+    /** V116：批量取用户的角色标签名（只取 is_role=1），返回 { userId: '主理人,编辑' } */
+    private Map<Long, String> loadRoleTagNames(List<Long> userIds) {
+        if (CollectionUtils.isEmpty(userIds)) {
+            return Collections.emptyMap();
+        }
+        QueryWrapper<UserMemberTag> qw = new QueryWrapper<>();
+        qw.select("user_id AS uid", "tag_id AS tagId")
+                .in("user_id", userIds)
+                .in("tag_id", roleTagIds());
+        Map<Long, List<Long>> userToTags = new LinkedHashMap<>();
+        for (Map<String, Object> row : userMemberTagMapper.selectMaps(qw)) {
+            Object uid = row.get("uid");
+            Object tid = row.get("tagId");
+            if (uid instanceof Number && tid instanceof Number) {
+                userToTags.computeIfAbsent(((Number) uid).longValue(), k -> new ArrayList<>())
+                        .add(((Number) tid).longValue());
+            }
+        }
+        if (userToTags.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> allTagIds = userToTags.values().stream().flatMap(List::stream).distinct().toList();
+        Map<Long, String> tagNames = memberTagMapper.selectList(new LambdaQueryWrapper<MemberTag>()
+                        .in(MemberTag::getId, allTagIds))
+                .stream()
+                .filter(t -> t.getId() != null && t.getName() != null)
+                .collect(Collectors.toMap(MemberTag::getId, MemberTag::getName, (a, b) -> a));
+        Map<Long, String> result = new LinkedHashMap<>();
+        userToTags.forEach((uid, tagIds) -> {
+            String joined = tagIds.stream()
+                    .map(tagNames::get)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.joining(","));
+            if (!joined.isEmpty()) {
+                result.put(uid, joined);
+            }
+        });
+        return result;
+    }
+
+    /**
+     * V119：批量取有效平台订购（scope=platform、status=active、未过期）。
+     * <p>同一用户可能有多条 active 记录（历史遗留），取到期时间最晚的那条，
+     * 与 {@code MembershipAccessService#hasPlatformMembership} 的判定保持一致。
+     */
+    private Map<Long, MemberSubscription> loadActivePlatformSubs(List<Long> userIds) {
+        if (CollectionUtils.isEmpty(userIds)) {
+            return Collections.emptyMap();
+        }
+        List<MemberSubscription> subs = memberSubscriptionMapper.selectList(
+                new LambdaQueryWrapper<MemberSubscription>()
+                        .in(MemberSubscription::getUserId, userIds)
+                        .eq(MemberSubscription::getScope, "platform")
+                        .eq(MemberSubscription::getStatus, "active")
+                        .and(w -> w.isNull(MemberSubscription::getExpireAt)
+                                .or().gt(MemberSubscription::getExpireAt, LocalDateTime.now())));
+        Map<Long, MemberSubscription> result = new HashMap<>();
+        for (MemberSubscription sub : subs) {
+            if (sub.getUserId() == null) {
+                continue;
+            }
+            MemberSubscription exists = result.get(sub.getUserId());
+            if (exists == null || laterExpire(sub, exists)) {
+                result.put(sub.getUserId(), sub);
+            }
+        }
+        return result;
+    }
+
+    /** 到期更晚的一条胜出；两者都终身（null）时先到的保留 */
+    private static boolean laterExpire(MemberSubscription a, MemberSubscription b) {
+        LocalDateTime ea = a.getExpireAt();
+        LocalDateTime eb = b.getExpireAt();
+        if (ea == null) {
+            return false;
+        }
+        return eb == null || ea.isAfter(eb);
+    }
+
+    /** V119：付费档 id → 档名 */
+    private Map<Long, String> loadPlanNames(List<Long> planIds) {
+        if (CollectionUtils.isEmpty(planIds)) {
+            return Collections.emptyMap();
+        }
+        return membershipPlanMapper.selectList(new LambdaQueryWrapper<MembershipPlan>()
+                        .in(MembershipPlan::getId, planIds))
+                .stream()
+                .filter(p -> p.getId() != null && p.getName() != null)
+                .collect(Collectors.toMap(MembershipPlan::getId, MembershipPlan::getName, (a, b) -> a));
+    }
+
+    /**
+     * V119：当前页用户涉及的每个手机号在 mp_user 内的账号数。
+     * <p>只查当前页出现的手机号（IN 列表），不做全表 GROUP BY。
+     * 口径与 {@code MemberOpsService#listDuplicateGroups} 一致：排除空手机号与已删账号。
+     */
+    private Map<String, Integer> countPhones(List<MiniProgramUser> users) {
+        List<String> phones = users.stream()
+                .map(MiniProgramUser::getPhone)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+        if (phones.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        QueryWrapper<MiniProgramUser> qw = new QueryWrapper<>();
+        qw.select("phone AS phone", "COUNT(*) AS cnt")
+                .in("phone", phones)
+                .groupBy("phone");
+        Map<String, Integer> result = new HashMap<>();
+        for (Map<String, Object> row : this.listMaps(qw)) {
+            Object phone = row.get("phone");
+            Object cnt = row.get("cnt");
+            if (phone != null && cnt instanceof Number) {
+                result.put(String.valueOf(phone), ((Number) cnt).intValue());
+            }
+        }
+        return result;
+    }
+
+    /** V116：角色标签 id 列表（is_role=1） */
+    private List<Long> roleTagIds() {        return memberTagMapper.selectList(new LambdaQueryWrapper<MemberTag>()
+                        .eq(MemberTag::getIsRole, 1))
+                .stream()
+                .map(MemberTag::getId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
     private MiniProgramUserVO toBaseVO(MiniProgramUser user) {
         MiniProgramUserVO vo = new MiniProgramUserVO();
         BeanUtils.copyProperties(user, vo);
+        // V116：账号来源展示名（real 真实注册 / system 后台配置 / test 联调测试）
+        vo.setAccountTypeLabel(accountTypeLabel(user.getAccountType()));
         if (!StringUtils.hasText(user.getSourceChannel())) {
             vo.setSourceChannel(null);
             vo.setSourceChannelLabel("未知");

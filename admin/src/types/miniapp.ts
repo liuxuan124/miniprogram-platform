@@ -4,6 +4,8 @@ export interface NavTab {
   /** 显示文本，小程序端读取 text 字段 */
   text: string
   icon: string
+  /** 选中态图标，小程序端 custom-tabBar 读取；缺省时按 xxx.png → xxx-active.png 推断 */
+  selectedIcon?: string
   /** 页面路径，小程序端读取 pagePath 字段 */
   pagePath: string
   /** Tab 壳路由（switchTab 目标），与 app.json tabBar 注册页面对应 */
@@ -32,6 +34,8 @@ export interface MineMenuItem {
   enabled: boolean
   /** 分组标签，用于将菜单项分组显示 */
   group?: string
+  /** 点击前是否要求登录（undefined 视同 false） */
+  needLogin?: boolean
 }
 
 /** 订单快捷入口配置 */
@@ -212,6 +216,183 @@ export function applyMineStylePreset(
   return resolved
 }
 
+/* ============================================================ *
+ * 登录页模板（仿「我的」页模板库）
+ *
+ * 与 mine 的分工对照：
+ * - mine 的「模板」= 皮肤 + 菜单组合（warm/basic/member）
+ * - login 的「模板」= 皮肤 + 布局变体（warm 暖阁 / brand 品牌焦点 /
+ *   minimal 极简 / wechat 微信原生风），布局变体只切外观不改授权流程
+ * - 登录页本身是原生页 /pages/login/login，不进装修器，模板仅切皮肤
+ * ============================================================ */
+
+/** 登录页模板风格 key：4 套预设 */
+export type LoginPageStyleKey = 'warm' | 'brand' | 'minimal' | 'wechat'
+
+/** 登录页配置 —— 后台存到 system_config 的 loginPageConfig */
+export interface LoginPageConfig {
+  /** 顶部品牌区主标（默认「欢迎回来」） */
+  heroTitle: string
+  /** 主标下副文案（默认「登录后同步收藏、预约与阅读记录」） */
+  heroSubtitle: string
+  /** 登录按钮文案（默认「手机号快捷登录」） */
+  loginButtonText: string
+  /** 暂不登录按钮文案（默认「暂不登录」） */
+  skipButtonText: string
+  /** 安全徽标文案（默认「安全登录」，空字符串则不显示） */
+  securityBadgeText: string
+  /** 表单标题（默认「手机号快捷登录」） */
+  sheetTitle: string
+  /** 表单副文案（默认「使用授权信息快速登录」） */
+  sheetSubtitle: string
+  /** 底部隐私提示文案（默认「未登录也可浏览资讯；手机号仅用于登录，不会公开展示」） */
+  privacyNoteText: string
+  /** 是否显示顶部装饰光斑（warm/brand 有，minimal/wechat 无） */
+  showDecorOrbs: boolean
+  /** 是否显示安全徽标 */
+  showSecurityBadge: boolean
+  /** 是否显示返回按钮（默认 true；wechat 风可关） */
+  showBackButton: boolean
+  /** 模板风格 key：warm | brand | minimal | wechat */
+  templateStyle?: string
+  /** 主色（每套皮肤自带默认，可被覆盖） */
+  themeColor?: string
+  /** 辅色 */
+  themeColorSecondary?: string
+}
+
+/** 登录页风格卡片（配置页模板画廊用） */
+export const LOGIN_PAGE_STYLE_TEMPLATES: Array<{
+  key: LoginPageStyleKey
+  name: string
+  icon: string
+  desc: string
+  gradient: string
+  border?: string
+}> = [
+  {
+    key: 'warm',
+    name: '暖阁纸感',
+    icon: '📙',
+    desc: '默认款 · 砖橘渐变 + 装饰光斑',
+    gradient: 'linear-gradient(145deg, #f6ddbf 0%, #d97706 48%, #7c2d12 100%)',
+  },
+  {
+    key: 'brand',
+    name: '品牌焦点',
+    icon: '🏷️',
+    desc: '品牌色渐变 + Logo 居中',
+    gradient: 'linear-gradient(145deg, #5B7FEA 0%, #6B6FE8 55%, #4338CA 100%)',
+  },
+  {
+    key: 'minimal',
+    name: '极简卡片',
+    icon: '⚪',
+    desc: '纯白卡片 + 主色按钮',
+    gradient: 'linear-gradient(145deg, #fafaf9 0%, #f5f5f4 55%, #e7e5e4 100%)',
+    border: '1px solid #e7e5e4',
+  },
+  {
+    key: 'wechat',
+    name: '微信原生',
+    icon: '💬',
+    desc: '微信绿主按钮 + 极简背景',
+    gradient: 'linear-gradient(145deg, #07C160 0%, #06AD56 55%, #04924A 100%)',
+  },
+]
+
+export const LOGIN_PAGE_STYLE_PRESETS: Record<LoginPageStyleKey, {
+  themeColor: string
+  themeColorSecondary: string
+  showDecorOrbs: boolean
+  showSecurityBadge: boolean
+  showBackButton: boolean
+}> = {
+  warm: {
+    themeColor: '#C2410C',
+    themeColorSecondary: '#EA580C',
+    showDecorOrbs: true,
+    showSecurityBadge: true,
+    showBackButton: true,
+  },
+  brand: {
+    themeColor: '#5B7FEA',
+    themeColorSecondary: '#6B6FE8',
+    showDecorOrbs: true,
+    showSecurityBadge: true,
+    showBackButton: true,
+  },
+  minimal: {
+    themeColor: '#1F2937',
+    themeColorSecondary: '#6B7280',
+    showDecorOrbs: false,
+    showSecurityBadge: false,
+    showBackButton: true,
+  },
+  wechat: {
+    themeColor: '#07C160',
+    themeColorSecondary: '#06AD56',
+    showDecorOrbs: false,
+    showSecurityBadge: true,
+    showBackButton: false,
+  },
+}
+
+export const DEFAULT_LOGIN_PAGE_CONFIG: LoginPageConfig = {
+  heroTitle: '欢迎回来',
+  heroSubtitle: '登录后同步收藏、预约与阅读记录',
+  loginButtonText: '手机号快捷登录',
+  skipButtonText: '暂不登录',
+  securityBadgeText: '安全登录',
+  sheetTitle: '手机号快捷登录',
+  sheetSubtitle: '使用授权信息快速登录',
+  privacyNoteText: '未登录也可浏览资讯；手机号仅用于登录，不会公开展示',
+  showDecorOrbs: true,
+  showSecurityBadge: true,
+  showBackButton: true,
+  templateStyle: 'warm',
+  themeColor: '#C2410C',
+  themeColorSecondary: '#EA580C',
+}
+
+/** 旧 key / 别名归一化 */
+export function normalizeLoginPageStyleKey(key?: string | null): LoginPageStyleKey {
+  const raw = String(key || '').trim().toLowerCase()
+  if (raw === 'warm' || raw === 'nuange' || raw === 'default') return 'warm'
+  if (raw === 'brand' || raw === 'focus') return 'brand'
+  if (raw === 'minimal' || raw === 'plain' || raw === 'simple') return 'minimal'
+  if (raw === 'wechat' || raw === 'native') return 'wechat'
+  return 'warm'
+}
+
+/** 从已保存配置推断风格 */
+export function resolveLoginPageStyleKey(login?: {
+  templateStyle?: string
+  themeColor?: string
+} | null): LoginPageStyleKey {
+  if (!login) return 'warm'
+  if (login.templateStyle) return normalizeLoginPageStyleKey(login.templateStyle)
+  const tc = String(login.themeColor || '').toLowerCase()
+  if (tc === '#07c160' || tc === '#06ad56') return 'wechat'
+  if (tc === '#1f2937' || tc === '#374151') return 'minimal'
+  if (tc === '#5b7fea' || tc === '#6b6fe8' || tc === '#4338ca') return 'brand'
+  return 'warm'
+}
+
+/** 写入风格预设 */
+export function applyLoginPageStylePreset(
+  cfg: Record<string, unknown>,
+  key?: string | null,
+): LoginPageStyleKey {
+  const resolved = normalizeLoginPageStyleKey(key ?? resolveLoginPageStyleKey(cfg as {
+    templateStyle?: string
+    themeColor?: string
+  }))
+  const preset = LOGIN_PAGE_STYLE_PRESETS[resolved]
+  Object.assign(cfg, { templateStyle: resolved, ...preset })
+  return resolved
+}
+
 /** 主题配色 */
 export interface ThemeConfig {
   primaryColor: string
@@ -242,6 +423,7 @@ export const CONFIG_KEYS = {
   MINE_PAGE_ID: 'miniappMinePageId',
   TABBAR_ITEMS: 'tabbarItems',
   MINE_PAGE_CONFIG: 'minePageConfig',
+  LOGIN_PAGE_CONFIG: 'loginPageConfig',
   THEME_CONFIG: 'miniappThemeConfig',
   SHARE_TITLE: 'miniappShareTitle',
   SHARE_IMAGE: 'miniappShareImage',
@@ -302,27 +484,26 @@ export const NAV_TEMPLATES: NavTemplate[] = [
 
 /** 默认我的页面菜单 - 字段名与小程序端对齐（图标为 line:* 线条标） */
 /**
- * 「我的」页为**固定模板**：菜单结构写在小程序 `pages/mine/mine.wxml` 里，
- * 后台只提供文案与显隐开关，不开放菜单自由编排。
+ * 默认我的页面菜单 —— 字段名与小程序端 mine.js 对齐（图标为 line:* 线条标）。
  *
- * 因此这份列表的唯一职责是让后台预览**如实反映小程序现状**——
- * 它必须与 `miniapp/pages/mine/mine.wxml` 的菜单行保持一致。
- * 历史上这里放的是一套凭空写的菜单（收货地址/我的资产等），小程序根本没有，
- * 导致运营照着预览去对，永远对不上。改小程序模板时请同步这里。
+ * 变更说明：自 1.29.8 起「我的」菜单已由小程序端动态渲染（读 minePageConfig.menuItems），
+ * 这份列表不再是「预览照抄」，而是**真实下发到小程序**的默认值：
+ * 后端无配置或配置为空项时，小程序端回退渲染这份菜单。
+ * 因此每项的 url 必须是小程序里真实存在的路由，needLogin 决定点击前是否要求登录。
  */
 export const DEFAULT_MINE_MENU: Omit<MineMenuItem, 'id'>[] = [
-  { icon: 'line:chat', title: '我的提问与打卡', url: '/pkg-content/question-list/question-list', enabled: true, group: '内容与订单' },
-  { icon: 'line:document', title: '成为创作者', url: '/pages/contribute/contribute', enabled: true, group: '内容与订单' },
-  { icon: 'line:document', title: '我的订单', url: '/pkg-trade/order-list/order-list', enabled: true, group: '内容与订单' },
-  { icon: 'line:books', title: '我的资料库', url: '/pkg-content/resources/resources', enabled: true, group: '内容与订单' },
-  { icon: 'line:wallet', title: '发票管理', url: '/pkg-trade/order-list/order-list', enabled: true, group: '内容与订单' },
-  { icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', enabled: true, group: '内容与订单' },
-  { icon: 'line:share', title: '邀请好友', url: '/pkg-content/share/share', enabled: true, group: '内容与订单' },
-  { icon: 'line:star', title: '整店模版', url: '/pkg-templates/store-templates/store-templates', enabled: true, group: '常用工具' },
-  { icon: 'line:users', title: '加入读者群', url: '/pkg-content/join/join', enabled: true, group: '常用工具' },
-  { icon: 'line:chat', title: '联系客服', url: 'contact', enabled: true, group: '常用工具' },
-  { icon: 'line:mail', title: '意见反馈', url: '/pages/feedback/feedback', enabled: true, group: '常用工具' },
-  { icon: 'line:gear', title: '设置', url: '/pages/settings/settings', enabled: true, group: '常用工具' },
+  { icon: 'line:check', title: '我的提问与打卡', url: '/pkg-content/question-ask/question-ask', needLogin: true, enabled: true, group: '内容与订单' },
+  { icon: 'line:pencil', title: '成为创作者', url: '/pkg-content/contribute/contribute', needLogin: false, enabled: true, group: '内容与订单' },
+  { icon: 'line:document', title: '我的订单', url: '/pkg-trade/order-list/order-list', needLogin: true, enabled: true, group: '内容与订单' },
+  // 资料库入口暂不开放（后续再放出），与生产 minePageConfig.menuItems 一致
+  { icon: 'line:books', title: '我的资料库', url: '/pkg-content/resources/resources', needLogin: false, enabled: false, group: '内容与订单' },
+  { icon: 'line:clipboard', title: '发票管理', url: '/pkg-trade/order-list/order-list', needLogin: true, enabled: true, group: '内容与订单' },
+  { icon: 'line:coupon', title: '优惠券', url: '/pkg-user/coupon-list/coupon-list', needLogin: true, enabled: true, group: '内容与订单' },
+  { icon: 'line:share', title: '邀请好友', url: '/pkg-content/share/share', needLogin: false, enabled: true, group: '内容与订单' },
+  { icon: 'line:grid', title: '整店模版', url: '/pkg-templates/list/list', needLogin: false, enabled: true, group: '会员与服务' },
+  { icon: 'line:user', title: '加入读者群', url: '/pkg-content/join/join', needLogin: false, enabled: true, group: '会员与服务' },
+  { icon: 'line:mail', title: '意见反馈', url: '/pkg-user/feedback/feedback', needLogin: false, enabled: true, group: '会员与服务' },
+  { icon: 'line:gear', title: '设置', url: '/pkg-user/settings/settings', needLogin: false, enabled: true, group: '会员与服务' },
 ]
 
 /** 默认订单快捷入口配置 */

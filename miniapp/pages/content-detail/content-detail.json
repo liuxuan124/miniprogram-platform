@@ -5,6 +5,7 @@
   "navigationBarTextStyle": "black",
   "usingComponents": {
     "mp-html": "/components/mp-html/index",
-    "login-sheet": "/components/login-sheet/login-sheet"
+    "login-sheet": "/components/login-sheet/login-sheet",
+    "author-card": "/components/author-card/author-card"
   }
 }

@@ -4,10 +4,68 @@
 const { post, put } = require('../utils/request')
 const { AuthUtil } = require('../utils/auth')
 
+/** 预取的 wx.login code（微信 code 一次性，5 分钟内有效） */
+let prefetchedLoginCode = ''
+let prefetchedAt = 0
+const PREFETCH_CODE_TTL_MS = 4 * 60 * 1000
+
 /**
  * 认证服务
  */
 const AuthService = {
+  /**
+   * 预取 wx.login code，缩短用户点击登录后的等待。
+   *
+   * 该方法是纯优化项，任何失败都必须静默——历史上它被 onLoad 直接调用，
+   * 一旦抛错会中断整个页面初始化（品牌 Logo/名称/皮肤全部停在本地兜底值）。
+   * 因此对外只暴露 `prefetchLoginCodeSafely`，内部 `prefetchLoginCode` 亦不外抛。
+   */
+  prefetchLoginCode() {
+    if (prefetchedLoginCode && Date.now() - prefetchedAt < PREFETCH_CODE_TTL_MS) {
+      return Promise.resolve(prefetchedLoginCode)
+    }
+    return new Promise((resolve) => {
+      wx.login({
+        success(res) {
+          if (res && res.code) {
+            prefetchedLoginCode = res.code
+            prefetchedAt = Date.now()
+            resolve(prefetchedLoginCode)
+          } else {
+            resolve('')
+          }
+        },
+        fail() {
+          resolve('')
+        },
+      })
+    })
+  },
+
+  /** 安全版预取：永不 reject、永不抛异常 */
+  prefetchLoginCodeSafely() {
+    try {
+      const ret = AuthService.prefetchLoginCode()
+      if (ret && typeof ret.catch === 'function') ret.catch(() => {})
+    } catch (e) {
+      console.warn('[AuthService] prefetchLoginCode 失败（忽略）:', e && e.message)
+    }
+  },
+
+  /**
+   * 取出并消费预取的 code（没有则回退实时 wx.login）
+   * @returns {string}
+   */
+  takePrefetchedLoginCode() {
+    if (prefetchedLoginCode && Date.now() - prefetchedAt < PREFETCH_CODE_TTL_MS) {
+      const code = prefetchedLoginCode
+      prefetchedLoginCode = ''
+      prefetchedAt = 0
+      return code
+    }
+    return ''
+  },
+
   /**
    * 微信登录完整流程
    * @param {Object} [profile]
@@ -17,6 +75,36 @@ const AuthService = {
    */
   wxLogin(profile = {}) {
     return new Promise((resolve, reject) => {
+      // 优先消费预取的 code，省掉一次 wx.login 往返
+      const cachedCode = AuthService.takePrefetchedLoginCode()
+      if (cachedCode) {
+        AuthService.loginWithCode(cachedCode, profile)
+          .then((data) => {
+            const app = getApp()
+            if (app) {
+              app.setAuthState({ token: data.accessToken, userInfo: data.userInfo })
+              try {
+                const inviterId = app.globalData.inviterId || require('../utils/storage').StorageUtil.get('inviterId')
+                if (inviterId) {
+                  require('../utils/request').post('/api/v1/mp/invite/bind', {
+                    inviterId: Number(inviterId) || inviterId,
+                    scene: 'share',
+                  }, { showError: false }).catch(() => {})
+                }
+              } catch (e) {}
+            } else {
+              AuthUtil.setToken(data.accessToken)
+              AuthUtil.setUserInfo(data.userInfo)
+              if (data.userInfo && data.userInfo.phoneBound) {
+                AuthUtil.clearManualLogout()
+              }
+            }
+            resolve(data)
+          })
+          // 预取 code 失效（过期/已用）时静默回退到实时 wx.login
+          .catch(() => AuthService.wxLogin(profile).then(resolve, reject))
+        return
+      }
       wx.login({
         success(loginRes) {
           if (loginRes.code) {

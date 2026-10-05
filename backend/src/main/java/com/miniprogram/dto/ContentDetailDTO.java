@@ -76,6 +76,15 @@ public class ContentDetailDTO {
     /** 作者头像 URL */
     private String authorAvatar;
 
+    /** 关联作者档案ID */
+    private Long authorId;
+
+    /** 作者头衔（来自作者档案，可空） */
+    private String authorTitle;
+
+    /** 作者简介（来自作者档案，可空） */
+    private String authorIntro;
+
     /** 来源 */
     private String source;
 

@@ -296,6 +296,10 @@
   letter-spacing: 0.1em;
   margin-bottom: 10rpx;
 }
+/* 附件容器：一条动态可挂多份资料，卡片间留 16rpx 间距。
+   旧的 .pl-fd__file 自带 margin-top:22rpx，多附件时由容器统一承担首卡上边距。 */
+.pl-fd__files { margin-top: 22rpx; display: flex; flex-direction: column; gap: 16rpx; }
+.pl-fd__files .pl-fd__file { margin-top: 0; }
 .pl-fd__file {
   margin-top: 22rpx;
   display: flex;

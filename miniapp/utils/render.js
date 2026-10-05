@@ -116,6 +116,7 @@ const DATASOURCE_COMPONENTS = [
   COMPONENT_TYPES.ACTIVITY_LIST,
   COMPONENT_TYPES.APPOINTMENT_SERVICE,
   COMPONENT_TYPES.COUPON,
+  COMPONENT_TYPES.FLASH_SALE,
 ]
 
 /**
@@ -178,9 +179,15 @@ function parseStyle(style) {
   }
 
   let hasHorizontalMargin = false
+  let hasShadow = false
   Object.entries(style).forEach(([key, value]) => {
     if (value === undefined || value === null || value === '') return
     if (key === 'text_color' || key === 'font_size' || key === 'visible') return
+    // 暖调环境阴影：shadow_* 独立字段不逐条下发，统一在下方合成 box-shadow
+    if (key === 'shadow_x' || key === 'shadow_y' || key === 'shadow_blur' || key === 'shadow_spread' || key === 'shadow_color') {
+      hasShadow = true
+      return
+    }
     if (typeof value === 'boolean') return
 
     const cssKey = key
@@ -198,6 +205,24 @@ function parseStyle(style) {
       : value
     parts.push(`${cssKey}: ${cssValue}`)
   })
+
+  // 合成暖调环境阴影（rpx = px * 2，与其它尺寸字段同一换算口径）
+  if (hasShadow) {
+    const num = (v) => {
+      const n = Number(v)
+      return Number.isFinite(n) ? n : 0
+    }
+    const sx = num(style.shadow_x)
+    const sy = num(style.shadow_y)
+    const blur = num(style.shadow_blur)
+    const spread = num(style.shadow_spread)
+    const color = typeof style.shadow_color === 'string' && style.shadow_color.trim()
+      ? style.shadow_color.trim()
+      : 'rgba(0, 0, 0, 0)'
+    if (sx !== 0 || sy !== 0 || blur !== 0 || spread !== 0) {
+      parts.push(`box-shadow: ${sx * 2}rpx ${sy * 2}rpx ${blur * 2}rpx ${spread * 2}rpx ${color}`)
+    }
+  }
 
   // width:100% + 左右 margin 会撑出视口，导致整页可左右拖歪、右边贴边
   if (hasHorizontalMargin) {
@@ -359,14 +384,18 @@ function parseDSL(dsl) {
   }
 
   // 解析页面级配置
+  const rawPage = dsl.page || {}
   const page = {
-    id: (dsl.page && dsl.page.id) || '',
-    name: (dsl.page && dsl.page.name) || '',
-    type: (dsl.page && dsl.page.type) || '',
-    path: (dsl.page && dsl.page.path) || '',
-    share_title: (dsl.page && dsl.page.share_title) || '',
-    share_image: (dsl.page && dsl.page.share_image) || '',
-    background_color: (dsl.page && dsl.page.background_color) || '#f5f5f5',
+    id: rawPage.id || '',
+    name: rawPage.name || '',
+    type: rawPage.type || '',
+    path: rawPage.path || '',
+    share_title: rawPage.share_title || '',
+    share_image: rawPage.share_image || '',
+    background_color: rawPage.background_color || '#f5f5f5',
+    // v2 复合背景 / 底部渐隐遮罩：原样透传，消费方用 theme.resolvePageBackground 归一化
+    background: rawPage.background || null,
+    bottomOverlay: rawPage.bottomOverlay || null,
   }
 
   // 解析全局配置
@@ -412,11 +441,12 @@ async function loadComponentData(component, forceRefresh = false) {
   }
 
   try {
-    // 商品列表手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
+    // 商品列表/秒杀区手动选品：把 props.product_ids 写入 dataSource，便于接口侧/客户端过滤
     let dataSource = component.dataSource
     const props = component.props || {}
     const isProductStream = component.type === 'product_list' && props.display_mode === 'stream'
-    if (component.type === 'product_list') {
+    const supportsProductIds = component.type === 'product_list' || component.type === 'flash_sale'
+    if (supportsProductIds) {
       const ids = Array.isArray(props.product_ids) ? props.product_ids : []
       const extraParams = isProductStream ? { display_mode: 'stream' } : {}
       if (ids.length) {
@@ -504,7 +534,7 @@ async function loadComponentData(component, forceRefresh = false) {
     }
 
     // 接口失败/空列表时，手动选品回退到 DSL 内保存的 items
-    if (component.type === 'product_list') {
+    if (supportsProductIds) {
       const ids = Array.isArray(props.product_ids) ? props.product_ids.map((id) => String(id)) : []
       const sliceCap = isProductStream && ids.length
         ? Math.max(ids.length, Array.isArray(props.items) ? props.items.length : 0, feedPageSize)
@@ -666,7 +696,24 @@ function rewriteUnregisteredPage(path) {
     '/pages/sign-in/sign-in': '/pkg-user/sign-in/sign-in',
     '/pages/activity-list/activity-list': '/pkg-extra/activity-list/activity-list',
     '/pages/activity-detail/activity-detail': '/pkg-extra/activity-detail/activity-detail',
-    '/pages/qa/qa': '/pages/qa-list/qa-list',
+    '/pages/qa/qa': '/pkg-content/question-detail/question-detail',
+    // ── 2026-10-05 补：以下 6 条是历史遗留死链，目录从不存在，点了报「页面不存在」──
+    // 线上 mp_page_version 实测仍有引用（content/list 7、product/list 7、
+    // qa-list/qa-list 5、ask/ask 4 条），故兜底到真实存在的落点。
+    //
+    // ⚠️ 落点只能是「app.json 注册的真实文件页」或「custom 宿主页 + ?path=」形式。
+    //    `/pages/custom/motai-qa` 这种写法是**错的**：`pages/custom/` 下只有
+    //    custom.js 一个宿主页，motai-qa 是 `mp_page.path` 里的**数据库 DSL 路径**，
+    //    不是文件系统页面。而且 PAGE_ALIASES 在下面 713 行就 return 了，
+    //    会绕过 717-719 的 `/pages/custom/*` → `custom?path=` 兜底，等于自己把兜底堵死。
+    //    正确写法见下面 3 条（custom + encodeURIComponent）。
+    '/pages/content/list': '/pkg-content/content-list/content-list',
+    '/pages/product/list': '/pkg-content/product-list/product-list',
+    '/pages/qa-list/qa-list': '/pages/custom/custom?path=' + encodeURIComponent('pages/custom/motai-qa'),
+    '/pages/ask/ask': '/pages/custom/custom?path=' + encodeURIComponent('pages/custom/motai-qa'),
+    // 后台 stores/page.ts 的 Nav 组件默认 seed 仍在生成这 2 条，一并兜底
+    '/pages/member/index': '/pkg-user/member-center/member-center',
+    '/pages/activity/list': '/pkg-extra/activity-list/activity-list',
   }
   if (PAGE_ALIASES[base]) {
     return PAGE_ALIASES[base] + query

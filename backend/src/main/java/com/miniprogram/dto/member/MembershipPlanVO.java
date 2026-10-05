@@ -66,4 +66,10 @@ public class MembershipPlanVO {
 
     @Schema(description = "更新时间")
     private String updatedAt;
+
+    @Schema(description = "通票适用范围: single_planet | multi_planet | all_planets")
+    private String appliesTo;
+
+    @Schema(description = "通票覆盖的星球ID列表")
+    private List<String> appliesPlanets;
 }

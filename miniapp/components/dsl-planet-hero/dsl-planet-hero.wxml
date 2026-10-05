@@ -21,4 +21,10 @@
     <text>{{joinRowText || '👥 加入球友微信群，第一时间收到更新通知'}}</text>
     <text class="pl-joinrow__go">{{joinRowGo || '去加入 ›'}}</text>
   </view>
+  <!-- 切换主星球：半屏就地切，不跳页 -->
+  <planet-switch-sheet
+    id="planet-switch-sheet"
+    bindchange="onSwitchChange"
+    bindintro="onSwitchIntro"
+  />
 </view>

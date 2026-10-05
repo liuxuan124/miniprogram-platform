@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="92px" size="small" class="warm-discover-props">
+  <el-form label-width="72px" size="small" class="warm-discover-props">
     <el-form-item label="页面标题">
       <el-input :model-value="data.title" placeholder="发现" @input="emit('update', { title: $event })" />
     </el-form-item>

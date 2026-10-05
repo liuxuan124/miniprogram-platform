@@ -39,6 +39,8 @@ export function useWarmHomePreview(
   const warmView = ref<WarmPreviewView>(buildWarmPreviewView(null, { loading: true }))
   const enabled = ref(false)
   let reqSeq = 0
+  /** 首次拉取完成后置 true：后续刷新保留旧数据静默更新，loading 仅表达「初始加载中」 */
+  let readyOnce = false
 
   async function reload() {
     const useWarm = pageUsesWarmNativeBlocks(components.value)
@@ -47,7 +49,9 @@ export function useWarmHomePreview(
     if (!useWarm) return
     const seq = ++reqSeq
     const prev = warmView.value
-    warmView.value = { ...prev, loading: true }
+    if (!readyOnce) {
+      warmView.value = { ...prev, loading: true }
+    }
     try {
       const res = await fetchWarmHomeAggregate()
       if (seq !== reqSeq) return
@@ -55,6 +59,7 @@ export function useWarmHomePreview(
       let view = buildWarmPreviewView(raw as any, { loading: false, loadError: false })
       view = mergeGreetFromBlocks(view, components.value)
       warmView.value = view
+      readyOnce = true
     } catch {
       if (seq !== reqSeq) return
       let view = buildWarmPreviewView(null, { loading: false, loadError: true })
@@ -65,14 +70,22 @@ export function useWarmHomePreview(
       }
       view = mergeGreetFromBlocks(view, components.value)
       warmView.value = view
+      readyOnce = true
     }
   }
 
   let debounceTimer: ReturnType<typeof setTimeout> | undefined
+  /** 首次有效加载（组件已就位）立即拉取，避免预览先闪现默认问候/「快捷入口未配置」再跳变 */
+  let loadedOnce = false
   watch(
     () => [components.value, pagePath.value] as const,
     () => {
       if (debounceTimer) clearTimeout(debounceTimer)
+      if (!loadedOnce && (components.value || []).length > 0) {
+        loadedOnce = true
+        void reload()
+        return
+      }
       debounceTimer = setTimeout(() => { void reload() }, 700)
     },
     { deep: true, immediate: true },

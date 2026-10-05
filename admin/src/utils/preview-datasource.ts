@@ -301,8 +301,10 @@ function mapArticleItems(list: any[], limit: number) {
   const deduped: any[] = []
   for (const item of list || []) {
     const title = String(item?.title || item?.name || '').trim().toLowerCase()
-    const idKey = item?.id != null ? `id:${item.id}` : ''
-    const titleKey = title ? `t:${title}` : ''
+    // 商品与内容 id 空间独立，去重键带来源前缀，避免同号互吞
+    const kind = item?.isProduct === true || item?.productFlag === true ? 'p' : 'c'
+    const idKey = item?.id != null ? `${kind}:id:${item.id}` : ''
+    const titleKey = title ? `${kind}:t:${title}` : ''
     const key = idKey || titleKey || `i:${deduped.length}`
     // 同标题去重（导入脏数据常见）；保留先出现的
     if (titleKey && seen.has(titleKey)) continue
@@ -319,6 +321,31 @@ function mapArticleItems(list: any[], limit: number) {
     const timeSource = published && created && String(published).slice(0, 16) !== String(created).slice(0, 16)
       ? published
       : (created || published)
+    // 混排页签里的商品行：单独归一化，渲染层按 isProduct 出商品卡（价格而非作者/点赞）
+    if (item?.isProduct === true || item?.productFlag === true) {
+      const price = Number(item.price)
+      return {
+        id,
+        title: item.name || item.title || '商品名称',
+        meta: formatPublishDateTime(timeSource),
+        cover: pickProductCoverUrl(item),
+        viewCount: 0,
+        publishedAt: timeSource,
+        link_url: `/pkg-shop/product-detail/product-detail?id=${id}`,
+        categoryId: item.categoryId ?? item.category_id,
+        categoryName: item.categoryName || item.category_name || '',
+        source: '',
+        sourceTag: '',
+        tags: item.tags,
+        contentType: 'product',
+        isProduct: true,
+        images: [],
+        summary: item.summary || item.description || item.desc || '',
+        likeCount: 0,
+        author: '',
+        priceText: Number.isFinite(price) ? `¥${price.toFixed(2)}` : '',
+      }
+    }
     return {
       id,
       title: item.title || item.name || '文章标题',
@@ -332,6 +359,12 @@ function mapArticleItems(list: any[], limit: number) {
       source: item.source || item.categoryName || item.category_name || '',
       sourceTag: item.sourceTag || item.source_tag || '',
       tags: item.tags,
+      // 笔记瀑布流卡片字段透传（类型大Tab/文字卡/点赞依赖）
+      contentType: String(item.contentType || item.content_type || 'article').toLowerCase(),
+      images: Array.isArray(item.images) ? item.images : [],
+      summary: item.summary || item.description || item.desc || '',
+      likeCount: Number(item.likeCount ?? item.like_count ?? 0) || 0,
+      author: item.author || item.authorName || '',
     }
   })
 }
@@ -502,6 +535,92 @@ function resolveManualProductItems(
   return manualProductItems(component, limit)
 }
 
+/**
+ * 笔记瀑布流页签补拉：基础宽取（按最新排序）几乎总是被 article 霸占，
+ * 页签配的 note/moment/product 目标数据一条都取不到 → 预览整块空白。
+ * 这里按每个页签的「内容形式 + 筛选方式」分别补拉，合并后交渲染器客户端过滤。
+ */
+async function fetchNoteFeedTabExtras(component: ComponentInstance, limit: number): Promise<any[]> {
+  const tabs = Array.isArray(component.props?.type_tabs) ? component.props.type_tabs : []
+  const out: any[] = []
+  /** 读页签的内容形式：新结构 content_types 多选；旧结构 content_type 单值 */
+  const readContentTypes = (t: any): string[] => {
+    const raw = Array.isArray(t?.content_types)
+      ? t.content_types.map((v: any) => String(v).trim().toLowerCase()).filter(Boolean)
+      : []
+    if (raw.length) return raw
+    const legacy = String(t?.content_type || '').trim().toLowerCase()
+    return ['note', 'article', 'moment', 'product'].includes(legacy) ? [legacy] : []
+  }
+  /** 读页签的类别：新结构 category_ids 多选；旧结构 category_id 单值 */
+  const readCategoryIds = (t: any): string[] => {
+    const raw = Array.isArray(t?.category_ids) ? t.category_ids : []
+    const legacy = String(t?.category_id ?? t?.categoryId ?? '').trim()
+    return Array.from(new Set([
+      ...raw.map((v: any) => String(v).trim()).filter((v: string) => /^\d+$/.test(v)),
+      ...(legacy && /^\d+$/.test(legacy) ? [legacy] : []),
+    ]))
+  }
+  for (const t of tabs) {
+    const rawMode = String(t?.filter_type || 'all')
+    const mode = (['all', 'category', 'tag', 'ids'] as string[]).includes(rawMode) ? rawMode : 'all'
+    const allTypes = readContentTypes(t)
+    const contentTypes = allTypes.filter((v) => v !== 'product')
+    const wantProduct = allTypes.includes('product')
+    const cids = readCategoryIds(t)
+    const typeParam = contentTypes.length === 1
+      ? { contentType: contentTypes[0] }
+      : (contentTypes.length > 1 ? { contentTypes: contentTypes.join(',') } : {})
+    const scopeParam = mode === 'category' && cids.length === 1
+      ? { categoryId: cids[0] }
+      : (mode === 'category' && cids.length > 1 ? { categoryIds: cids.join(',') } : {})
+    const tagParam = mode === 'tag' && String(t?.tag || '').trim()
+      ? { tag: String(t.tag).trim() }
+      : {}
+    try {
+      if (mode === 'ids') {
+        const ids = Array.isArray(t?.content_ids) ? t.content_ids : []
+        if (ids.length) {
+          const data = await fetchMpData('/api/v1/mp/contents', {
+            current: 1, size: Math.max(ids.length, 1), status: 'published', ids: ids.join(','),
+          })
+          out.push(...pickList(data))
+        }
+        // 指定内容模式无商品语义，不参与混排（与小程序端一致）
+        continue
+      }
+      if (mode === 'category' && !cids.length) continue
+      if (mode === 'tag' && !tagParam.tag) continue
+      // 内容 + 商品两条数据源各自补拉，合并后由渲染器按 is_product 穿插展示
+      const tasks: Promise<any[]>[] = [
+        fetchMpData('/api/v1/mp/contents', {
+          current: 1, size: limit, status: 'published', ...typeParam, ...scopeParam, ...tagParam,
+        }).then(pickList).catch(() => []),
+      ]
+      if (wantProduct) {
+        tasks.push(
+          fetchMpData('/api/v1/mp/products', {
+            current: 1, size: limit, status: 'on_sale',
+            ...(mode === 'category' && cids.length ? { categoryId: cids[0] } : {}),
+          })
+            // 打来源标记：商品与内容 id 空间独立，且归一化时要分流成商品卡
+            .then((data) => pickList(data).map((row: any) => ({ ...row, isProduct: true })))
+            .catch(() => []),
+        )
+      }
+      const merged = await Promise.all(tasks)
+      for (const rows of merged) {
+        for (const row of rows) {
+          if (row && row.id != null) out.push(row)
+        }
+      }
+    } catch {
+      // 单个页签补拉失败不阻塞整体预览
+    }
+  }
+  return out
+}
+
 async function hydrateComponent(
   component: ComponentInstance,
   warnings: string[],
@@ -602,7 +721,7 @@ async function hydrateComponent(
   const dataSource = resolveDataSource(component)
   if (!dataSource) return component
 
-  const limit = component.type === 'article_feed'
+  const limit = component.type === 'article_feed' || component.type === 'note_feed'
     ? Math.max(Number(component.props?.page_size || 10), 1)
     : Math.max(Number(component.props?.limit || 6), 1)
   const isProductStream = component.type === 'product_list' && component.props?.display_mode === 'stream'
@@ -614,11 +733,16 @@ async function hydrateComponent(
     ? Math.max(productIds.length, Array.isArray(component.props?.items) ? component.props.items.length : 0, 50)
     : (isProductStream ? streamPageSize : limit)
   const tabsOn = component.type === 'article_feed' && component.props?.show_category_tabs === true
+  // 笔记瀑布流：只要存在任何页签（哪怕只有 1 个）就要走补拉，
+  // 否则基础宽取按最新排序会被 article 霸占，页签配的 note/moment/product 一条都取不到
+  const noteFeedHasTabs = Array.isArray(component.props?.type_tabs) && component.props.type_tabs.length > 0
+  const noteFeedWide = component.type === 'note_feed'
+    && (component.props?.show_category_tabs === true || noteFeedHasTabs)
   const priceFilter = resolvePriceFilterConfig(component.props)
   const fetchLimit = capPageSize(
     component.type === 'hot_news'
       ? Math.max(limit, 12)
-      : tabsOn
+      : (tabsOn || noteFeedWide)
         ? Math.max(limit, 20)
         : (productIds.length ? Math.max(limit, productIds.length, 20) : (component.type === 'article_feed' ? Math.max(limit, 12) : limit)),
   )
@@ -646,6 +770,20 @@ async function hydrateComponent(
     const list = await fetchDataSourceList({ ...dataSource, params }, capPageSize(
       component.type === 'product_list' ? productFetchLimit : fetchLimit,
     ))
+    if (component.type === 'note_feed' && noteFeedWide) {
+      const extras = await fetchNoteFeedTabExtras(component, fetchLimit)
+      if (extras.length) {
+        // 内容与商品 id 空间独立（都是自增数字），去重键必须带来源前缀，否则商品会被内容同号项吞掉
+        const rowKey = (r: any) => `${r?.isProduct === true || r?.productFlag === true ? 'p' : 'c'}:${r?.id}`
+        const seen = new Set(list.map((r: any) => rowKey(r)))
+        for (const row of extras) {
+          if (row && row.id != null && !seen.has(rowKey(row))) {
+            seen.add(rowKey(row))
+            list.push(row)
+          }
+        }
+      }
+    }
     if (!list.length) {
       if (component.type === 'product_list') {
         const items = isManualProduct
@@ -689,6 +827,43 @@ async function hydrateComponent(
         ? Math.max(Number(component.props?.page_size || 10), 1)
         : limit
       const storeLimit = tabsOn ? Math.min(list.length, fetchLimit) : itemLimit
+      return {
+        ...component,
+        props: {
+          ...component.props,
+          items: mapArticleItems(list, storeLimit),
+          _previewDataFailed: false,
+        },
+      }
+    }
+
+    if (component.type === 'note_feed') {
+      if (noteFeedWide) {
+        // 补拉的数据追加在基础池之后，若不按时间重排再截断，
+        // 排在后面的 note/moment/product 会被 storeLimit 整段切掉（表现为「选了没内容」）
+        const sortKey = String(
+          (Array.isArray(component.props?.type_tabs) && component.props.type_tabs[0]?.sort) || 'new',
+        )
+        const dir = sortKey === 'oldest' ? 1 : -1
+        const tsOf = (r: any) => {
+          const raw = r?.publishedAt || r?.publishTime || r?.publish_time
+            || r?.createdAt || r?.created_at || r?.createTime || r?.created_time || ''
+          const t = new Date(String(raw).replace(/-/g, '/')).getTime()
+          return Number.isFinite(t) ? t : 0
+        }
+        list.sort((a: any, b: any) => {
+          const ta = tsOf(a)
+          const tb = tsOf(b)
+          if (!ta && !tb) return 0
+          if (!ta) return 1
+          if (!tb) return -1
+          return ta < tb ? -dir : dir
+        })
+      }
+      // 宽取后交给渲染器按类型/分类客户端过滤；池子要给够，否则补拉项被截断
+      const storeLimit = noteFeedWide
+        ? capPageSize(Math.max(list.length, fetchLimit, 60))
+        : Math.max(Number(component.props?.page_size || 10), 1)
       return {
         ...component,
         props: {

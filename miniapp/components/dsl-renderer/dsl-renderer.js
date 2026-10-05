@@ -2,6 +2,8 @@
 // 接收组件 DSL 数据，根据 type 分发到对应的子组件进行渲染
 const { executeAction, isImageUrl, navigatePage, parseStyle, appendNavStackStyle } = require('../../utils/render')
 const { resolveNavIconUrl } = require('../../utils/nav-icon-url')
+const { normalizeWarm, isWarmType, fmtTime } = require('../../utils/warm-kit')
+const { resolveMediaUrl } = require('../../utils/media-url')
 
 /** 预处理 items，标记 icon 是否为真实图片 URL */
 function processIconItems(items) {
@@ -23,6 +25,12 @@ function buildTextStyle(fontSize, color) {
   return parts.join(';')
 }
 
+/** px → rpx 数值（吸顶内边距补齐用） */
+function rpxOf(px) {
+  const n = Number(px)
+  return Number.isFinite(n) ? n * 2 : 0
+}
+
 Component({
   properties: {
     /** 组件 DSL 数据 */
@@ -35,6 +43,31 @@ Component({
   data: {
     /** 处理后的组件数据 */
     comp: null,
+    /** FAQ 手风琴展开项下标，-1 = 全闭合（需求指定的状态字段） */
+    faqOpenIndex: -1,
+    /** 多开模式下的展开项全集；accordionMode 时长度 ≤ 1 */
+    faqOpenList: [],
+    /** 筛选芯片当前选中下标，-1 = 「全部」 */
+    chipActiveIndex: -1,
+    /** 半露横滑当前页 */
+    peekActiveIndex: 0,
+    /** 半露横滑 scroll-into-view 目标 id（点圆点滚动用） */
+    peekScrollInto: '',
+    /** 挑战营「今日是否已打卡」交互态 */
+    chalCheckedToday: false,
+    /** 吸顶容器是否已切 fixed */
+    stickyOn: false,
+    /** 吸顶占位块高度（px），吸顶前实测 */
+    stickyPlaceholderH: 0,
+    /** 音频条播放态 */
+    audioPlaying: false,
+    audioCurrent: 0,
+    audioDuration: 0,
+    audioSpeed: 1,
+    audioPercent: 0,
+    /** 已格式化的时间文本（mm:ss），wxml 直接渲染 */
+    audioCurText: '0:00',
+    audioDurText: '0:00',
   },
 
   observers: {
@@ -49,6 +82,16 @@ Component({
       if (this.data.component) {
         this._processComponent(this.data.component)
       }
+    },
+    detached() {
+      this._destroyWarmAudio()
+      this._stickyObserver = null
+    },
+  },
+
+  pageLifetimes: {
+    show() {
+      this._ensureStickyObserver()
     },
   },
 
@@ -327,6 +370,41 @@ Component({
         }
       }
 
+      // 暖调装修器 22 个新组件：字段兜底 + 派生字段全部交给 utils/warm-kit
+      // 非暖调 type 原样穿透，不干扰既有 40+ 组件
+      if (isWarmType(type)) {
+        Object.assign(props, normalizeWarm(type, props))
+        // 暖调组件的根卡片不吃外层 style 的背景/圆角（背景由 _bg 统一给）
+        // 只保留外边距，避免运营设的底色把纸感卡片压掉
+        const warmShell = { ...(component.style || {}) }
+        delete warmShell.background_color
+        delete warmShell.border_radius
+        component.style = warmShell
+        component.styleString = parseStyle(warmShell)
+
+        if (type === 'layout_sticky_wrapper') {
+          // position:fixed 会脱离文档流、左右撑满视口，把外壳左右外边距补成内边距，
+          // 否则吸顶后卡片比吸顶前宽出一截
+          const ml = Number(warmShell.margin_left) || 0
+          const mr = Number(warmShell.margin_right) || 0
+          props._fixPadStyle = 'padding-left:' + rpxOf(ml) + 'rpx;padding-right:' + rpxOf(mr) + 'rpx'
+          props._fixTop = props._top
+          props._fixZ = props._z
+        }
+        if (type === 'layout_flexible_grid') {
+          // 比例栅格：把 children 按位置塞进对应格子，多出来的并入最后一格
+          const cells = Array.isArray(props._cells) ? props._cells : []
+          const kids = Array.isArray(component.children) ? component.children : []
+          cells.forEach((c, i) => {
+            c.children = i < kids.length ? [kids[i]] : []
+          })
+          if (kids.length > cells.length && cells.length) {
+            cells[cells.length - 1].children = kids.slice(cells.length - 1)
+          }
+          props._cells = cells
+        }
+      }
+
       return {
         ...component,
         props,
@@ -358,6 +436,54 @@ Component({
           runtimeData: normalized.runtimeData || [],
         },
       })
+      this._syncWarmState(normalized)
+      if (normalized.type === 'layout_sticky_wrapper') {
+        // 等 DOM 落地后再挂观察者
+        this._stickyObserver = null
+        setTimeout(() => this._ensureStickyObserver(), 0)
+      }
+    },
+
+    /**
+     * 暖调组件的交互态按 type 初始化。
+     * 组件复用（同一 dsl-renderer 实例渲染不同 type）时必须重置，
+     * 否则 FAQ 展开态会串到别的组件上。
+     */
+    _syncWarmState(normalized) {
+      if (!isWarmType(normalized.type)) return
+      const p = normalized.props || {}
+      const patch = {}
+      if (normalized.type === 'content_faq_accordion') {
+        const d = p._defaultOpen
+        patch.faqOpenIndex = d
+        patch.faqOpenList = d >= 0 ? [d] : []
+      }
+      if (normalized.type === 'h_filter_chips') {
+        const n = Number(p.activeIndex)
+        patch.chipActiveIndex = Number.isFinite(n) && n >= -1 ? Math.trunc(n) : 0
+      }
+      if (normalized.type === 'h_peek_carousel') {
+        patch.peekActiveIndex = 0
+        patch.peekScrollInto = ''
+      }
+      if (normalized.type === 'planet_challenge_card') {
+        patch.chalCheckedToday = false
+      }
+      if (normalized.type === 'layout_sticky_wrapper') {
+        patch.stickyOn = false
+        patch.stickyPlaceholderH = 0
+      }
+      if (normalized.type === 'content_mini_audio') {
+        patch.audioPlaying = false
+        patch.audioCurrent = 0
+        patch.audioDuration = p._duration || 0
+        patch.audioSpeed = p._speed || 1
+        patch.audioPercent = 0
+        patch.audioCurText = '0:00'
+        patch.audioDurText = fmtTime(p._duration || 0)
+        this._destroyWarmAudio()
+      }
+      if (Object.keys(patch).length) this.setData(patch)
     },
 
     /** 组件事件冒泡 */
@@ -371,6 +497,284 @@ Component({
       if (action) {
         executeAction(action)
       }
+    },
+
+    /* ================================================================
+     * 暖调 22 组件的交互方法
+     * 所有可点区域在 wxml 里用 catchtap，避免冒泡到导航拦截
+     * ================================================================ */
+
+    /* ---------- content_faq_accordion 手风琴 ----------
+     * 动效：wxss 里直接切 height/opacity（小程序对 grid-template-rows 0fr 支持不稳）
+     * 状态：faqOpenIndex 为「当前展开项」，-1 = 全闭合（需求指定字段）；
+     *      多开模式（accordionMode=false）用 faqOpenList 承载全集，
+     *      faqOpenIndex 始终指向其中最后一项，wxml 以 faqOpenList 判定展开。 */
+    onWarmFaqToggle(e) {
+      const i = Number(e.currentTarget.dataset.i)
+      if (!Number.isFinite(i)) return
+      const p = (this.data.comp && this.data.comp.props) || {}
+      const list = Array.isArray(this.data.faqOpenList) ? this.data.faqOpenList.slice() : []
+      const at = list.indexOf(i)
+      if (p.accordionMode) {
+        // 手风琴模式：只留一项
+        this.setData({ faqOpenList: at >= 0 ? [] : [i], faqOpenIndex: at >= 0 ? -1 : i })
+        return
+      }
+      if (at >= 0) list.splice(at, 1)
+      else list.push(i)
+      list.sort((a, b) => a - b)
+      this.setData({ faqOpenList: list, faqOpenIndex: list.length ? list[list.length - 1] : -1 })
+    },
+
+    onWarmFaqToggleAll() {
+      const p = (this.data.comp && this.data.comp.props) || {}
+      const items = Array.isArray(p._items) ? p._items : []
+      if (!items.length) return
+      const all = Array.isArray(this.data.faqOpenList) ? this.data.faqOpenList : []
+      if (all.length >= items.length) {
+        this.setData({ faqOpenList: [], faqOpenIndex: -1 })
+        return
+      }
+      const next = items.map((it, i) => i)
+      this.setData({ faqOpenList: next, faqOpenIndex: next[next.length - 1] })
+    },
+
+    /* ---------- h_filter_chips 筛选芯片 ---------- */
+    onWarmChipSelect(e) {
+      const i = Number(e.currentTarget.dataset.i)
+      if (!Number.isFinite(i)) return
+      this.setData({ chipActiveIndex: i })
+    },
+
+    /* ---------- h_peek_carousel 半露横滑 ---------- */
+    onWarmPeekScroll(e) {
+      const p = (this.data.comp && this.data.comp.props) || {}
+      const cards = Array.isArray(p._items) ? p._items : []
+      if (!cards.length) return
+      // scrollLeft 单位是 px，步长 = 卡宽(px) + 间距(px)，由归一化层算好
+      const step = Number(p._cardStep) || 0
+      if (step <= 0) return
+      const idx = Math.round((Number(e.detail && e.detail.scrollLeft) || 0) / step)
+      const next = Math.min(cards.length - 1, Math.max(0, idx))
+      if (next !== this.data.peekActiveIndex) {
+        this.setData({ peekActiveIndex: next, peekScrollInto: '' })
+      }
+    },
+
+    /** 点击圆点：靠 scroll-into-view 滚到对应卡片（小程序 scroll-view 不支持 scrollTo） */
+    onWarmPeekDot(e) {
+      const i = Number(e.currentTarget.dataset.i)
+      const id = e.currentTarget.dataset.id
+      if (!Number.isFinite(i)) return
+      // 先清空再赋值，保证连续点同一个圆点也能重新触发滚动
+      this.setData({ peekActiveIndex: i, peekScrollInto: '' }, () => {
+        if (id) this.setData({ peekScrollInto: id })
+      })
+    },
+
+    /* ---------- planet_challenge_card 打卡 ---------- */
+    onWarmChallengeToggle() {
+      const next = !this.data.chalCheckedToday
+      this.setData({ chalCheckedToday: next })
+      wx.showToast({ title: next ? '打卡成功' : '已取消打卡', icon: 'none' })
+    },
+
+    /* ---------- op_smart_group_card 复制客服微信 ---------- */
+    onWarmCopyWechat() {
+      const p = (this.data.comp && this.data.comp.props) || {}
+      const wxid = p.fallbackWechat || ''
+      if (!wxid) {
+        wx.showToast({ title: '暂未配置客服微信', icon: 'none' })
+        return
+      }
+      wx.setClipboardData({
+        data: wxid,
+        success: () => wx.showToast({ title: '微信号已复制', icon: 'none' }),
+        fail: () => wx.showToast({ title: '复制失败', icon: 'none' }),
+      })
+    },
+
+    /* ---------- op_gated_download_card 门控下载 ---------- */
+    onWarmGateInput(e) {
+      const field = e.currentTarget.dataset.field || ''
+      if (!field) return
+      this._gateLead = this._gateLead || {}
+      this._gateLead[field] = e.detail.value
+    },
+
+    onWarmGateSubmit() {
+      const p = (this.data.comp && this.data.comp.props) || {}
+      const lead = this._gateLead || {}
+      if (p._isLead) {
+        if (p._showName && !String(lead.name || '').trim()) {
+          wx.showToast({ title: '请填写姓名', icon: 'none' })
+          return
+        }
+        if (!/^1\d{10}$/.test(String(lead.phone || '').trim())) {
+          wx.showToast({ title: '请填写正确手机号', icon: 'none' })
+          return
+        }
+      }
+      wx.showToast({ title: '已解锁，正在跳转', icon: 'none' })
+    },
+
+    /* ---------- content_mini_audio 音频条 ----------
+     * 用 wx.createInnerAudioContext（参考 components/dsl-audio），
+     * 比 <audio> 组件好控：倍速走 playbackRate，进度走 onTimeUpdate */
+    _ensureWarmAudio() {
+      if (this._warmAudio) return this._warmAudio
+      const p = (this.data.comp && this.data.comp.props) || {}
+      const src = resolveMediaUrl(p.audioUrl || '')
+      const audio = wx.createInnerAudioContext()
+      this._warmAudio = audio
+      this._warmAudioTotal = p._duration || 0
+
+      audio.onTimeUpdate(() => {
+        const cur = audio.currentTime || 0
+        // 真实 duration 优先；拿不到时回落到运营配置的 duration
+        const dur = audio.duration || this._warmAudioTotal || 0
+        const percent = dur > 0 ? Math.min(100, Math.max(0, (cur / dur) * 100)) : 0
+        this.setData({
+          audioPlaying: true,
+          audioCurrent: cur,
+          audioDuration: dur,
+          audioPercent: percent,
+          audioCurText: fmtTime(cur),
+          audioDurText: fmtTime(dur),
+        })
+      })
+      audio.onPlay(() => this.setData({ audioPlaying: true }))
+      audio.onPause(() => this.setData({ audioPlaying: false }))
+      audio.onStop(() => this.setData({ audioPlaying: false }))
+      audio.onEnded(() => {
+        this.setData({ audioPlaying: false, audioCurrent: 0, audioPercent: 0, audioCurText: '0:00' })
+      })
+      audio.onError(() => {
+        this.setData({ audioPlaying: false })
+        wx.showToast({ title: '音频加载失败', icon: 'none' })
+      })
+      if (src) audio.src = src
+      return audio
+    },
+
+    _destroyWarmAudio() {
+      if (this._warmAudio) {
+        try { this._warmAudio.destroy() } catch (e) { /* ignore */ }
+        this._warmAudio = null
+      }
+    },
+
+    onWarmAudioToggle() {
+      const p = (this.data.comp && this.data.comp.props) || {}
+      if (!p.audioUrl) {
+        wx.showToast({ title: '暂未配置音频地址', icon: 'none' })
+        return
+      }
+      const audio = this._ensureWarmAudio()
+      if (this.data.audioPlaying) {
+        audio.pause()
+      } else {
+        const dur = this.data.audioDuration || p._duration || 0
+        if (dur > 0 && this.data.audioCurrent >= dur) audio.seek(0)
+        audio.playbackRate = Number(this.data.audioSpeed) || 1
+        audio.play()
+      }
+    },
+
+    /** 倍速循环：0.75 → 1 → 1.25 → 1.5 → 2 → 0.75 */
+    onWarmAudioSpeed() {
+      const p = (this.data.comp && this.data.comp.props) || {}
+      const list = Array.isArray(p._speeds) && p._speeds.length ? p._speeds : [1]
+      const cur = Number(this.data.audioSpeed) || 1
+      const i = list.indexOf(cur)
+      const next = list[(i + 1) % list.length]
+      this.setData({ audioSpeed: next })
+      if (this._warmAudio) {
+        try { this._warmAudio.playbackRate = next } catch (e) { /* ignore */ }
+      }
+    },
+
+    /** 进度条点击 seek：用 catchtap 的 clientX 换算比例 */
+    onWarmAudioSeek(e) {
+      const p = (this.data.comp && this.data.comp.props) || {}
+      if (!p.audioUrl) {
+        wx.showToast({ title: '暂未配置音频地址', icon: 'none' })
+        return
+      }
+      const audio = this._ensureWarmAudio()
+      const dur = this.data.audioDuration || p._duration || 0
+      if (dur <= 0) return
+      const touch = (e.detail && e.detail.x !== undefined)
+        ? { x: e.detail.x }
+        : (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || null
+      if (!touch) return
+      // 组件内相对坐标 → 视口坐标：借 _trackRect 缓存的轨道位置换算
+      const rect = this._trackRect
+      const trackW = rect && rect.width ? rect.width : 0
+      const localX = touch.clientX !== undefined && rect ? touch.clientX - rect.left : touch.x
+      if (!trackW || localX === undefined) return
+      const ratio = Math.min(1, Math.max(0, localX / trackW))
+      const target = Math.round(ratio * dur)
+      try { audio.seek(target) } catch (err) { /* ignore */ }
+      this.setData({
+        audioCurrent: target,
+        audioPercent: ratio * 100,
+        audioCurText: fmtTime(target),
+      })
+    },
+
+    /** 记录进度条位置，供 seek 换算（bindtouchstart 时调用） */
+    onWarmAudioTrackStart() {
+      const q = wx.createSelectorQuery().in(this)
+      q.select('.wk-audio__track')
+        .boundingClientRect((rect) => {
+          this._trackRect = rect || null
+        })
+        .exec()
+    },
+
+    /* ---------- layout_sticky_wrapper 吸顶 ----------
+     * ⚠️ 小程序不支持 CSS position:sticky（基础库 2.10 以下完全不支持）。
+     * 方案：用 IntersectionObserver 观测组件内一个 1rpx 哨兵，
+     * 哨兵随页面滚出视口上边界时（本组件即到达阈值）切 position:fixed，
+     * 同时保留等高占位块，避免下方内容跳位。
+     * 限制：占位块高度取「吸顶前实测高度」，若容器内子组件在吸顶后
+     * 改变高度（如音频条加载后换行），占位不会跟着变，需要重新进入非吸顶态才刷新。 */
+    _ensureStickyObserver() {
+      if (this._stickyObserver) return
+      const comp = this.data.comp
+      if (!comp || comp.type !== 'layout_sticky_wrapper' || !comp.props.enabled) return
+      try {
+        const observer = this.createIntersectionObserver({ thresholds: [0, 0.01, 0.5, 1] })
+        observer.relativeToViewport({ top: -(comp.props.stickyTop || 0) }).observe('.wk-stick__sentinel', (res) => {
+          const on = !(res.intersectionRatio > 0)
+          if (on !== this.data.stickyOn) {
+            if (on) this._measureStickyHeight()
+            this.setData({ stickyOn: on })
+          }
+        })
+        this._stickyObserver = observer
+      } catch (err) {
+        // 基础库不支持 IntersectionObserver 时降级为静态容器，不做吸顶
+        console.warn('[WarmKit] sticky IntersectionObserver 不可用，降级为静态:', err)
+        this._stickyObserver = null
+      }
+    },
+
+    /** 吸顶前实测容器高度，吸顶后作为占位块高度 */
+    _measureStickyHeight() {
+      wx.createSelectorQuery().in(this)
+        .select('.wk-stick__inner')
+        .boundingClientRect((rect) => {
+          const h = rect && rect.height ? rect.height : 0
+          if (h > 0) this.setData({ stickyPlaceholderH: h })
+        })
+        .exec()
+    },
+
+    /** 页面滚动时刷新吸顶态（宿主页面 onPageScroll 可 dispatch 进来，也可由 observer 自动驱动） */
+    onWarmStickyScroll() {
+      this._ensureStickyObserver()
     },
 
     onQuickNavigate(e) {

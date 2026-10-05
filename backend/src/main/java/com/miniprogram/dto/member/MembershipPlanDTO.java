@@ -48,4 +48,10 @@ public class MembershipPlanDTO {
 
     @Schema(description = "状态: 1=启用, 0=禁用")
     private Integer status;
+
+    @Schema(description = "通票适用范围: single_planet(仅本星球) | multi_planet(多星球) | all_planets(全部星球)；仅 scope=planet 有效，默认 single_planet")
+    private String appliesTo;
+
+    @Schema(description = "通票覆盖的星球ID列表；appliesTo=multi_planet 时必填")
+    private List<String> appliesPlanets;
 }

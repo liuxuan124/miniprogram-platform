@@ -1,6 +1,6 @@
 <template>
   <div class="divider-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="线型">
         <el-select :model-value="data.style_type" @change="emit('update', { style_type: $event as string })" style="width: 100%">
           <el-option label="实线" value="solid" />

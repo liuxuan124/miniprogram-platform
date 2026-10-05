@@ -18,12 +18,12 @@
 
     <view class="delivery-card" wx:if="{{deliveryCard}}">
       <view class="delivery-card__head">
-        <text class="delivery-card__title">自动发货</text>
+        <text class="delivery-card__title">{{deliveryCard.isManualGuide ? '开通指引' : '自动发货'}}</text>
         <text class="delivery-card__copy" wx:if="{{deliveryCard.content}}" bindtap="onCopyDelivery">复制内容</text>
       </view>
       <view class="delivery-card__name">{{deliveryCard.name}}</view>
       <view class="delivery-card__body" wx:if="{{deliveryCard.content}}">{{deliveryCard.content}}</view>
-      <view class="delivery-card__body" wx:else>支付已完成，可在下方直接咨询发货问题。</view>
+      <view class="delivery-card__body" wx:else>{{deliveryCard.isManualGuide ? '支付已完成，开通指引稍后由客服发送给你。' : '支付已完成，可在下方直接咨询发货问题。'}}</view>
     </view>
 
     <block wx:for="{{messages}}" wx:key="id">

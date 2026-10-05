@@ -4,10 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniprogram.dto.home.WarmHomeVO;
+import com.miniprogram.dto.planet.MainPlanetVO;
+import com.miniprogram.dto.planet.PlanetCommunityVO;
 import com.miniprogram.entity.Content;
 import com.miniprogram.entity.Product;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.mapper.ProductMapper;
+import com.miniprogram.service.MembershipAccessService;
 import com.miniprogram.service.PlanetStatsService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.WarmHomeService;
@@ -24,6 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -37,10 +41,11 @@ public class WarmHomeServiceImpl implements WarmHomeService {
     private final ContentMapper contentMapper;
     private final ProductMapper productMapper;
     private final PlanetStatsService planetStatsService;
+    private final MembershipAccessService membershipAccessService;
     private final ObjectMapper objectMapper;
 
     @Override
-    public WarmHomeVO getWarmHome() {
+    public WarmHomeVO getWarmHome(Long userId) {
         Map<String, Object> cfg = readConfig();
         WarmHomeVO vo = new WarmHomeVO();
         vo.setGreetTemplate(str(cfg.get("greetTemplate"), "你好"));
@@ -49,7 +54,7 @@ public class WarmHomeServiceImpl implements WarmHomeService {
         vo.setNavs(asMapList(cfg.get("navs")));
         vo.setAuthors(asMapList(cfg.get("authors")));
         vo.setSegs(asMapList(cfg.get("segs")));
-        vo.setPlanet(buildPlanet(cfg.get("planet")));
+        fillPlanets(vo, userId, cfg.get("planet"));
         vo.setVipBar(buildVipBar(cfg.get("vipBar")));
 
         Long featureId = asLong(cfg.get("featureContentId"));
@@ -138,33 +143,131 @@ public class WarmHomeServiceImpl implements WarmHomeService {
         return vo;
     }
 
-    private WarmHomeVO.PlanetBrief buildPlanet(Object raw) {
+    /**
+     * 组装星球区。
+     *
+     * 规则（2026-10-04 多星球推荐改造）：
+     * 1. 用户已主动 setMainPlanet（user.main_planet_id 有效）→ primaryOnly=true，
+     *    planets 只含主星球，首页星球区只展示它；
+     * 2. 未设置或未登录 → primaryOnly=false，planets = 全部启用中的星球（按 sortOrder），
+     *    小程序端横滑渲染多卡；primaryPlanetId 仍给出配置 primary 供标记「主」角标。
+     * 单星球字段 planet 始终保留为 primaryPlanetId 对应那张卡（兼容旧小程序端）。
+     */
+    private void fillPlanets(WarmHomeVO vo, Long userId, Object raw) {
         Map<String, Object> warmPlanet = raw instanceof Map<?, ?>
                 ? castMap(raw)
                 : new LinkedHashMap<>();
         Map<String, Object> planetCfg = readPlanetConfig();
         Map<String, Object> ops = castMap(planetCfg.get("ops"));
+        List<PlanetCommunityVO> communities = safeListCommunities(userId);
+        String configPrimary = membershipAccessService.resolveDefaultPlanetId();
 
+        MainPlanetVO main = null;
+        if (userId != null) {
+            try {
+                main = membershipAccessService.resolveMainPlanet(userId);
+            } catch (Exception e) {
+                log.warn("resolveMainPlanet 失败 userId={}: {}", userId, e.getMessage());
+            }
+        }
+        String primaryId = main != null && StringUtils.hasText(main.getPlanetId())
+                ? main.getPlanetId()
+                : configPrimary;
+        boolean userSetMain = main != null && Boolean.TRUE.equals(main.getUserSet());
+        vo.setPrimaryPlanetId(primaryId);
+        vo.setPrimaryOnly(userSetMain);
+
+        List<PlanetCommunityVO> targets = communities;
+        if (userSetMain) {
+            targets = communities.stream()
+                    .filter(c -> primaryId.equals(c.getId()))
+                    .collect(Collectors.toList());
+            // 主星球被停用/配置丢失时兜底回全部，避免首页星球区直接空掉
+            if (targets.isEmpty()) {
+                targets = communities;
+            }
+        }
+
+        String defaultPoolId = StringUtils.hasText(configPrimary) ? configPrimary : primaryId;
+        String cfgTitle = str(planetCfg.get("title"), "");
+        List<WarmHomeVO.PlanetBrief> briefs = new ArrayList<>();
+        for (PlanetCommunityVO c : targets) {
+            briefs.add(buildPlanet(warmPlanet, ops, cfgTitle, c, defaultPoolId, primaryId.equals(c.getId())));
+        }
+        vo.setPlanets(briefs);
+
+        // 旧字段：始终给 primary 星球，兼容只读 planet 的旧端
+        vo.setPlanet(briefs.stream()
+                .filter(b -> primaryId.equals(b.getPlanetId()))
+                .findFirst()
+                .orElse(briefs.isEmpty() ? buildPlanet(warmPlanet, ops, cfgTitle, null, defaultPoolId, true)
+                        : briefs.get(0)));
+    }
+
+    private List<PlanetCommunityVO> safeListCommunities(Long userId) {
+        try {
+            List<PlanetCommunityVO> list = membershipAccessService.listCommunities(userId);
+            return list == null ? new ArrayList<>() : list;
+        } catch (Exception e) {
+            log.warn("listCommunities 失败: {}", e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * 单张星球卡。community 为 null 时退化为「无社区配置」的裸卡（保持旧 warm_planet 行为）。
+     */
+    private WarmHomeVO.PlanetBrief buildPlanet(Map<String, Object> warmPlanet,
+                Map<String, Object> ops,
+                                              String cfgTitle,
+                                              PlanetCommunityVO community,
+                                              String defaultPoolId,
+                                              boolean isPrimary) {
         WarmHomeVO.PlanetBrief brief = new WarmHomeVO.PlanetBrief();
-        String title = firstNonBlank(
-                str(ops.get("homeCardTitle"), ""),
-                str(warmPlanet.get("title"), ""),
-                str(planetCfg.get("title"), ""),
-                "暖阁星球");
+        String planetId = community != null && StringUtils.hasText(community.getId())
+                ? community.getId()
+                : firstNonBlank(str(warmPlanet.get("planetId"), ""), defaultPoolId, "warm-main");
+        brief.setPlanetId(planetId);
+        brief.setPrimary(isPrimary);
+
+        String title = community != null && StringUtils.hasText(community.getTitle())
+                ? community.getTitle()
+                : firstNonBlank(
+                        str(ops.get("homeCardTitle"), ""),
+                        str(warmPlanet.get("title"), ""),
+                        cfgTitle,
+                        "暖阁星球");
         brief.setTitle(title);
+
+        if (community != null) {
+            brief.setEmoji(str(community.getEmoji(), "🪐"));
+            brief.setCover(community.getCover() == null ? "" : community.getCover());
+            brief.setSubtitle(community.getSubtitle() == null ? "" : community.getSubtitle());
+            brief.setJoined(community.getJoined());
+            brief.setIntroUrl(StringUtils.hasText(community.getIntroUrl())
+                    ? community.getIntroUrl()
+                    : "/pages/planet-intro/planet-intro?planetId=" + planetId);
+            brief.setFeedUrl(StringUtils.hasText(community.getFeedUrl())
+                    ? community.getFeedUrl()
+                    : "/pages/planet-feed/planet-feed?planetId=" + planetId);
+        } else {
+            brief.setEmoji("🪐");
+            brief.setIntroUrl("/pages/planet-intro/planet-intro?planetId=" + planetId);
+            brief.setFeedUrl("/pages/planet-feed/planet-feed?planetId=" + planetId);
+        }
 
         boolean membersAuto = isAuto(ops.get("membersMode"));
         long membersN = membersAuto
                 ? planetStatsService.countActiveMembers()
                 : parseCount(ops.get("kpiMembers"), warmPlanet.get("members"));
-        brief.setMembers(planetStatsService.applyTemplate(
-                str(ops.get("membersTemplate"), ""),
-                membersN,
-                "{n} 位球友"));
+        String membersLabel = community != null && StringUtils.hasText(community.getMembersLabel())
+                ? community.getMembersLabel()
+                : planetStatsService.applyTemplate(str(ops.get("membersTemplate"), ""), membersN, "{n} 位球友");
+        brief.setMembers(membersLabel);
 
         boolean todayAuto = isAuto(ops.get("todayMode"));
         long todayN = todayAuto
-                ? planetStatsService.countTodayPlanetPosts()
+                ? planetStatsService.countTodayPlanetPosts(planetId, defaultPoolId)
                 : parseCount(firstNonBlank(str(ops.get("kpiTodayFeed"), ""), str(ops.get("kpiQuestions"), "")),
                 warmPlanet.get("cta"));
         brief.setCta(planetStatsService.applyTemplate(
@@ -174,7 +277,8 @@ public class WarmHomeServiceImpl implements WarmHomeService {
 
         boolean itemsAuto = isAuto(ops.get("itemsMode"));
         if (itemsAuto) {
-            brief.setItems(planetStatsService.pickHomeTopicItems());
+            // 多星球必须按 planetId 分池，否则每张卡都显示同一批全站内容
+            brief.setItems(planetStatsService.pickHomeTopicItems(planetId, defaultPoolId));
         } else {
             List<Map<String, Object>> fixed = asMapList(ops.get("homeItems"));
             if (fixed.isEmpty()) {

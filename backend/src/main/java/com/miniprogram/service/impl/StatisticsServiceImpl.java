@@ -12,6 +12,7 @@ import com.miniprogram.entity.Page;
 import com.miniprogram.entity.PageAccessLog;
 import com.miniprogram.entity.Product;
 import com.miniprogram.entity.Refund;
+import com.miniprogram.entity.RuntimeEvent;
 import com.miniprogram.entity.StatisticsDaily;
 import com.miniprogram.entity.User;
 import com.miniprogram.mapper.AppointmentMapper;
@@ -22,6 +23,7 @@ import com.miniprogram.mapper.PageAccessLogMapper;
 import com.miniprogram.mapper.PageMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.mapper.RefundMapper;
+import com.miniprogram.mapper.RuntimeEventMapper;
 import com.miniprogram.mapper.StatisticsDailyMapper;
 import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.service.StatisticsService;
@@ -63,11 +65,13 @@ public class StatisticsServiceImpl implements StatisticsService {
     private final PageMapper pageMapper;
     private final AppointmentMapper appointmentMapper;
     private final FormDataMapper formDataMapper;
+    private final RuntimeEventMapper runtimeEventMapper;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final String[] WEEK_LABELS = {"周一", "周二", "周三", "周四", "周五", "周六", "周日"};
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final DateTimeFormatter DATETIME_PATTERN = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public DashboardVO getDashboard() {
@@ -396,6 +400,126 @@ public class StatisticsServiceImpl implements StatisticsService {
         } catch (Exception e) {
             log.error("页面访问日志写入失败: pagePath={}, userId={}", reportDTO.getPagePath(), userId, e);
         }
+    }
+
+    @Override
+    @Async
+    public void reportRuntimeEvent(Long userId, RuntimeEventReportDTO reportDTO) {
+        try {
+            RuntimeEvent event = new RuntimeEvent();
+            event.setUserId(userId);
+            event.setSessionId(trimToNull(reportDTO.getSessionId(), 64));
+            event.setPagePath(reportDTO.getPagePath());
+            event.setEventType(reportDTO.getEventType());
+            // 错误摘要截断：前端可能整段抛堆栈进来，不截会把 varchar 撑爆
+            event.setErrorMessage(trimToNull(reportDTO.getErrorMessage(), 500));
+            event.setFromRoute(trimToNull(reportDTO.getFromRoute(), 255));
+            event.setToRoute(trimToNull(reportDTO.getToRoute(), 255));
+            runtimeEventMapper.insert(event);
+        } catch (Exception e) {
+            // 上报失败绝不能影响小程序业务，静默吞掉即可
+            log.warn("运行事件写入失败: type={}, path={}", reportDTO.getEventType(), reportDTO.getPagePath(), e);
+        }
+    }
+
+    private static String trimToNull(String value, int max) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        String s = value.trim();
+        return s.length() > max ? s.substring(0, max) : s;
+    }
+
+    @Override
+    public RuntimeHealthVO getRuntimeHealth(LocalDate startDate, LocalDate endDate) {
+        if (startDate == null || endDate == null) {
+            throw new BusinessException(ErrorCode.STATISTICS_PARAM_ERROR);
+        }
+        String start = startDate.atStartOfDay().format(DATETIME_PATTERN);
+        String end = endDate.atTime(LocalTime.MAX).format(DATETIME_PATTERN);
+
+        RuntimeHealthVO vo = new RuntimeHealthVO();
+        vo.setStartDate(startDate.format(DATE_FORMATTER));
+        vo.setEndDate(endDate.format(DATE_FORMATTER));
+
+        // PV / UV 复用既有访问日志口径，保证与「页面访问明细」那张表对得上
+        List<Map<String, Object>> accessStats = pageAccessLogMapper.selectPageAccessStats(start, end);
+        long pv = 0L;
+        long uv = 0L;
+        for (Map<String, Object> row : accessStats) {
+            pv += toLong(row.get("access_count"));
+            // UV 不能把各页面的 distinct user 相加：同一个人逛 3 页会被算 3 次。
+            // 这里只累加是近似值，精确 UV 走下面的 countDistinctUsers。
+            uv += toLong(row.get("visitor_count"));
+        }
+        long distinctUsers = pageAccessLogMapper.countDistinctUsers(start, end);
+        vo.setPageViews(pv);
+        vo.setUniqueVisitors(distinctUsers);
+        vo.setActivePages(accessStats.size());
+        vo.setViewsPerVisitor(distinctUsers > 0
+                ? BigDecimal.valueOf(pv).divide(BigDecimal.valueOf(distinctUsers), 2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO);
+
+        List<Map<String, Object>> typeCounts = runtimeEventMapper.countByType(start, end);
+        long errorCount = 0L;
+        long blankCount = 0L;
+        long tabLeaveCount = 0L;
+        for (Map<String, Object> row : typeCounts) {
+            String type = String.valueOf(row.get("event_type"));
+            long cnt = toLong(row.get("cnt"));
+            if (RuntimeEvent.TYPE_ERROR.equals(type)) {
+                errorCount = cnt;
+            } else if (RuntimeEvent.TYPE_BLANK.equals(type)) {
+                blankCount = cnt;
+            } else if (RuntimeEvent.TYPE_TAB_LEAVE.equals(type)) {
+                tabLeaveCount = cnt;
+            }
+        }
+        vo.setErrorCount(errorCount);
+        vo.setBlankCount(blankCount);
+        vo.setTabLeaveCount(tabLeaveCount);
+
+        // 一条事件都没有 = 小程序端还没发版上报。此时三个率必须留 null，
+        // 由前端显示「待埋点」；填 0 会被读成「零故障」，是更危险的误导。
+        boolean reported = !(errorCount == 0 && blankCount == 0 && tabLeaveCount == 0);
+        vo.setEventReported(reported);
+        if (reported && pv > 0) {
+            vo.setErrorRate(BigDecimal.valueOf(errorCount)
+                    .divide(BigDecimal.valueOf(pv), 4, RoundingMode.HALF_UP));
+            vo.setBlankRate(BigDecimal.valueOf(blankCount)
+                    .divide(BigDecimal.valueOf(pv), 4, RoundingMode.HALF_UP));
+        }
+        // 跳出率分母用「进入 Tab 的次数」= PV 中落在五个壳页的部分。
+        // 这里用 tab_leave 事件数 / PV 近似，口径写在 VO 注释里，避免被误读成精确值。
+        if (reported && pv > 0) {
+            vo.setTabBounceRate(BigDecimal.valueOf(tabLeaveCount)
+                    .divide(BigDecimal.valueOf(pv), 4, RoundingMode.HALF_UP));
+        }
+
+        List<RuntimeHealthVO.TopPageItemVO> topErrors = new ArrayList<>();
+        for (Map<String, Object> row : runtimeEventMapper.topErrorPages(start, end, 8)) {
+            RuntimeHealthVO.TopPageItemVO item = new RuntimeHealthVO.TopPageItemVO();
+            item.setPagePath(String.valueOf(row.get("page_path")));
+            item.setCount(toLong(row.get("cnt")));
+            topErrors.add(item);
+        }
+        vo.setTopErrorPages(topErrors);
+
+        List<RuntimeHealthVO.TabLeaveItemVO> tabLeaves = new ArrayList<>();
+        for (Map<String, Object> row : runtimeEventMapper.tabLeaveStats(start, end, 8)) {
+            RuntimeHealthVO.TabLeaveItemVO item = new RuntimeHealthVO.TabLeaveItemVO();
+            item.setFromRoute(String.valueOf(row.get("from_route")));
+            item.setToRoute(String.valueOf(row.get("to_route")));
+            item.setCount(toLong(row.get("cnt")));
+            tabLeaves.add(item);
+        }
+        vo.setTabLeaveTop(tabLeaves);
+
+        return vo;
+    }
+
+    private static long toLong(Object value) {
+        return value instanceof Number ? ((Number) value).longValue() : 0L;
     }
 
     // ==================== 私有方法 ====================

@@ -50,7 +50,12 @@
           data-tab="{{item.tab}}"
           bindtap="onNav"
         >
-          <view class="wh-nav__ic">{{item.icon}}</view>
+          <!-- 图标双模：素材库图片用 image 铺满方块；否则按 emoji 文本渲染。
+               isImg 由 js 侧预先算好（图片=素材库 /uploads/ 路径或 http 链接）。 -->
+          <view class="wh-nav__ic {{item.isImg ? 'wh-nav__ic--img' : ''}}">
+            <image wx:if="{{item.isImg}}" src="{{item.icon}}" mode="aspectFill" />
+            <text wx:else>{{item.icon}}</text>
+          </view>
           <text>{{item.label}}</text>
         </view>
       </block>
@@ -63,24 +68,26 @@
     <text class="wh-hd__t serif">{{config.title || '暖阁出品'}}</text>
     <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '全部作者 ›'}}</text>
   </view>
-  <scroll-view wx:if="{{warm.authors && warm.authors.length}}" class="wh-authors" scroll-x enhanced show-scrollbar="{{false}}">
+  <scroll-view wx:if="{{authors.length}}" class="wh-authors" scroll-x enhanced show-scrollbar="{{false}}">
     <view
-      wx:for="{{warm.authors}}"
-      wx:key="id"
+      wx:for="{{authors}}"
+      wx:key="key"
       class="wh-author"
       data-apply="{{item.apply}}"
       data-id="{{item.id}}"
       data-name="{{item.name}}"
       data-role="{{item.role}}"
+      data-url="{{item.url}}"
       bindtap="onAuthor"
     >
       <view wx:if="{{item.apply}}" class="wh-author__av wh-author__av--apply">＋</view>
-      <image wx:else class="wh-author__av" src="{{item.avatar}}" mode="aspectFill" />
+      <image wx:elif="{{item.avatar}}" class="wh-author__av" src="{{item.avatar}}" mode="aspectFill" />
+      <view wx:else class="wh-author__av wh-author__av--initial">{{item.initial}}</view>
       <text class="wh-author__n">{{item.name}}</text>
-      <text class="wh-author__r">{{item.role}}</text>
+      <text wx:if="{{item.role}}" class="wh-author__r">{{item.role}}</text>
     </view>
   </scroll-view>
-  <view wx:else class="wh-feed-empty">暂无作者</view>
+  <view wx:else class="wh-feed-empty">{{authorsEmptyText}}</view>
 </block>
 
 <block wx:elif="{{type === 'warm_feature'}}">
@@ -130,19 +137,79 @@
     <text class="wh-hd__t serif">{{config.title || '我的星球'}}</text>
     <text class="wh-hd__a" bindtap="onMore">{{config.more_text || '进入 ›'}}</text>
   </view>
-  <view class="wh-planet" bindtap="goPlanet">
+
+  <!-- 多星球横滑：未设主星球时展示全部候选，用户点哪张进哪张介绍页 -->
+  <scroll-view
+    wx:if="{{planetCards.length > 1 && !warm.primaryOnly}}"
+    class="wh-planets"
+    scroll-x="{{true}}"
+    enhanced="{{true}}"
+    show-scrollbar="{{false}}"
+  >
+    <view class="wh-planets__row">
+      <view
+        wx:for="{{planetCards}}"
+        wx:key="planetId"
+        class="wh-pcard"
+        data-index="{{index}}"
+        bindtap="onPlanetTap"
+      >
+        <view class="wh-pcard__rw">
+          <text class="wh-pcard__ic">{{item.emoji}}</text>
+          <text class="wh-pcard__h">{{item.title}}</text>
+          <text wx:if="{{item.primary}}" class="wh-pcard__main">主</text>
+          <text wx:if="{{item.joined}}" class="wh-pcard__joined">已加入</text>
+        </view>
+        <text wx:if="{{item.subtitle}}" class="wh-pcard__sub">{{item.subtitle}}</text>
+        <view class="wh-pcard__ls">
+          <view wx:for="{{item.items}}" wx:for-item="it" wx:key="tag" class="wh-pcard__li">
+            <text class="wh-pcard__tag">{{it.tag}}</text>
+            <text class="wh-pcard__tx">{{it.text}}</text>
+          </view>
+          <view wx:if="{{!item.items.length}}" class="wh-pcard__li wh-pcard__li--empty">暂无热点</view>
+        </view>
+        <view class="wh-pcard__ft">
+          <text class="wh-pcard__cta">{{item.cta || '进入星球'}}</text>
+          <text class="wh-pcard__go">{{item.joined ? '进入 ›' : '加入 ›'}}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 单卡：已设主星球时只展示它；或配置里只有一颗星球 -->
+  <view
+    wx:else
+    class="wh-planet"
+    data-index="{{0}}"
+    bindtap="onPlanetTap"
+  >
     <view class="wh-planet__rw">
-      <text class="wh-planet__ic">🪐</text>
-      <text class="wh-planet__h">{{warm.planet.title}}</text>
-      <text class="wh-planet__num">{{warm.planet.members}}</text>
+      <text class="wh-planet__ic">{{mainPlanet.emoji || '🪐'}}</text>
+      <text class="wh-planet__h">{{mainPlanet.title}}</text>
+      <text wx:if="{{mainPlanet.joined}}" class="wh-pcard__joined">已加入</text>
+      <text class="wh-planet__num">{{mainPlanet.members}}</text>
     </view>
     <view class="wh-planet__ls">
-      <view wx:for="{{warm.planet.items}}" wx:key="tag" class="wh-planet__li">
+      <view wx:for="{{mainPlanet.items}}" wx:key="tag" class="wh-planet__li">
         <text class="wh-planet__tag">{{item.tag}}</text>
         <text class="wh-planet__tx">{{item.text}}</text>
       </view>
+      <view wx:if="{{!mainPlanet.items.length}}" class="wh-planet__li wh-planet__li--empty">暂无热点</view>
     </view>
-    <view class="wh-planet__go">{{warm.planet.cta}}</view>
+    <view class="wh-planet__ft">
+      <text class="wh-planet__cta">{{mainPlanet.cta || '进入星球'}}</text>
+      <text
+        wx:if="{{showSetMain && !mainPlanet.primary}}"
+        class="wh-planet__setmain"
+        data-planet-id="{{mainPlanet.planetId}}"
+        catchtap="onSetMainTap"
+      >设为主星球</text>
+    </view>
+  </view>
+
+  <!-- 未设主星球：给「换一个主星球」入口，避免用户只在这里被动接受第一个星球 -->
+  <view wx:if="{{showSetMain}}" class="wh-planets__more" bindtap="onPickMainTap">
+    <text class="wh-planets__morelink">选一个主星球 ›</text>
   </view>
 </block>
 
@@ -183,3 +250,10 @@
   <view class="wh-end">—— {{config.footer || '暖阁 · 慢一点，也很好'}} ——</view>
   <view class="wh-safe"></view>
 </block>
+
+<!-- 切换主星球：半屏就地切，不跳页 -->
+<planet-switch-sheet
+  id="planet-switch-sheet"
+  bindchange="onSwitchMainTap"
+  bindintro="onSwitchMainIntro"
+/>

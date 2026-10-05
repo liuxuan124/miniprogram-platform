@@ -163,8 +163,19 @@
 .content-wb .way:hover { border-color: #d6c8b6; }
 .content-wb .way b { display: block; font-size: 15px; }
 .content-wb .ov2 {
-  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start;
+  /* stretch：左右等高。左卡内容少、右侧是 flex 列含两张卡，
+     需配套下面 .ov2-side > .card 的 flex:1 均分，否则左卡下方空一大片 */
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: stretch;
 }
+/* 左卡：条目区撑开整卡高度。行自身均分多余高度（flex:1），
+   不要用 justify-content:space-evenly —— 那会让 5 条数据散成大空隙，行高 85px 很难看 */
+.content-wb .ov2 > .card { display: flex; flex-direction: column; }
+.content-wb .ov2 > .card > .bars { flex: 1; gap: 0; }
+.content-wb .ov2 > .card > .bars > .bar-row { flex: 1; align-items: center; min-height: 26px; }
+/* 右侧列：两张卡按 flex:1 均分整列高度 */
+.content-wb .ov2-side { display: flex; flex-direction: column; gap: 16px; }
+.content-wb .ov2-side > .card { flex: 1; display: flex; flex-direction: column; }
+.content-wb .ov2-side > .card > .catdist { flex: 1; align-content: center; }
 .content-wb .bars { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
 .content-wb .bar-row {
   display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 64px; gap: 12px; align-items: center;
@@ -251,11 +262,10 @@
 .content-wb .menu hr { border: 0; border-top: 1px solid var(--line2); margin: 4px 0; }
 
 /* inbox */
-.content-wb .ilist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
-.content-wb .icard {
-  background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px;
-  display: flex; flex-direction: column; gap: 10px;
-}
+.content-wb .ilist { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.content-wb .icard { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px; }
+.content-wb .icard .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 2px; }
 .content-wb .ihead { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; }
 .content-wb .itext { font-size: 15px; line-height: 1.6; }
 .content-wb .quote {
@@ -269,7 +279,7 @@
 .content-wb .answer { padding: 10px; border-radius: 8px; background: var(--gs); font-size: 13px; width: 100%; }
 
 /* settings */
-.content-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.content-wb .set-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
 .content-wb .gatecard {
   position: relative; margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 14px;
   display: flex; flex-direction: column; gap: 6px; text-align: center; font-size: 12.5px;

@@ -1,7 +1,29 @@
 <template>
-  <el-form label-width="90px" size="small">
+  <el-form label-width="72px" size="small">
     <el-form-item label="标题">
       <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="限时秒杀" />
+    </el-form-item>
+    <el-form-item label="秒杀商品">
+      <el-select
+        :model-value="selectedProductIds"
+        multiple
+        filterable
+        clearable
+        collapse-tags
+        collapse-tags-tooltip
+        placeholder="选择参与秒杀的商品（实时取价）"
+        style="width: 100%"
+        :loading="productOptionsLoading"
+        @change="onProductIdsChange"
+      >
+        <el-option
+          v-for="item in productOptions"
+          :key="String(item.id)"
+          :label="`${item.name} ¥${item.price}`"
+          :value="String(item.id)"
+        />
+      </el-select>
+      <div class="field-hint">选中后小程序端实时读取商品名/价格并自动跳转详情页；不选则显示内置演示数据</div>
     </el-form-item>
     <el-form-item label="商品数量">
       <el-input-number
@@ -46,11 +68,96 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { getProductList } from '@/api/product'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
+
+type ProductOption = {
+  id: string | number
+  name: string
+  price: string | number
+  originalPrice?: string | number
+  status?: string
+}
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()
+
+const productOptions = ref<ProductOption[]>([])
+const productOptionsLoading = ref(false)
+
+const selectedProductIds = computed(() => {
+  const raw = data.product_ids
+  if (Array.isArray(raw)) return raw.map((id: any) => String(id))
+  return []
+})
+
+function toOption(item: any): ProductOption | null {
+  if (!item) return null
+  const id = item.id
+  if (id == null || id === '') return null
+  return {
+    id,
+    name: item.name || item.title || '未命名商品',
+    price: item.price ?? '0.00',
+    originalPrice: item.originalPrice ?? item.original_price ?? '',
+    status: item.status || 'on_sale',
+  }
+}
+
+function onProductIdsChange(ids: string[]) {
+  const uniq = Array.from(new Set((ids || []).map((id) => String(id))))
+  const map = new Map(productOptions.value.map((p) => [String(p.id), p]))
+  // 同步写一份静态 items 作为接口失败时的兜底（小程序端优先走 product_ids 实时取数）
+  const items = uniq
+    .map((id) => map.get(id))
+    .filter(Boolean)
+    .map((p) => ({
+      name: p!.name,
+      price: String(p!.price),
+      original_price: p!.originalPrice ? String(p!.originalPrice) : '',
+      link_url: `/pkg-content/product-detail/product-detail?id=${p!.id}`,
+    }))
+  emit('update', {
+    product_ids: uniq,
+    items,
+    data_source: {
+      type: 'product',
+      params: { status: 'on_sale', ids: uniq.join(',') },
+      query: { status: 'on_sale', ids: uniq.join(',') },
+    },
+  })
+}
+
+async function loadProductOptions() {
+  productOptionsLoading.value = true
+  try {
+    const res = await getProductList({ current: 1, size: 100, status: 'on_sale' } as any)
+    const payload = (res as any)?.data
+    const list = Array.isArray(payload) ? payload : payload?.records || payload?.list || []
+    const options = list.map(toOption).filter(Boolean) as ProductOption[]
+    // 保留已存 items 中的选项，避免商品下架后已选项丢失
+    const saved = (Array.isArray(data.items) ? data.items : [])
+      .map((it: any, idx: number) => ({
+        id: selectedProductIds.value[idx] ?? `saved-${idx}`,
+        name: it?.name || '未命名商品',
+        price: it?.price ?? '0.00',
+        originalPrice: it?.original_price ?? '',
+        status: 'unknown',
+      }))
+    const map = new Map<string, ProductOption>()
+    ;[...saved, ...options].forEach((p) => {
+      if (!map.has(String(p.id))) map.set(String(p.id), p)
+    })
+    productOptions.value = Array.from(map.values())
+  } catch {
+    productOptions.value = []
+  } finally {
+    productOptionsLoading.value = false
+  }
+}
+
+onMounted(loadProductOptions)
 
 function formatDateTime(date: Date) {
   const pad = (n: number) => String(n).padStart(2, '0')

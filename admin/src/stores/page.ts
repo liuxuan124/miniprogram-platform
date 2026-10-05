@@ -52,10 +52,15 @@ function createDefaultDSL(name: string = '未命名页面'): PageDSL {
         type: CT.Nav,
         props: {
           items: [
-            { icon: '📝', title: '内容', link_type: 'page', link_url: '/pages/content/list' },
-            { icon: '👑', title: '会员', link_type: 'page', link_url: '/pages/member/index' },
-            { icon: '🎪', title: '活动', link_type: 'page', link_url: '/pages/activity/list' },
-            { icon: '🛍️', title: '商城', link_type: 'page', link_url: '/pages/product/list' },
+            // 2026-10-05 修正：原来 4 条 link_url 全部指向小程序里【从不存在】的目录
+            // （/pages/content/list、/pages/member/index、/pages/activity/list、/pages/product/list），
+            // 拖出来就点不动。改为指向现网真实存在的落点。
+            // 内容/商品两个落点会被小程序 render.js 的「旧 Tab 路径统一改写」收敛到
+            // discover / shop Tab（见 navigatePage），这里给的是分包真身。
+            { icon: '📝', title: '内容', link_type: 'page', link_url: '/pkg-content/content-list/content-list' },
+            { icon: '👑', title: '会员', link_type: 'page', link_url: '/pkg-user/member-center/member-center' },
+            { icon: '🎪', title: '活动', link_type: 'page', link_url: '/pkg-extra/activity-list/activity-list' },
+            { icon: '🛍️', title: '商城', link_type: 'page', link_url: '/pkg-content/product-list/product-list' },
           ],
           columns: 4,
           style_type: 'icon_text',
@@ -288,11 +293,19 @@ export const usePageStore = defineStore('page', () => {
   /** 立即打一条历史快照（结构性操作：增删移动复制等，每次都单独可撤销） */
   function commitHistory() {
     const snapshot = cloneDSL(dsl.value)
-    if (sessionBaseline && isSameDsl(snapshot, sessionBaseline)) return
     if (historyPast.value.length) {
       const last = historyPast.value[historyPast.value.length - 1]
+      // 与栈顶相同说明这次调用没产生实际变化，不必再记一条
       if (dslSnapshotKey(last) === dslSnapshotKey(snapshot)) return
     }
+    /*
+     * ⚠️ 这里**不能**因为 snapshot === sessionBaseline 就 return。
+     * sessionBaseline 是「本次打开页面时的状态」，而首次结构性操作打出的快照
+     * 恰好就是它 —— 那正是撤销需要的锚点。之前这么判会让**打开页面后的第一次
+     * 操作永远无法撤销**（canUndo 恒为 false，工具栏撤销按钮一直灰着），
+     * 2026-10-05 由区块批量插入的 E2E 验证抓出。
+     * 跨会话连撤已由 pruneHistoryPastBaseline() 在 undo() 侧负责，无需在此拦截。
+     */
     historyPast.value.push(snapshot)
     if (historyPast.value.length > MAX_HISTORY) {
       historyPast.value.shift()
@@ -307,9 +320,8 @@ export const usePageStore = defineStore('page', () => {
   function commitHistoryDebounced() {
     if (!historyMergePending) {
       const snapshot = cloneDSL(dsl.value)
-      if (sessionBaseline && isSameDsl(snapshot, sessionBaseline)) {
-        historyMergePending = true
-      } else if (
+      // 同 commitHistory：与栈顶不同才记，baseline 那条必须留（撤销锚点）
+      if (
         !historyPast.value.length
         || dslSnapshotKey(historyPast.value[historyPast.value.length - 1]) !== dslSnapshotKey(snapshot)
       ) {
@@ -440,6 +452,26 @@ export const usePageStore = defineStore('page', () => {
     dsl.value.components.splice(at, 0, comp)
     selectedComponentId.value = comp.id
     recomputeDirty()
+  }
+
+  /**
+   * 批量插入一组组件（区块解包用）。
+   *
+   * 关键点：**只打一条历史快照** —— 拖入一个含 N 个子组件的区块，
+   * Ctrl/⌘Z 应当一步把整个区块撤回，而不是撤 N 次。
+   * 这也是 commitHistory 放在 splice 之前的原因：快照记的是变更前状态。
+   *
+   * @returns 实际插入的顶层节点（已过滤掉空数组）
+   */
+  function insertComponentBatch(comps: ComponentInstance[], index?: number) {
+    if (!Array.isArray(comps) || comps.length === 0) return []
+    commitHistory()
+    const at = Math.max(0, Math.min(index ?? dsl.value.components.length, dsl.value.components.length))
+    dsl.value.components.splice(at, 0, ...comps)
+    // 选中插入的第一个顶层节点，属性面板立即可编辑
+    selectedComponentId.value = comps[0].id
+    recomputeDirty()
+    return comps
   }
 
   /** 添加组件 */
@@ -654,6 +686,7 @@ export const usePageStore = defineStore('page', () => {
     resetEditor,
     addComponent,
     insertComponentAt,
+    insertComponentBatch,
     resolveInsertIndex,
     addComponentWithProps,
     addChildComponent,

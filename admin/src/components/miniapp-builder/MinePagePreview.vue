@@ -241,95 +241,16 @@
           ]"
           :style="memberCardStyle"
         >
+          <!--
+            会员卡图标：与小程序 `mine.wxml` 的 `.mn-vip__ic` 一致（emoji 🎫）。
+            原先这里画的是内联 SVG 皇冠（line:crown 语义），而真机硬编码 🎫，
+            两端永不一致 —— 后台预览必须展示小程序真能渲染出来的东西。
+          -->
           <div
-            v-if="SHOW_MEMBER_CROWN && styleKey === 'member'"
-            class="member-info-crown-wrap"
+            v-if="showMemberCardIcon"
+            class="member-info-icon"
             aria-hidden="true"
-          >
-            <!-- 凹嵌皇冠：白边框托起 + 内底面下沉；经典三主峰+两侧峰 -->
-            <svg class="member-info-crown-svg" viewBox="0 0 72 64" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="crownWellFloor" x1="20%" y1="10%" x2="85%" y2="90%">
-                  <stop offset="0%" stop-color="#FFF8E8" />
-                  <stop offset="48%" stop-color="#F5DFA0" />
-                  <stop offset="100%" stop-color="#E8B84A" />
-                </linearGradient>
-                <linearGradient id="crownWellShade" x1="0%" y1="0%" x2="70%" y2="80%">
-                  <stop offset="0%" stop-color="#B07A18" stop-opacity="0.38" />
-                  <stop offset="42%" stop-color="#C9922A" stop-opacity="0.12" />
-                  <stop offset="100%" stop-color="#C9922A" stop-opacity="0" />
-                </linearGradient>
-                <linearGradient id="crownWellLift" x1="100%" y1="100%" x2="30%" y2="20%">
-                  <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35" />
-                  <stop offset="55%" stop-color="#FFFFFF" stop-opacity="0" />
-                </linearGradient>
-                <!-- 外轮廓：左峰 / 次峰 / 中高峰 / 次峰 / 右峰 + 宽底托 -->
-                <path
-                  id="crownShapeOuter"
-                  d="M8 46
-                     L10 24
-                     C10 20 13 18 16 20
-                     L22 36
-                     L28 16
-                     C30 11 33 8 36 8
-                     C39 8 42 11 44 16
-                     L50 36
-                     L56 20
-                     C59 18 62 20 62 24
-                     L64 46
-                     L64 52
-                     C64 56.4 60.4 60 56 60
-                     L16 60
-                     C11.6 60 8 56.4 8 52
-                     Z"
-                />
-                <!-- 内底：同形略缩，形成槽 -->
-                <path
-                  id="crownShapeInner"
-                  d="M13 45
-                     L15 27
-                     C15 24.5 17 23.2 19 24.5
-                     L24 37
-                     L29 20
-                     C30.5 16 33 13.5 36 13.5
-                     C39 13.5 41.5 16 43 20
-                     L48 37
-                     L53 24.5
-                     C55 23.2 57 24.5 57 27
-                     L59 45
-                     L59 50
-                     C59 53 56.5 55.5 53.5 55.5
-                     L18.5 55.5
-                     C15.5 55.5 13 53 13 50
-                     Z"
-                />
-              </defs>
-
-              <use href="#crownShapeOuter" fill="rgba(180, 120, 30, 0.22)" />
-              <use
-                href="#crownShapeOuter"
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.88)"
-                stroke-width="5.2"
-                stroke-linejoin="round"
-                stroke-linecap="round"
-              />
-              <use href="#crownShapeInner" fill="url(#crownWellFloor)" />
-              <use href="#crownShapeInner" fill="url(#crownWellShade)" />
-              <use href="#crownShapeInner" fill="url(#crownWellLift)" />
-              <use
-                href="#crownShapeInner"
-                fill="none"
-                stroke="rgba(160, 110, 30, 0.2)"
-                stroke-width="1.2"
-                stroke-linejoin="round"
-              />
-              <!-- 三主峰圆顶，加强皇冠识别 -->
-              <circle cx="16" cy="21" r="2.6" fill="rgba(255,255,255,0.55)" />
-              <circle cx="36" cy="10" r="3.1" fill="rgba(255,255,255,0.62)" />
-              <circle cx="56" cy="21" r="2.6" fill="rgba(255,255,255,0.55)" />
-            </svg>
-          </div>
+          >{{ memberCardIconText }}</div>
           <div class="member-info-main">
             <div class="member-info-title">{{ mineConfig.memberCardTitle || '会员中心' }}</div>
             <div v-if="mineConfig.userProfile.showMemberLevel" class="member-info-level">
@@ -418,8 +339,6 @@ const MINE_QUICK_ITEMS = [
 ]
 
 const NICKNAME_MAX_LEN = 10
-/** 会员卡嵌入式磨砂皇冠：暂隐藏，改 true 可恢复 */
-const SHOW_MEMBER_CROWN = false
 
 const props = defineProps<{
   mineConfig: MinePageConfig
@@ -617,6 +536,13 @@ const memberBenefitsLine = computed(() => {
   }
   return '登录后查看会员权益与成长进度'
 })
+
+/**
+ * 会员卡图标：与小程序 `mine.wxml` 的 `.mn-vip__ic` 保持一致。
+ * 小程序是**硬编码 emoji 🎫**，不读配置；这里跟随它，保证预览 = 真机。
+ */
+const memberCardIconText = '🎫'
+const showMemberCardIcon = computed(() => props.mineConfig.showMemberCard !== false)
 
 const memberCtaText = computed(() => {
   if (previewLoggedIn.value) return '查看权益'
@@ -1136,24 +1062,18 @@ const memberCardStyle = computed(() => {
   overflow: visible;
 }
 
-.member-info-crown-wrap {
-  position: absolute;
-  right: 8px;
-  top: -28px;
-  width: 84px;
-  height: 74px;
-  pointer-events: none;
-  z-index: 2;
+/*
+ * 会员卡图标：与小程序 `mine.wxss` 的 `.mn-vip__ic { font-size: 44rpx }` 对齐
+ * （44rpx ≈ 22px），流内排布而非绝对定位。
+ */
+.member-info-icon {
+  flex-shrink: 0;
+  font-size: 22px;
+  line-height: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  overflow: visible;
-}
-
-.member-info-crown-svg {
-  width: 84px;
-  height: 74px;
-  display: block;
+  align-self: flex-start;
+  margin-right: 10px;
 }
 
 .member-info-card--basic {

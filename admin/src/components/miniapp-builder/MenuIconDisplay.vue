@@ -1,16 +1,19 @@
 <template>
+  <!--
+    统一按小程序规则降级为 emoji，保证「预览 = 真机」。
+    小程序端 pages/mine/mine.js 的 resolveMenuIconText() 没有 line:* 的矢量实现，
+    一律降级 emoji（见 menuIconEmoji.ts，与小程序 MENU_ICON_EMOJI 一字不差）。
+    预览原本渲染矢量线条 SVG → 运营看到的图形真机上根本不存在。
+  -->
   <span
-    v-if="isLine"
-    class="menu-icon-display menu-icon-display--line"
+    class="menu-icon-display menu-icon-display--emoji"
     :style="sizeStyle"
-    v-html="svg"
-  />
-  <span v-else class="menu-icon-display menu-icon-display--emoji" :style="sizeStyle">{{ icon || fallback }}</span>
+  >{{ resolvedEmoji }}</span>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { getMenuLineIconSvg, isMenuLineIcon } from './menuLineIcons'
+import { resolveMenuIconEmoji, MENU_ICON_FALLBACK } from './menuIconEmoji'
 
 const props = withDefaults(defineProps<{
   icon?: string
@@ -21,8 +24,11 @@ const props = withDefaults(defineProps<{
   size: 20,
 })
 
-const isLine = computed(() => isMenuLineIcon(props.icon))
-const svg = computed(() => (props.icon ? getMenuLineIconSvg(props.icon) : ''))
+const resolvedEmoji = computed(() => {
+  const raw = String(props.icon || '').trim()
+  if (!raw) return props.fallback || MENU_ICON_FALLBACK
+  return resolveMenuIconEmoji(raw)
+})
 const sizeStyle = computed(() => ({
   width: `${props.size}px`,
   height: `${props.size}px`,
@@ -36,12 +42,6 @@ const sizeStyle = computed(() => ({
   place-items: center;
   flex-shrink: 0;
   line-height: 1;
-}
-
-.menu-icon-display--line :deep(svg) {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 .menu-icon-display--emoji {

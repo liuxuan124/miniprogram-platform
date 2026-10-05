@@ -1,71 +1,119 @@
 <template>
   <div class="prototype-component-panel">
+    <!-- 左侧顶栏两个大 Tab：组件库 / 页面图层，互斥独享整栏高度 -->
     <div class="left-seg" role="tablist">
-      <button type="button" :class="{ on: mode === 'components' }" @click="mode = 'components'">
-        组件
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="mode === 'components' || mode === 'blocks'"
+        :class="{ on: mode === 'components' || mode === 'blocks' }"
+        @click="mode = 'components'"
+      >
+        <el-icon :size="13"><Grid /></el-icon>
+        组件库
       </button>
-      <button type="button" :class="{ on: mode === 'blocks' }" @click="mode = 'blocks'">
-        区块模板
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="mode === 'structure'"
+        :class="{ on: mode === 'structure' }"
+        @click="openStructureMode"
+      >
+        <el-icon :size="13"><Files /></el-icon>
+        页面图层
+        <span class="left-seg__count">{{ pageStore.components.length }}</span>
       </button>
-      <button type="button" :class="{ on: mode === 'structure' }" @click="openStructureMode">结构</button>
     </div>
 
-    <!-- 区块模板：一次插入一组常用组件，省掉逐个拖的步骤 -->
+    <!-- 组件库内的次级切换：组件 / 区块模板（只在这一栏内出现） -->
+    <div v-if="mode !== 'structure'" class="sub-seg" role="tablist">
+      <button type="button" role="tab" :aria-selected="mode === 'components'" :class="{ on: mode === 'components' }" @click="mode = 'components'">
+        单个组件
+      </button>
+      <button type="button" role="tab" :aria-selected="mode === 'blocks'" :class="{ on: mode === 'blocks' }" @click="mode = 'blocks'">
+        区块模板
+      </button>
+    </div>
+
+    <!-- 区块模板：可视化卡片，拖入画布自动解组为原子组件树 -->
     <section v-if="mode === 'blocks'" class="panel-section blocks-section">
-      <div class="section-title">
-        <span>区块模板</span>
-        <span class="section-count">{{ availableBlocks.length }}</span>
-      </div>
-      <div class="blocks-list">
-        <button
-          v-for="block in availableBlocks"
-          :key="block.key"
-          type="button"
-          class="block-card"
-          @click="insertBlock(block)"
-        >
-          <b>{{ block.label }}</b>
-          <span class="block-desc">{{ block.desc }}</span>
-          <span class="block-parts">{{ blockPartLabels(block).join(' · ') }}</span>
-        </button>
-        <div v-if="!availableBlocks.length" class="empty-tip">当前行业方案下没有可用区块</div>
-      </div>
-      <div class="my-blocks">
-        <div class="section-title">
-          <span>我的区块</span>
-          <span class="section-count">{{ myBlocks.length }}</span>
+      <div class="blocks-scroll">
+        <!-- 第三层资产：整页模板（从组件库迁出，避免与原子组件混淆） -->
+        <template v-if="pageTemplates.length">
+          <div class="block-group">
+            <div class="block-group__head">
+              <span class="block-group__title">整页模板</span>
+              <span class="block-group__hint">整页替换 · 非区块</span>
+            </div>
+            <div class="block-grid">
+              <BlockCard
+                v-for="blk in pageTemplates"
+                :key="blk.key"
+                :block="blk"
+                :preview-nodes="blockPreviewCache(blk.key)"
+                :node-count="blockNodeCount(blk.key)"
+                @insert="insertBuiltinBlock(blk)"
+              />
+            </div>
+          </div>
+        </template>
+
+        <!-- 第二层资产：按业务场景分区的复合区块 -->
+        <div v-for="group in builtinGroups" :key="group.value" class="block-group">
+          <div class="block-group__head">
+            <span class="block-group__title">{{ group.label }}</span>
+            <span class="block-group__hint">{{ group.hint }}</span>
+          </div>
+          <div v-if="group.blocks.length" class="block-grid">
+            <BlockCard
+              v-for="blk in group.blocks"
+              :key="blk.key"
+              :block="blk"
+              :preview-nodes="blockPreviewCache(blk.key)"
+              :node-count="blockNodeCount(blk.key)"
+              @insert="insertBuiltinBlock(blk)"
+            />
+          </div>
+          <div v-else class="empty-tip">当前方案下该分类暂无可用区块</div>
         </div>
-        <div class="my-blocks__actions">
-          <el-button size="small" type="primary" plain :disabled="!pageStore.selectedComponentId" @click="saveMyBlockFromSelection">
-            保存当前选中起的一段
-          </el-button>
-        </div>
-        <div class="blocks-list my-blocks__list">
-          <button
-            v-for="block in myBlocks"
-            :key="block.id"
-            type="button"
-            class="block-card"
-            @click="insertMyBlock(block)"
-          >
-            <b>{{ block.label }}</b>
-            <span class="block-desc">{{ block.components.length }} 个组件 · {{ formatSavedAt(block.savedAt) }}</span>
-            <el-button link type="danger" size="small" @click.stop="removeMyBlockEntry(block.id)">删除</el-button>
-          </button>
-          <div v-if="!myBlocks.length" class="empty-tip">选中组件后可将后续组件存为模板</div>
+
+        <!-- 我的区块：画布里「另存为区块」沉淀而来 -->
+        <div class="block-group">
+          <div class="block-group__head">
+            <span class="block-group__title">我的区块</span>
+            <span class="block-group__count">{{ myBlocks.length }}</span>
+          </div>
+          <p v-if="!myBlocks.length" class="my-blocks__hint">
+            在画布中选中「容器/分栏」或「通栏背景」，点工具条上的
+            <b>另存为区块</b>，即可把排好的组合沉淀到这里复用。
+          </p>
+          <div v-else class="block-grid">
+            <BlockCard
+              v-for="blk in myBlocks"
+              :key="blk.id"
+              :block="{
+                key: `my:${blk.id}`,
+                name: blk.name,
+                description: blk.description,
+                thumbnail: blk.thumbnail,
+                isCustom: true,
+              }"
+              :preview-nodes="blk.nodes"
+              :node-count="countInstanceNodes(blk.nodes)"
+              @insert="insertSavedBlock(blk)"
+              @remove="removeMyBlockEntry(blk.id)"
+            />
+          </div>
         </div>
       </div>
     </section>
 
-    <section v-show="mode === 'components'" class="panel-section panel-section--components" :style="sectionStyle('components')">
+    <section v-show="mode === 'components'" class="panel-section panel-section--components">
       <div class="section-title">
         <span>组件库</span>
-        <button class="section-count" @click="toggleCollapse('components')">{{ totalComponentCount }}</button>
-        <button class="section-toggle" @click="toggleCollapse('components')">
-          {{ collapsed.components ? '展开' : '收起' }}
-        </button>
+        <span class="section-count">{{ totalComponentCount }}</span>
       </div>
-      <div v-show="!collapsed.components" class="component-search">
+      <div class="component-search">
         <el-input
           v-model="searchKeyword"
           size="small"
@@ -74,7 +122,7 @@
           :prefix-icon="Search"
         />
       </div>
-      <div v-show="!collapsed.components" class="component-grid">
+      <div class="component-grid">
         <!-- B4：最近使用，仅在未搜索且未聚焦某分类时展示 -->
         <template v-if="!searchKeyword && !focusedCategory && recentComponents.length">
           <div class="category-label">最近使用</div>
@@ -125,31 +173,19 @@
       </div>
     </section>
 
-    <div
-      v-show="mode === 'components' && !collapsed.components"
-      class="resize-handle"
-      title="拖动调整组件库高度"
-      @mousedown="startResize('components', $event)"
-    >
-      <span></span>
-    </div>
-
+    <!-- 页面图层：切到该 Tab 时独享整栏高度，不再挤在左下角 -->
     <section
-      v-show="mode === 'components' || mode === 'structure'"
-      class="panel-section structure-section"
-      :class="{ collapsed: collapsed.structure && mode === 'components', 'structure-section--solo': mode === 'structure' }"
+      v-show="mode === 'structure'"
+      class="panel-section structure-section structure-section--solo"
     >
       <div class="section-title">
-        <span>{{ mode === 'structure' ? '页面结构' : '当前页面结构' }}</span>
-        <button class="section-count" @click="toggleCollapse('structure')">{{ pageStore.components.length }}</button>
-        <button v-if="mode === 'components'" class="section-toggle" @click="toggleCollapse('structure')">
-          {{ collapsed.structure ? '展开' : '收起' }}
-        </button>
+        <span>页面图层</span>
+        <span class="section-count">{{ pageStore.components.length }}</span>
       </div>
-      <p v-if="mode === 'structure' && hasFixedTabShell" class="structure-hint">
+      <p v-if="hasFixedTabShell" class="structure-hint">
         底栏「星球 / 商城 / 我的」为固定业务页，请在对应 Tab 绑定页的装修器里改；此处只展示当前页已插入的区块。
       </p>
-      <div v-show="mode === 'structure' || !collapsed.structure" class="structure-list">
+      <div class="structure-list">
         <draggable
           :model-value="pageStore.components"
           item-key="id"
@@ -164,7 +200,7 @@
               @click="selectFromStructure(comp.id)"
             >
               <span class="drag-handle" aria-label="拖动排序"><MiniIcon name="drag" :size="14" /></span>
-              <span>{{ index + 1 }}. {{ structureLabel(comp, index) }}</span>
+              <span class="structure-row__label">{{ index + 1 }}. {{ structureLabel(comp, index) }}</span>
               <button
                 class="remove-btn"
                 aria-label="删除该组件"
@@ -183,20 +219,30 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Grid, Files } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import { usePageStore } from '@/stores/page'
 import { requestEditorScrollToComponent } from '@/utils/editorScrollBus'
-import { loadMyBlocks, saveMyBlock, removeMyBlock, type SavedMyBlock } from '@/utils/myBlocksStorage'
+import { loadMyBlocks, removeMyBlock, type SavedBlock } from '@/utils/myBlocksStorage'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useEditorDeleteUndo } from '@/composables/useEditorDeleteUndo'
 import { useFeatureModulesStore } from '@/stores/feature-modules'
 import { useIndustryProfileStore } from '@/stores/industry-profile'
 import { ComponentType, type ComponentInstance } from '@/types/page'
 import { getComponentsByCategory, getAllCategories, getComponentDef, type ComponentDefinition } from './componentRegistry'
-import { buildPlanetJoinLandingComponents, PLANET_JOIN_LANDING_BLOCK } from './planetJoinLandingBlocks'
+import BlockCard from './BlockCard.vue'
+import { isBlockTypeUsable } from './blockAvailability'
 import MiniIcon from '@/components/mini/MiniIcon.vue'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
+import {
+  BLOCK_CATEGORIES,
+  BUILTIN_BLOCKS,
+  countInstanceNodes,
+  countSchemaNodes,
+  pruneUnavailableNodes,
+  unpackBlock,
+  type BlockTemplate,
+} from './blockTemplates'
 
 const pageStore = usePageStore()
 const featureModulesStore = useFeatureModulesStore()
@@ -216,49 +262,123 @@ const FIXED_TAB_SHELL_TYPES = new Set<ComponentType>([
 const hasFixedTabShell = computed(() =>
   pageStore.components.some((c) => FIXED_TAB_SHELL_TYPES.has(c.type as ComponentType)),
 )
-const myBlocks = ref<SavedMyBlock[]>(loadMyBlocks())
+const myBlocks = ref<SavedBlock[]>(loadMyBlocks())
 const { deleteWithUndo } = useEditorDeleteUndo()
 const componentSectionHeight = ref(520)
 
-/** 区块模板：常见页面段落的组件组合，点一次按顺序插入 */
-const BLOCKS: Array<{ key: string; label: string; desc: string; types: ComponentType[] }> = [
-  {
-    key: 'activity-hero',
-    label: '活动头图组',
-    desc: '头图 + 倒计时 + 报名入口',
-    types: [ComponentType.Banner, ComponentType.Countdown, ComponentType.FormEntry],
-  },
-  {
-    key: 'booklist',
-    label: '书单推荐组',
-    desc: '小标题 + 文章列表 + 分割线',
-    types: [ComponentType.SectionTitle, ComponentType.ArticleList, ComponentType.Divider],
-  },
-  {
-    key: 'member',
-    label: '会员转化组',
-    desc: '会员卡 + 优惠券 + 悬浮按钮',
-    types: [ComponentType.MemberCard, ComponentType.PromoBanner, ComponentType.Coupon, ComponentType.FloatButton],
-  },
-  {
-    key: 'community',
-    label: '社群引流组',
-    desc: '入群引导 + 图文说明 + 联系方式',
-    types: [ComponentType.JoinGroup, ComponentType.ImageText, ComponentType.ContactInfo],
-  },
-  {
-    key: 'brand',
-    label: '品牌介绍组',
-    desc: '品牌头部 + 品牌简介 + 资质',
-    types: [ComponentType.BrandHeader, ComponentType.BrandIntro, ComponentType.Certificate],
-  },
-  {
-    key: 'planet-join-landing',
-    label: '星球加入落地页',
-    desc: '墨太白：顶栏+权益+星主+预览+FAQ+购买（星球分类）',
-    types: PLANET_JOIN_LANDING_BLOCK.types,
-  },
-]
+/* ------------------------------------------------------------------ *
+ * 区块模板（第二层资产）
+ * ------------------------------------------------------------------ */
+
+/*
+ * 剪枝后的内置区块：key → BlockTemplate。
+ *
+ * ⚠️ 必须是 computed 而不是 module 级 Map 缓存 —— 剪枝结果依赖
+ * featureModulesStore / industryProfileStore，而这两个 store 是**异步加载**的。
+ * 若在模块初始化时就把结果缓存下来，首次渲染（模块尚未 loaded）会把所有
+ * 区块误判为不可用并永久锁死，表现为「头部营销/社群转化/信任背书全是空的」
+ * （2026-10-05 由 E2E 截图发现）。computed 会随 store 变化自动重算。
+ */
+const prunedBlocks = computed<Map<string, BlockTemplate>>(() => {
+  const map = new Map<string, BlockTemplate>()
+  for (const block of BUILTIN_BLOCKS) {
+    const { nodes } = pruneUnavailableNodes(block.schema, isTypeAvailable)
+    if (nodes.length) map.set(block.key, { ...block, schema: nodes })
+  }
+  return map
+})
+
+/** 已解包的预览实例（缩略图/悬浮预览共用，避免每张卡片各解包一次）。
+ *  存的是剪枝后的实例，保证卡片里看到的就是拖入后真正会有的组件。 */
+const previewInstances = computed<Map<string, ComponentInstance[]>>(() => {
+  const map = new Map<string, ComponentInstance[]>()
+  for (const [key, block] of prunedBlocks.value) {
+    map.set(key, unpackBlock(block))
+  }
+  return map
+})
+
+function getPrunedBlock(key: string): BlockTemplate | null {
+  return prunedBlocks.value.get(key) ?? null
+}
+
+function blockPreviewCache(key: string): ComponentInstance[] {
+  return previewInstances.value.get(key) ?? []
+}
+
+/** 卡片上标注的组件数 = 剪枝后实际会插入的数量 */
+function blockNodeCount(key: string): number {
+  const block = getPrunedBlock(key)
+  return block ? countSchemaNodes(block.schema) : 0
+}
+
+/** 与画布 drop 管道共用同一份判定（blockAvailability.ts），避免两处漂移 */
+const isTypeAvailable = isBlockTypeUsable
+
+/**
+ * 可用内置区块：**只按剪枝后是否还剩节点**判定。
+ * 不用 filterAvailableBlocks 的严格口径（含任一不可用组件就整块剔除）——
+ * 那会让「关掉优惠券」连带整个「会员转化区」消失，运营既看不到也用不上。
+ */
+const availableBuiltins = computed(() =>
+  BUILTIN_BLOCKS.filter((b) => !!getPrunedBlock(b.key)),
+)
+
+const pageTemplates = computed<BlockTemplate[]>(() =>
+  availableBuiltins.value.filter((b) => b.isPageTemplate),
+)
+
+/** 4 个预置分类分区（custom 分区由「我的区块」单独渲染） */
+const builtinGroups = computed(() =>
+  BLOCK_CATEGORIES.filter((c) => c.value !== 'custom').map((c) => ({
+    ...c,
+    blocks: availableBuiltins.value.filter(
+      (b) => !b.isPageTemplate && b.category === c.value,
+    ),
+  })),
+)
+
+/** 解包 → 批量插入（单条历史快照，Ctrl/⌘Z 一步撤回整个区块） */
+function insertBlockNodes(nodes: ComponentInstance[], label: string) {
+  if (!nodes.length) return
+  const inserted = pageStore.insertComponentBatch(nodes)
+  if (!inserted.length) return
+  collapsed.value.structure = false
+  mode.value = 'components'
+  ElMessage.success(`已插入「${label}」，可在画布中逐个调整`)
+  requestEditorScrollToComponent(inserted[0].id)
+}
+
+function insertBuiltinBlock(block: BlockTemplate) {
+  const pruned = getPrunedBlock(block.key) ?? block
+  insertBlockNodes(unpackBlock(pruned), pruned.name)
+}
+
+function insertSavedBlock(block: SavedBlock) {
+  insertBlockNodes(unpackBlock(block), block.name)
+}
+
+function removeMyBlockEntry(id: string) {
+  const target = myBlocks.value.find((b) => b.id === id)
+  if (!target) return
+  ElMessageBox.confirm(`确定删除区块「${target.name}」？此操作不可恢复。`, '删除我的区块', {
+    type: 'warning',
+    confirmButtonText: '删除',
+    cancelButtonText: '取消',
+  })
+    .then(() => {
+      removeMyBlock(id)
+      reloadMyBlocks()
+      ElMessage.success('已删除')
+    })
+    .catch(() => {
+      // 用户取消
+    })
+}
+
+function reloadMyBlocks() {
+  myBlocks.value = loadMyBlocks()
+}
 
 const collapsed = ref({
   components: false,
@@ -406,142 +526,9 @@ function handleAdd(type: ComponentType) {
   if (id) requestEditorScrollToComponent(id)
 }
 
-function toggleCollapse(target: 'components' | 'structure') {
-  collapsed.value[target] = !collapsed.value[target]
-}
-
-/** 组件是否在当前行业方案 / 功能模块下可用 */
-function isTypeAvailable(type: ComponentType) {
-  if (!industryProfileStore.isComponentAllowed(type)) return false
-  if (!featureModulesStore.isEnabled('planet') && String(type).startsWith('planet_')) return false
-  if (!featureModulesStore.productEnabled) {
-    const commerceTypes = new Set(getComponentsByCategory('commerce').map((item) => item.type))
-    if (commerceTypes.has(type)) return false
-  }
-  return true
-}
-
-function blockTypes(block: { types: ComponentType[] }) {
-  return block.types.filter(isTypeAvailable)
-}
-
-function blockPartLabels(block: { types: ComponentType[] }) {
-  return blockTypes(block).map((type) => getComponentDef(type)?.label ?? type)
-}
-
-const availableBlocks = computed(() => BLOCKS.filter((block) => blockTypes(block).length > 0))
-
-function insertBlock(block: { key?: string; types: ComponentType[] }) {
-  if (block.key === 'planet-join-landing') {
-    const components = buildPlanetJoinLandingComponents()
-    let lastId: string | undefined
-    components.forEach((instance) => {
-      const created = pageStore.addComponentWithProps(instance.type, instance.props)
-      if (instance.style) pageStore.updateComponentStyle(created.id, instance.style)
-      recordRecentUsage(instance.type)
-      lastId = created.id
-    })
-    collapsed.value.structure = false
-    if (lastId) requestEditorScrollToComponent(lastId)
-    return
-  }
-  const types = blockTypes(block)
-  let lastId: string | undefined
-  types.forEach((type) => {
-    const created = pageStore.addComponent(type)
-    recordRecentUsage(type)
-    lastId = created?.id
-  })
-  collapsed.value.structure = false
-  if (lastId) requestEditorScrollToComponent(lastId)
-}
-
-function formatSavedAt(iso: string) {
-  try {
-    return new Date(iso).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-  } catch {
-    return ''
-  }
-}
-
-async function saveMyBlockFromSelection() {
-  const id = pageStore.selectedComponentId
-  if (!id) return
-  const idx = pageStore.components.findIndex((c) => c.id === id)
-  if (idx < 0) return
-  const slice = pageStore.components.slice(idx)
-  if (!slice.length) return
-  try {
-    const { value } = await ElMessageBox.prompt('给区块起个名字', '保存为我的区块', {
-      inputValue: `区块 ${myBlocks.value.length + 1}`,
-      confirmButtonText: '保存',
-    })
-    const label = String(value || '').trim()
-    if (!label) return
-    const row = saveMyBlock({ label, components: slice })
-    myBlocks.value = loadMyBlocks()
-    ElMessage.success(`已保存「${row.label}」`)
-  } catch {
-    // cancel
-  }
-}
-
-function insertMyBlock(block: SavedMyBlock) {
-  let lastId: string | undefined
-  block.components.forEach((comp) => {
-    const copy = JSON.parse(JSON.stringify(comp)) as typeof comp
-    copy.id = `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
-    pageStore.insertComponentAt(copy, pageStore.components.length)
-    lastId = copy.id
-  })
-  if (lastId) requestEditorScrollToComponent(lastId)
-}
-
-function removeMyBlockEntry(id: string) {
-  removeMyBlock(id)
-  myBlocks.value = loadMyBlocks()
-}
-
-
-function sectionStyle(target: 'components') {
-  if (collapsed.value[target]) {
-    return { height: '42px' }
-  }
-  return {
-    height: `${componentSectionHeight.value}px`,
-  }
-}
-
-function startResize(target: 'components', event: MouseEvent) {
-  if (collapsed.value[target]) return
-  resizing.value = {
-    target,
-    startY: event.clientY,
-    startHeight: componentSectionHeight.value,
-  }
-  document.body.classList.add('is-panel-resizing')
-  event.preventDefault()
-}
-
-function handleMouseMove(event: MouseEvent) {
-  if (!resizing.value) return
-  const delta = event.clientY - resizing.value.startY
-  const nextHeight = resizing.value.startHeight + delta
-  componentSectionHeight.value = clamp(nextHeight, 180, 640)
-}
-
-function handleMouseUp() {
-  resizing.value = null
-  document.body.classList.remove('is-panel-resizing')
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
-}
-
 onMounted(() => {
-  window.addEventListener('mousemove', handleMouseMove)
-  window.addEventListener('mouseup', handleMouseUp)
+  // 画布里「另存为区块」成功后热刷新「我的区块」列表
+  window.addEventListener('pagebuilder:my-blocks-changed', reloadMyBlocks)
   loadRecentTypes()
   if (!featureModulesStore.loaded) {
     featureModulesStore.load()
@@ -549,9 +536,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  window.removeEventListener('mousemove', handleMouseMove)
-  window.removeEventListener('mouseup', handleMouseUp)
-  document.body.classList.remove('is-panel-resizing')
+  window.removeEventListener('pagebuilder:my-blocks-changed', reloadMyBlocks)
 })
 </script>
 
@@ -573,7 +558,8 @@ onBeforeUnmount(() => {
   overflow: hidden;
   background: #fff;
   border-right: 0;
-  gap: 12px;
+  gap: 10px;
+  padding: 0;
 }
 
 .blocks-section {
@@ -581,85 +567,153 @@ onBeforeUnmount(() => {
   min-height: 0;
 }
 
-.blocks-list {
+.blocks-scroll {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  padding: 10px 10px 20px;
 }
 
-.block-card {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 12px;
-  text-align: left;
-  background: var(--pc-soft);
-  border: 1px solid var(--pc-line);
-  border-radius: 10px;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--pc-ink);
+.block-group {
+  margin-bottom: 18px;
 
-  b { font-size: 13px; font-weight: 600; }
-
-  &:hover {
-    border-color: var(--pc-acc);
-    background: var(--pc-acc-soft);
+  &:last-child {
+    margin-bottom: 0;
   }
 }
 
-.block-desc {
+.block-group__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+
+.block-group__title {
+  color: var(--pc-ink, #2a1f17);
   font-size: 12px;
-  color: var(--pc-mute);
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
-.block-parts {
+.block-group__hint,
+.block-group__count {
+  color: var(--pc-faint, #a99c8e);
   font-size: 11px;
-  color: var(--pc-faint);
 }
 
-.my-blocks {
-  border-top: 1px solid var(--pc-line);
-  padding-top: 4px;
+.block-group__count {
+  min-width: 18px;
+  padding: 0 6px;
+  color: var(--pc-acc, #c08e6e);
+  text-align: center;
+  background: var(--pc-acc-soft, #f7efe7);
+  border-radius: 999px;
 }
 
-.my-blocks__actions {
-  padding: 0 8px 8px;
+/* 双列卡片：缩略图 148px + 间距刚好填满面板 */
+.block-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.my-blocks__list {
-  max-height: 220px;
+.my-blocks__hint {
+  margin: 0;
+  padding: 10px;
+  color: var(--pc-mute, #6b5b4e);
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--pc-soft, #faf6f1);
+  border: 1px dashed var(--pc-line, #e8e0d6);
+  border-radius: 8px;
+
+  b {
+    color: var(--pc-acc, #c08e6e);
+  }
 }
 
+/* 左侧顶栏两个大 Tab：更大点击区 + 图标，明确区分「加东西」和「排东西」 */
 .left-seg {
   display: flex;
   gap: 3px;
-  background: #efeae3;
-  border-radius: 8px;
-  padding: 3px;
   flex-shrink: 0;
+  padding: 8px 8px 0;
+  background: #fff;
+  border-bottom: 1px solid var(--pc-line, #e8dfd3);
+}
+
+.left-seg button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  padding: 0 8px;
+  color: var(--pc-mute, #6b5b4e);
+  font-family: inherit;
+  font-size: 12.5px;
+  white-space: nowrap;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    color: var(--pc-acc, #c08e6e);
+  }
+
+  &.on {
+    color: var(--pc-acc, #c08e6e);
+    font-weight: 600;
+    border-bottom-color: var(--pc-acc, #c08e6e);
+  }
+}
+
+.left-seg__count {
+  min-width: 17px;
+  padding: 0 4px;
+  color: var(--pc-faint, #7a6a5c);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 15px;
+  text-align: center;
+  background: var(--pc-soft, #f4efe8);
+  border-radius: 999px;
+}
+
+/* 组件库内的次级切换：更轻的胶囊，视觉层级低于顶栏大 Tab */
+.sub-seg {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  margin: 0 8px;
+  padding: 2px;
+  background: var(--pc-soft, #f4efe8);
+  border-radius: 7px;
+
   button {
     flex: 1;
-    border: 0;
-    background: transparent;
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #6b5b4e;
-    cursor: pointer;
+    height: 24px;
+    padding: 0 8px;
+    color: var(--pc-mute, #6b5b4e);
     font-family: inherit;
-    &:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
+    font-size: 11.5px;
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    cursor: pointer;
+
     &.on {
-      background: #fff;
       color: #2a1f17;
-      font-weight: 500;
+      font-weight: 600;
+      background: #fff;
+      box-shadow: 0 1px 2px rgb(42 31 23 / 8%);
     }
   }
 }
@@ -672,12 +726,14 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.structure-section {
+.panel-section--components {
   flex: 1;
+}
 
-  &.collapsed {
-    flex: 0 0 42px;
-  }
+/* 页面图层：独享整栏高度 */
+.structure-section--solo {
+  flex: 1;
+  min-height: 0;
 }
 
 .section-title {
@@ -884,9 +940,22 @@ onBeforeUnmount(() => {
   }
 }
 
+.structure-row__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .drag-handle {
   display: inline-flex;
+  flex-shrink: 0;
   color: #d9cfc3;
+  cursor: grab;
+}
+
+.structure-row--ghost {
+  opacity: 0.5;
 }
 
 .remove-btn {

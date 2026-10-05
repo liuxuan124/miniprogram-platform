@@ -1,6 +1,6 @@
 <template>
   <div class="activity-entry-props">
-    <el-form label-width="80px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="活动标题">
         <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="热门活动" />
       </el-form-item>

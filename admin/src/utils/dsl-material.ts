@@ -12,6 +12,7 @@ export type MaterialListItem = {
   fileType: string
   fileIcon: string
   fileColor: string
+  iconUrl?: string
   metaLine: string
   sizeText: string
   downloadCount: number
@@ -87,6 +88,7 @@ export function mapMaterialRecord(raw: Record<string, unknown>, index = 0): Mate
     fileType: String(raw.fileType || raw.file_type || 'file'),
     fileIcon: visual.icon,
     fileColor: visual.color,
+    iconUrl: String(raw.iconUrl || raw.icon_url || '').trim() || undefined,
     metaLine,
     sizeText,
     downloadCount: downloads,

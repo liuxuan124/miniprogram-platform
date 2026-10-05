@@ -3,6 +3,7 @@
     <div class="picker-toolbar">
       <el-input v-model="keyword" placeholder="搜索文件名" clearable style="width: 220px" @keyup.enter="loadList" />
       <el-button type="primary" @click="loadList">搜索</el-button>
+      <span class="picker-count">共 {{ total }} 份</span>
     </div>
     <el-table v-loading="loading" :data="records" height="360" @row-dblclick="selectRow">
       <el-table-column prop="name" label="名称" min-width="180" />
@@ -30,6 +31,7 @@ const emit = defineEmits<{ 'update:modelValue': [boolean]; select: [FileItemReco
 const visible = ref(false)
 const loading = ref(false)
 const keyword = ref('')
+const total = ref(0)
 const records = ref<FileItemRecord[]>([])
 
 watch(
@@ -52,8 +54,11 @@ function formatSize(size?: number) {
 async function loadList() {
   loading.value = true
   try {
-    const res = await getFileList({ keyword: keyword.value || undefined, status: 'published', current: 1, size: 50 })
+    // size 取 200：原为 50 且无分页，文件库超过 50 份后靠后的资料在选择器里根本看不到，
+    // 表现为「资料库里明明有，选不中」。超出 200 需靠搜索定位。
+    const res = await getFileList({ keyword: keyword.value || undefined, status: 'published', current: 1, size: 200 })
     records.value = ((res as any).data?.records || []) as FileItemRecord[]
+    total.value = Number((res as any).data?.total || records.value.length)
   } finally {
     loading.value = false
   }
@@ -70,5 +75,6 @@ function selectRow(row: FileItemRecord) {
 </script>
 
 <style scoped>
-.picker-toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+.picker-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+.picker-count { margin-left: auto; font-size: 12px; color: #909399; }
 </style>

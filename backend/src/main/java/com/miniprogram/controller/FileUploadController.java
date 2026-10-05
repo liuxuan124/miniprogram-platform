@@ -34,4 +34,5 @@ public class FileUploadController {
         }
         return R.ok(result);
     }
+
 }

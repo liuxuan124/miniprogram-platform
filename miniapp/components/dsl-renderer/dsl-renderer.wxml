@@ -118,6 +118,7 @@
   <dsl-flash-sale
     wx:elif="{{comp.type === 'flash_sale'}}"
     config="{{comp.props}}"
+    runtimeData="{{comp.runtimeData}}"
     styleString="{{comp.styleString}}"
   />
 
@@ -321,6 +322,11 @@
   <!-- 8. 视频 video -->
   <dsl-video
     wx:elif="{{comp.type === 'video'}}"
+    config="{{comp.props}}"
+    styleString="{{comp.styleString}}"
+  />
+  <dsl-audio
+    wx:elif="{{comp.type === 'audio'}}"
     config="{{comp.props}}"
     styleString="{{comp.styleString}}"
   />
@@ -612,6 +618,757 @@
     wx:elif="{{comp.type === 'planet_feed'}}"
     config="{{comp.props}}"
   />
+
+  <!-- ============================================================
+       暖调装修器 22 个新组件（内联渲染，省主包体积）
+       视觉/文案与后台 admin/src/components/page-builder/{planet,growth,
+       horizontal,content,layout}/* 同源；样式在 styles/warm-kit.wxss
+       归一化与 mock 兜底在 utils/warm-kit.js
+       ============================================================ -->
+
+  <!-- ---------- 星球互动 1/5：planet_qa_card 精选问答卡 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'planet_qa_card'}}"
+    class="wk-card wk-qa"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title || comp.props.subtitle}}" class="wk-qa__head">
+      <text wx:if="{{comp.props.title}}" class="wk-title">{{comp.props.title}}</text>
+      <text wx:if="{{comp.props.subtitle}}" class="wk-sub">{{comp.props.subtitle}}</text>
+    </view>
+    <view wx:if="{{!comp.props._items.length}}" class="wk-empty">暂无精选问答</view>
+    <view
+      wx:for="{{comp.props._items}}"
+      wx:key="id"
+      class="wk-qa__item"
+      data-link="{{item.link}}"
+      catchtap="onQuickNavigate"
+    >
+      <view class="wk-qa__q">{{item.question}}</view>
+      <view class="wk-qa__answerer">
+        <image wx:if="{{item.answererAvatar}}" class="wk-qa__avatar" src="{{item.answererAvatar}}" mode="aspectFill" />
+        <view wx:else class="wk-qa__avatar wk-qa__avatar--text">{{item._initial}}</view>
+        <text class="wk-qa__who">{{item.answerer}}</text>
+        <text wx:if="{{item.answererRole}}" class="wk-qa__role">{{item.answererRole}}</text>
+      </view>
+      <view class="wk-qa__a" style="-webkit-line-clamp:{{comp.props._clamp}};">{{item.answer}}</view>
+      <view wx:if="{{comp.props.showViews || comp.props.showLikes}}" class="wk-qa__meta">
+        <text wx:if="{{comp.props.showViews}}" class="wk-qa__stat">👁 {{item._views}}</text>
+        <text wx:if="{{comp.props.showLikes}}" class="wk-qa__stat">♥ {{item._likes}}</text>
+      </view>
+    </view>
+    <view
+      wx:if="{{comp.props.moreText}}"
+      class="wk-qa__more"
+      style="color:{{comp.props._accent}}"
+      data-link="{{comp.props.moreLink}}"
+      catchtap="onQuickNavigate"
+    >{{comp.props.moreText}} →</view>
+  </view>
+
+  <!-- ---------- 星球互动 2/5：planet_ask_banner 向主理人提问 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'planet_ask_banner'}}"
+    class="wk-card wk-ask"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-ask__head">
+      <text class="wk-title">{{comp.props.title}}</text>
+    </view>
+    <view class="wk-ask__host">
+      <image wx:if="{{comp.props.hostAvatar}}" class="wk-ask__avatar" src="{{comp.props.hostAvatar}}" mode="aspectFill" />
+      <view wx:else class="wk-ask__avatar">{{comp.props._hostInitial}}</view>
+      <view class="wk-ask__who">
+        <view class="wk-ask__name-row">
+          <text class="wk-ask__name">{{comp.props.hostName}}</text>
+          <text wx:if="{{comp.props.hostRole}}" class="wk-ask__role">{{comp.props.hostRole}}</text>
+        </view>
+        <view class="wk-ask__stat">
+          <text class="wk-ask__answered">已解答 {{comp.props._answered}} 次</text>
+          <text wx:if="{{comp.props.showSla && comp.props.responseSla}}" class="wk-ask__sla">
+            <text class="wk-ask__dot"></text>{{comp.props.responseSla}}
+          </text>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{comp.props.desc}}" class="wk-ask__desc">{{comp.props.desc}}</view>
+    <view
+      wx:if="{{comp.props.ctaText}}"
+      class="wk-ask__cta"
+      style="background:{{comp.props._accent}}"
+      data-link="{{comp.props.askLink}}"
+      catchtap="onQuickNavigate"
+    >{{comp.props.ctaText}}</view>
+  </view>
+
+  <!-- ---------- 星球互动 3/5：planet_members_strip 活跃成员排 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'planet_members_strip'}}"
+    class="wk-card wk-members"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-members__head">
+      <text class="wk-title">{{comp.props.title}}</text>
+      <text class="wk-members__count">{{comp.props._countText}}</text>
+    </view>
+    <view wx:if="{{!comp.props._items.length}}" class="wk-members__empty">{{comp.props.emptyText}}</view>
+    <scroll-view
+      wx:else
+      class="wk-members__track"
+      scroll-x
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <view wx:for="{{comp.props._items}}" wx:key="id" class="wk-members__cell">
+        <view class="wk-members__avatar">
+          <image wx:if="{{item.avatar}}" class="wk-members__avatar-img" src="{{item.avatar}}" mode="aspectFill" />
+          <view wx:else class="wk-members__initial">{{item._initial}}</view>
+          <text wx:if="{{item.role}}" class="wk-members__tag" style="background:{{item._tagBg}}">{{item.role}}</text>
+        </view>
+        <view wx:if="{{comp.props.showName}}" class="wk-members__name">{{item.name}}</view>
+      </view>
+      <view wx:if="{{comp.props.showMoreBubble}}" class="wk-members__cell">
+        <view class="wk-members__more" style="color:{{comp.props._accent}};border-color:{{comp.props._accent}}">
+          <text class="wk-members__plus">+{{comp.props._moreText}}</text>
+          <text class="wk-members__more-label">更多成员</text>
+        </view>
+        <view wx:if="{{comp.props.showName}}" class="wk-members__name">等你来</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ---------- 星球互动 4/5：planet_challenge_card 打卡挑战营 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'planet_challenge_card'}}"
+    class="wk-card wk-chal"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view class="wk-chal__head">
+      <view class="wk-chal__head-left">
+        <text wx:if="{{comp.props.title}}" class="wk-title">{{comp.props.title}}</text>
+        <text class="wk-chal__cycle">{{comp.props._cycle}}</text>
+      </view>
+      <text class="wk-chal__pct" style="color:{{comp.props._accent}}">{{chalCheckedToday ? comp.props._percentDone : comp.props._percent}}%</text>
+    </view>
+    <view wx:if="{{comp.props.showCalendar}}" class="wk-chal__cal">
+      <view
+        wx:for="{{chalCheckedToday ? comp.props._cellsDone : comp.props._cells}}"
+        wx:key="_i"
+        class="wk-chal__cell {{item._on ? 'wk-chal__cell--on' : ''}}"
+        style="{{item._on ? ('background:' + comp.props._accent) : ''}}"
+      ></view>
+    </view>
+    <view class="wk-chal__body">
+      <view class="wk-chal__streak">
+        <text class="wk-chal__num" style="color:{{comp.props._accent}}">{{comp.props._streak}}</text>
+        <text class="wk-chal__unit">天连击</text>
+      </view>
+      <view class="wk-chal__meta">
+        <text class="wk-chal__done">{{chalCheckedToday ? comp.props._doneTextDone : comp.props._doneText}}</text>
+        <text class="wk-chal__tip">{{comp.props._tip}}</text>
+      </view>
+    </view>
+    <view
+      wx:if="{{comp.props.ctaText}}"
+      class="wk-chal__cta"
+      style="background:{{chalCheckedToday ? '#0AAA75' : comp.props._accent}}"
+      catchtap="onWarmChallengeToggle"
+    >{{chalCheckedToday ? comp.props.doneText : comp.props.ctaText}}</view>
+  </view>
+
+  <!-- ---------- 星球互动 5/5：planet_benefit_card 轻量权益卡 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'planet_benefit_card'}}"
+    class="wk-card wk-benefit"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <text wx:if="{{comp.props.badge}}" class="wk-benefit__badge" style="{{comp.props._badgeStyle}}">{{comp.props.badge}}</text>
+    <view class="wk-benefit__head">
+      <view class="wk-benefit__name">{{comp.props.planetName}}</view>
+      <view wx:if="{{comp.props.tagline}}" class="wk-benefit__tagline">{{comp.props.tagline}}</view>
+    </view>
+    <view
+      wx:for="{{comp.props._items}}"
+      wx:key="id"
+      class="wk-benefit__item {{index === 0 ? 'wk-benefit__item--first' : ''}}"
+    >
+      <text class="wk-benefit__icon">{{item.icon}}</text>
+      <view class="wk-benefit__text">
+        <view class="wk-benefit__btitle">{{item.title}}</view>
+        <view class="wk-benefit__bdesc">{{item.desc}}</view>
+      </view>
+    </view>
+    <view class="wk-benefit__foot">
+      <view class="wk-benefit__price">
+        <text wx:if="{{comp.props.originalPrice}}" class="wk-benefit__orig">¥{{comp.props.originalPrice}}</text>
+        <text class="wk-benefit__now" style="color:{{comp.props._accent}}">
+          <text class="wk-benefit__symbol">¥</text>{{comp.props.price}}
+        </text>
+        <text wx:if="{{comp.props.priceUnit}}" class="wk-benefit__unit">{{comp.props.priceUnit}}</text>
+      </view>
+      <view
+        wx:if="{{comp.props.ctaText}}"
+        class="wk-benefit__cta"
+        style="background:{{comp.props._accent}}"
+        data-link="{{comp.props.ctaLink}}"
+        catchtap="onQuickNavigate"
+      >{{comp.props.ctaText}}</view>
+    </view>
+  </view>
+
+  <!-- ---------- 增长转化 1/5：op_creator_banner 创作者招募 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'op_creator_banner'}}"
+    class="wk-card wk-creator"
+    style="{{comp.styleString}};{{comp.props._rootStyle}}"
+  >
+    <view class="wk-creator__head">
+      <text wx:if="{{comp.props.showStatus && comp.props.statusTag}}" class="wk-creator__tag" style="{{comp.props._tagStyle}}">{{comp.props.statusTag}}</text>
+      <view class="wk-creator__slogan">{{comp.props.slogan}}</view>
+    </view>
+    <view wx:if="{{comp.props.incomeText}}" class="wk-creator__income">{{comp.props.incomeText}}</view>
+    <view wx:if="{{comp.props.ctaText}}" class="wk-creator__foot">
+      <text
+        class="wk-creator__cta"
+        style="color:{{comp.props._accent}};border-color:{{comp.props._accent}}"
+        data-link="{{comp.props.ctaLink}}"
+        catchtap="onQuickNavigate"
+      >{{comp.props.ctaText}} →</text>
+    </view>
+  </view>
+
+  <!-- ---------- 增长转化 2/5：op_quote_card 金句卡 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'op_quote_card'}}"
+    class="wk-card wk-quote"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view class="wk-quote__body {{comp.props._alignClass}}">
+      <text wx:if="{{comp.props.showQuoteMark}}" class="wk-quote__mark" style="{{comp.props._markStyle}};left:{{comp.props._markLeft}}">「</text>
+      <view class="wk-quote__text" style="{{comp.props._textStyle}}">{{comp.props.quote}}</view>
+    </view>
+    <view wx:if="{{comp.props.author || comp.props.authorTitle}}" class="wk-quote__by {{comp.props._alignClass}}">
+      <text wx:if="{{comp.props.author}}" class="wk-quote__author" style="color:{{comp.props._accent}}">—— {{comp.props.author}}</text>
+      <text wx:if="{{comp.props.authorTitle}}" class="wk-quote__title">{{comp.props.authorTitle}}</text>
+    </view>
+  </view>
+
+  <!-- ---------- 增长转化 3/5：op_smart_group_card 智能群卡 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'op_smart_group_card'}}"
+    class="wk-card wk-group"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view class="wk-group__head">
+      <text class="wk-group__name">{{comp.props.groupName}}</text>
+      <text wx:if="{{comp.props.memberScale}}" class="wk-group__scale">{{comp.props.memberScale}}</text>
+    </view>
+    <view class="wk-group__main">
+      <view class="wk-group__qrbox">
+        <image wx:if="{{comp.props.qrImage}}" class="wk-group__qr" src="{{comp.props.qrImage}}" mode="aspectFill" />
+        <view wx:else class="wk-group__qr wk-group__qr--ph">二维码</view>
+        <view wx:if="{{comp.props.qrTip}}" class="wk-group__qrtip">{{comp.props.qrTip}}</view>
+      </view>
+      <view class="wk-group__benefits">
+        <view
+          wx:for="{{comp.props._items}}"
+          wx:key="id"
+          class="wk-group__benefit {{index > 0 ? 'wk-group__benefit--sep' : ''}}"
+        >
+          <text wx:if="{{item.icon}}" class="wk-group__bicon">{{item.icon}}</text>
+          <text class="wk-group__btext">{{item.text}}</text>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{comp.props.showFallback}}" class="wk-group__foot">
+      <text
+        class="wk-group__cta"
+        style="color:{{comp.props._accent}};border-color:{{comp.props._accent}}"
+        catchtap="onWarmCopyWechat"
+      >{{comp.props.ctaText}}</text>
+      <text wx:if="{{comp.props.fallbackWechat}}" class="wk-group__wechat">{{comp.props.fallbackWechat}}</text>
+    </view>
+  </view>
+
+  <!-- ---------- 增长转化 4/5：op_referral_banner 邀请 banner ---------- -->
+  <view
+    wx:elif="{{comp.type === 'op_referral_banner'}}"
+    class="wk-card wk-referral"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view class="wk-referral__incentive">{{comp.props.incentive}}</view>
+    <view wx:if="{{comp.props.showProgress}}" class="wk-referral__progress">
+      <view class="wk-referral__bar">
+        <view class="wk-referral__fill" style="{{comp.props._fillStyle}}"></view>
+      </view>
+      <view class="wk-referral__nums">
+        <text class="wk-referral__count">{{comp.props._nums}}</text>
+        <text class="wk-referral__pct" style="color:{{comp.props._progressColor}}">{{comp.props._percent}}%</text>
+      </view>
+    </view>
+    <view wx:if="{{comp.props._items.length}}" class="wk-referral__rewards">
+      <view wx:for="{{comp.props._items}}" wx:key="id" class="wk-referral__reward">
+        <text wx:if="{{item.icon}}" class="wk-referral__ricon">{{item.icon}}</text>
+        <text class="wk-referral__rtext">{{item.text}}</text>
+      </view>
+    </view>
+    <view wx:if="{{comp.props.ctaText}}" class="wk-referral__foot">
+      <view class="wk-referral__cta" style="background:{{comp.props._accent}}" catchtap="onWarmGateSubmit">{{comp.props.ctaText}}</view>
+    </view>
+  </view>
+
+  <!-- ---------- 增长转化 5/5：op_gated_download_card 门控下载卡 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'op_gated_download_card'}}"
+    class="wk-card wk-gate"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view class="wk-gate__top">
+      <image wx:if="{{comp.props.cover}}" class="wk-gate__cover" src="{{comp.props.cover}}" mode="aspectFill" />
+      <view wx:else class="wk-gate__cover wk-gate__cover--ph">白皮书</view>
+      <view class="wk-gate__info">
+        <view class="wk-gate__title">{{comp.props.title}}</view>
+        <view wx:if="{{comp.props.showMeta}}" class="wk-gate__meta">
+          <text wx:if="{{comp.props._pageCount}}" class="wk-gate__chip">{{comp.props._pageCount}} 页</text>
+          <text wx:if="{{comp.props._fileSize}}" class="wk-gate__chip">{{comp.props._fileSize}}</text>
+          <text class="wk-gate__chip wk-gate__chip--lock">PDF</text>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{comp.props.description}}" class="wk-gate__desc">{{comp.props.description}}</view>
+    <view wx:if="{{comp.props._isLead}}" class="wk-gate__form">
+      <input
+        wx:if="{{comp.props._showName}}"
+        class="wk-gate__input"
+        placeholder="请输入您的姓名"
+        data-field="name"
+        bindinput="onWarmGateInput"
+      />
+      <input
+        class="wk-gate__input"
+        type="number"
+        maxlength="11"
+        placeholder="请输入手机号"
+        data-field="phone"
+        bindinput="onWarmGateInput"
+      />
+    </view>
+    <view class="wk-gate__foot">
+      <view class="wk-gate__cta" style="background:{{comp.props._accent}}" catchtap="onWarmGateSubmit">{{comp.props.ctaText}}</view>
+    </view>
+    <view wx:if="{{comp.props._isLead}}" class="wk-gate__tip">提交即视为同意我们通过电话或短信与你联系</view>
+  </view>
+
+  <!-- ---------- 平排横滑 1/5：h_peek_carousel 半露横滑 ----------
+       卡宽在 js 里算好（peekCardWidth），不用 CSS 变量，
+       右侧必露下一张切边 -->
+  <view
+    wx:elif="{{comp.type === 'h_peek_carousel'}}"
+    class="wk-card wk-peekc"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-peekc__head">
+      <text class="wk-title">{{comp.props.title}}</text>
+      <text class="wk-peekc__tip">左右滑动查看更多</text>
+    </view>
+    <view wx:if="{{!comp.props._items.length}}" class="wk-peekc__empty">{{comp.props.emptyText}}</view>
+    <block wx:else>
+      <scroll-view
+        class="wk-peekc__track"
+        style="{{comp.props._gapStyle}}"
+        scroll-x
+        enhanced
+        show-scrollbar="{{false}}"
+        scroll-with-animation
+        scroll-into-view="{{peekScrollInto}}"
+        bindscroll="onWarmPeekScroll"
+      >
+        <view
+          wx:for="{{comp.props._items}}"
+          wx:key="id"
+          id="wk-peek-{{item.id}}"
+          class="wk-peekc__card"
+          style="{{comp.props._cardStyle}}"
+          data-link="{{item.link}}"
+          catchtap="onQuickNavigate"
+        >
+          <view class="wk-peekc__cover">
+            <image wx:if="{{item.image}}" class="wk-peekc__cover-img" src="{{item.image}}" mode="aspectFill" />
+            <text wx:else class="wk-peekc__cover-ph">{{item._initial}}</text>
+          </view>
+          <view class="wk-peekc__body">
+            <view class="wk-peekc__card-title">{{item.title}}</view>
+            <view class="wk-peekc__desc">{{item.desc}}</view>
+            <text wx:if="{{item.tag}}" class="wk-peekc__tag" style="{{comp.props._tagStyle}}">{{item.tag}}</text>
+          </view>
+        </view>
+      </scroll-view>
+      <view wx:if="{{comp.props.showDots && comp.props._items.length > 1}}" class="wk-peekc__dots">
+        <view
+          wx:for="{{comp.props._items}}"
+          wx:key="id"
+          class="wk-peekc__dot {{index === peekActiveIndex ? 'wk-peekc__dot--on' : ''}}"
+          style="{{index === peekActiveIndex ? ('background:' + comp.props._accent) : ''}}"
+          data-i="{{index}}"
+          data-id="wk-peek-{{item.id}}"
+          catchtap="onWarmPeekDot"
+        ></view>
+      </view>
+    </block>
+  </view>
+
+  <!-- ---------- 平排横滑 2/5：h_comparison_card 对比卡 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'h_comparison_card'}}"
+    class="wk-card wk-cmp"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-cmp__head">
+      <text class="wk-title">{{comp.props.title}}</text>
+    </view>
+    <view class="wk-cmp__cols">
+      <view class="wk-cmp__col {{comp.props.highlightRight ? '' : 'wk-cmp__col--on'}}" style="{{comp.props.highlightRight ? '' : comp.props._onStyle}}">
+        <view class="wk-cmp__label" style="{{comp.props._leftLabelStyle}}">
+          <text class="wk-cmp__label-text">{{comp.props.leftLabel}}</text>
+        </view>
+        <view class="wk-cmp__list">
+          <view wx:for="{{comp.props._left}}" wx:key="index" class="wk-cmp__row">
+            <text class="wk-cmp__icon {{item._toneClass}}">{{item.icon}}</text>
+            <text class="wk-cmp__text">{{item.text}}</text>
+          </view>
+          <view wx:if="{{!comp.props._hasLeft}}" class="wk-cmp__row wk-cmp__row--muted">
+            <text class="wk-cmp__icon">·</text>
+            <text class="wk-cmp__text">待补充对照要点</text>
+          </view>
+        </view>
+        <view wx:if="{{comp.props.leftNote}}" class="wk-cmp__note">{{comp.props.leftNote}}</view>
+      </view>
+      <view class="wk-cmp__col {{comp.props.highlightRight ? 'wk-cmp__col--on' : ''}}" style="{{comp.props.highlightRight ? comp.props._onStyle : ''}}">
+        <view class="wk-cmp__label" style="{{comp.props._rightLabelStyle}}">
+          <text class="wk-cmp__label-text">{{comp.props.rightLabel}}</text>
+          <text wx:if="{{comp.props.highlightRight}}" class="wk-cmp__badge">推荐</text>
+        </view>
+        <view class="wk-cmp__list">
+          <view wx:for="{{comp.props._right}}" wx:key="index" class="wk-cmp__row">
+            <text class="wk-cmp__icon {{item._toneClass}}">{{item.icon}}</text>
+            <text class="wk-cmp__text">{{item.text}}</text>
+          </view>
+          <view wx:if="{{!comp.props._hasRight}}" class="wk-cmp__row wk-cmp__row--muted">
+            <text class="wk-cmp__icon">·</text>
+            <text class="wk-cmp__text">待补充推荐要点</text>
+          </view>
+        </view>
+        <view wx:if="{{comp.props.rightNote}}" class="wk-cmp__note" style="{{comp.props._rightNoteStyle}}">{{comp.props.rightNote}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ---------- 平排横滑 3/5：h_metric_strip 指标条 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'h_metric_strip'}}"
+    class="wk-card wk-met"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-met__head">
+      <text class="wk-title">{{comp.props.title}}</text>
+    </view>
+    <view wx:if="{{!comp.props._hasItems}}" class="wk-empty">暂无关键数据</view>
+    <view wx:else class="wk-met__row">
+      <view wx:for="{{comp.props._items}}" wx:key="index" class="wk-met__item {{item._div ? 'wk-met__item--div' : ''}}">
+        <view class="wk-met__num-wrap">
+          <text class="wk-met__num" style="color:{{comp.props._valueColor}}">{{item.value}}<text wx:if="{{item.suffix}}" class="wk-met__suffix">{{item.suffix}}</text></text>
+          <text wx:if="{{item.unit}}" class="wk-met__unit" style="color:{{comp.props._unitColor}}">{{item.unit}}</text>
+        </view>
+        <view class="wk-met__label" style="color:{{comp.props._labelColor}}">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ---------- 平排横滑 4/5：h_filter_chips 筛选芯片 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'h_filter_chips'}}"
+    class="wk-card wk-chips"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-chips__head">
+      <text class="wk-title">{{comp.props.title}}</text>
+    </view>
+    <view wx:if="{{!comp.props._hasItems}}" class="wk-chips__empty">暂无筛选项</view>
+    <scroll-view
+      wx:else
+      class="wk-chips__track"
+      scroll-x
+      enhanced
+      show-scrollbar="{{false}}"
+    >
+      <view
+        wx:if="{{comp.props.showAllChip}}"
+        class="wk-chips__pill {{chipActiveIndex === -1 ? 'wk-chips__pill--on' : ''}}"
+        style="{{chipActiveIndex === -1 ? ('background:' + comp.props._activeColor + ';border-color:' + comp.props._activeColor) : ('border-color:' + comp.props._accent)}}"
+        data-i="-1"
+        catchtap="onWarmChipSelect"
+      >
+        <text class="wk-chips__text">{{comp.props.allLabel}}</text>
+      </view>
+      <view
+        wx:for="{{comp.props._items}}"
+        wx:key="id"
+        class="wk-chips__pill {{chipActiveIndex === index ? 'wk-chips__pill--on' : ''}}"
+        style="{{chipActiveIndex === index ? ('background:' + comp.props._activeColor + ';border-color:' + comp.props._activeColor) : ('border-color:' + comp.props._accent)}}"
+        data-i="{{index}}"
+        catchtap="onWarmChipSelect"
+      >
+        <text class="wk-chips__text">{{item.label}}</text>
+        <text
+          wx:if="{{comp.props.showCount && item._count}}"
+          class="wk-chips__count {{chipActiveIndex === index ? 'wk-chips__count--on' : ''}}"
+        >{{item._count}}</text>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ---------- 平排横滑 5/5：h_split_banner 左右分屏 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'h_split_banner'}}"
+    class="wk-card wk-split"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view class="wk-split__row">
+      <view class="wk-split__cell" style="{{comp.props._leftStyle}}" data-link="{{comp.props.leftLink}}" catchtap="onQuickNavigate">
+        <view class="wk-split__icon">
+          <image wx:if="{{comp.props._leftIconIsImg}}" class="wk-split__icon-img" src="{{comp.props._leftIcon}}" mode="aspectFill" />
+          <text wx:else>{{comp.props._leftIcon}}</text>
+        </view>
+        <view class="wk-split__text">
+          <view class="wk-split__title" style="color:{{comp.props._accent}}">{{comp.props.leftTitle}}</view>
+          <view class="wk-split__sub">{{comp.props.leftSub}}</view>
+        </view>
+        <text wx:if="{{comp.props.showArrow}}" class="wk-split__arrow" style="color:{{comp.props._accent}}">→</text>
+      </view>
+      <view class="wk-split__cell" style="{{comp.props._rightStyle}}" data-link="{{comp.props.rightLink}}" catchtap="onQuickNavigate">
+        <view class="wk-split__icon">
+          <image wx:if="{{comp.props._rightIconIsImg}}" class="wk-split__icon-img" src="{{comp.props._rightIcon}}" mode="aspectFill" />
+          <text wx:else>{{comp.props._rightIcon}}</text>
+        </view>
+        <view class="wk-split__text">
+          <view class="wk-split__title" style="color:{{comp.props._accent}}">{{comp.props.rightTitle}}</view>
+          <view class="wk-split__sub">{{comp.props.rightSub}}</view>
+        </view>
+        <text wx:if="{{comp.props.showArrow}}" class="wk-split__arrow" style="color:{{comp.props._accent}}">→</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ---------- 深度内容 1/3：content_faq_accordion 折叠手风琴 ----------
+       动效用 height/opacity 直切（小程序对 grid-template-rows 0fr 支持不稳） -->
+  <view
+    wx:elif="{{comp.type === 'content_faq_accordion'}}"
+    class="wk-card wk-faq"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title || (comp.props.showExpandAll && !comp.props.accordionMode)}}" class="wk-faq__head">
+      <text wx:if="{{comp.props.title}}" class="wk-title">{{comp.props.title}}</text>
+      <text
+        wx:if="{{comp.props.showExpandAll && !comp.props.accordionMode && comp.props._hasItems}}"
+        class="wk-faq__all"
+        style="color:{{comp.props._accent}}"
+        catchtap="onWarmFaqToggleAll"
+      >{{faqOpenList.length >= comp.props._items.length ? '收起全部' : '展开全部'}}</text>
+    </view>
+    <view wx:if="{{!comp.props._hasItems}}" class="wk-empty">暂无问答</view>
+    <view
+      wx:for="{{comp.props._items}}"
+      wx:key="id"
+      class="wk-faq__item {{index === comp.props._items.length - 1 ? 'wk-faq__item--last' : ''}}"
+    >
+      <view
+        class="wk-faq__q {{faqOpenIndex === item._i ? 'wk-faq__q--on' : ''}}"
+        data-i="{{item._i}}"
+        catchtap="onWarmFaqToggle"
+      >
+        <text class="wk-faq__qtext">{{item.question}}</text>
+        <text wx:if="{{item.tag}}" class="wk-faq__tag" style="{{comp.props._tagStyle}}">{{item.tag}}</text>
+        <text
+          class="wk-faq__arrow {{faqOpenIndex === item._i ? 'wk-faq__arrow--open' : ''}}"
+          style="color:{{comp.props._accent}}"
+        >▾</text>
+      </view>
+      <view class="wk-faq__body {{faqOpenIndex === item._i ? 'wk-faq__body--open' : ''}}">
+        <view class="wk-faq__inner">
+          <view class="wk-faq__a">{{item.answer}}</view>
+        </view>
+      </view>
+    </view>
+    <view wx:if="{{faqOpenIndex === -1 && comp.props.collapsedHint}}" class="wk-faq__hint">{{comp.props.collapsedHint}}</view>
+  </view>
+
+  <!-- ---------- 深度内容 2/3：content_mini_audio 迷你音频条 ----------
+       播放/暂停/倍速/seek 全部走 InnerAudioContext（见 dsl-renderer.js） -->
+  <view
+    wx:elif="{{comp.type === 'content_mini_audio'}}"
+    class="wk-card wk-audio"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.showCover}}" class="wk-audio__cover">
+      <image wx:if="{{comp.props.cover}}" class="wk-audio__cover-img" src="{{comp.props.cover}}" mode="aspectFill" />
+      <text wx:else class="wk-audio__cover-icon">♪</text>
+    </view>
+    <view
+      class="wk-audio__play {{audioPlaying ? 'wk-audio__play--peek' : ''}}"
+      style="background:{{comp.props._accent}}"
+      catchtap="onWarmAudioToggle"
+    >
+      <text class="wk-audio__play-icon">{{audioPlaying ? '❙❙' : '▶'}}</text>
+    </view>
+    <view class="wk-audio__main">
+      <view class="wk-audio__title">{{comp.props.title}}</view>
+      <view
+        class="wk-audio__track"
+        catchtap="onWarmAudioSeek"
+        catchtouchstart="onWarmAudioTrackStart"
+      >
+        <view class="wk-audio__bar">
+          <view class="wk-audio__played" style="width:{{audioPercent}}%;background:{{comp.props._accent}}"></view>
+          <view class="wk-audio__thumb" style="left:{{audioPercent}}%;border-color:{{comp.props._accent}}"></view>
+        </view>
+      </view>
+    </view>
+    <text class="wk-audio__time">{{audioCurText}} / {{audioDurText}}</text>
+    <text
+      wx:if="{{comp.props.showSpeed}}"
+      class="wk-audio__speed"
+      style="color:{{comp.props._accent}};border-color:{{comp.props._accent}}"
+      catchtap="onWarmAudioSpeed"
+    >{{audioSpeed}}x</text>
+  </view>
+
+  <!-- ---------- 深度内容 3/3：content_milestone_tracker 里程碑时间线 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'content_milestone_tracker'}}"
+    class="wk-card wk-ms"
+    style="{{comp.styleString}};background:{{comp.props._bg}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-ms__head">
+      <text class="wk-title">{{comp.props.title}}</text>
+    </view>
+    <view wx:if="{{!comp.props._hasItems}}" class="wk-empty">暂无政策节点</view>
+    <view wx:else class="wk-ms__track">
+      <view wx:for="{{comp.props._items}}" wx:key="id" class="wk-ms__node {{item._isLast ? 'wk-ms__node--last' : ''}}">
+        <view class="wk-ms__rail">
+          <view class="wk-ms__dot" style="{{item._dotStyle}}">
+            <view wx:if="{{item._isActive}}" class="wk-ms__pulse" style="border-color:{{item._statusColor}}"></view>
+          </view>
+          <view wx:if="{{!item._isLast}}" class="wk-ms__line" style="background:{{comp.props._lineColor}}"></view>
+        </view>
+        <view class="wk-ms__content">
+          <view class="wk-ms__meta">
+            <text class="wk-ms__date">{{item.date}}</text>
+            <text wx:if="{{comp.props.showStatus}}" class="wk-ms__badge" style="{{item._badgeStyle}}">{{item._statusLabel}}</text>
+          </view>
+          <view class="wk-ms__t">{{item.title}}</view>
+          <view wx:if="{{item._points.length}}" class="wk-ms__points">
+            <view wx:for="{{item._points}}" wx:for-item="pt" wx:key="index" class="wk-ms__point">
+              <view class="wk-ms__bullet" style="background:{{item._statusColor}}"></view>
+              <text class="wk-ms__point-text">{{pt}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ---------- 布局容器 1/4：layout_overlap_wrapper 层叠穿透 ----------
+       负 margin + position:relative + z-index:2，样式全在 _rootStyle -->
+  <view
+    wx:elif="{{comp.type === 'layout_overlap_wrapper'}}"
+    class="wk-card wk-ovl"
+    style="{{comp.styleString}};{{comp.props._rootStyle}}"
+  >
+    <view class="wk-ovl__body" style="{{comp.props._bodyStyle}}">
+      <dsl-renderer wx:for="{{comp.children}}" wx:key="id" component="{{item}}" />
+      <view wx:if="{{!comp.children.length}}" class="wk-ovl__placeholder">重叠内容区 · 将组件拖入此处</view>
+    </view>
+  </view>
+
+  <!-- ---------- 布局容器 2/4：layout_paper_sheet 纸感包裹容器 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'layout_paper_sheet'}}"
+    class="wk-card wk-sheet"
+    style="{{comp.styleString}};{{comp.props._rootStyle}}"
+  >
+    <view wx:if="{{comp.props.title}}" class="wk-sheet__title">{{comp.props.title}}</view>
+    <view class="wk-sheet__body" style="{{comp.props._bodyStyle}}">
+      <dsl-renderer wx:for="{{comp.children}}" wx:key="id" component="{{item}}" />
+      <view wx:if="{{!comp.children.length && comp.props.showPlaceholder}}" class="wk-sheet__placeholder">{{comp.props.placeholderText}}</view>
+    </view>
+  </view>
+
+  <!-- ---------- 布局容器 3/4：layout_sticky_wrapper 吸顶容器 ----------
+       小程序不支持 position:sticky：占位块（撑高度）+ fixed 层，wx:if 二选一。
+       状态 stickyOn 由组件内 IntersectionObserver 驱动，见 dsl-renderer.js -->
+  <view
+    wx:elif="{{comp.type === 'layout_sticky_wrapper'}}"
+    class="wk-stick"
+    style="{{comp.styleString}}"
+  >
+    <view class="wk-stick__sentinel" style="height:1rpx;"></view>
+    <block wx:if="{{comp.props.enabled}}">
+      <!-- 占位块：吸顶时撑出原始高度，避免下方内容跳位 -->
+      <view wx:if="{{stickyOn}}" class="wk-stick__holder" style="height:{{stickyPlaceholderH}}px"></view>
+      <view
+        wx:if="{{stickyOn}}"
+        class="wk-stick__fix"
+        style="{{comp.props._fixPadStyle}};top:{{comp.props._fixTop}};z-index:{{comp.props._fixZ}}"
+      >
+        <view class="wk-stick__inner">
+          <view class="wk-stick__card" style="{{comp.props._rootStyle}}">
+            <view class="wk-stick__body" style="{{comp.props._bodyStyle}}">
+              <dsl-renderer wx:for="{{comp.children}}" wx:key="id" component="{{item}}" />
+              <view wx:if="{{!comp.children.length && comp.props.showPlaceholder}}" class="wk-stick__placeholder">{{comp.props.placeholderText}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <!-- 未吸顶：正常流内渲染 -->
+      <view wx:else class="wk-stick__holder">
+        <view class="wk-stick__inner">
+          <view class="wk-stick__card" style="{{comp.props._rootStyle}}">
+            <view class="wk-stick__body" style="{{comp.props._bodyStyle}}">
+              <dsl-renderer wx:for="{{comp.children}}" wx:key="id" component="{{item}}" />
+              <view wx:if="{{!comp.children.length && comp.props.showPlaceholder}}" class="wk-stick__placeholder">{{comp.props.placeholderText}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+    <!-- 运营关闭吸顶：退化为普通静态容器 -->
+    <view wx:else class="wk-stick__holder">
+      <view class="wk-stick__inner">
+        <view class="wk-stick__card" style="{{comp.props._rootStyle}}">
+          <view class="wk-stick__body" style="{{comp.props._bodyStyle}}">
+            <dsl-renderer wx:for="{{comp.children}}" wx:key="id" component="{{item}}" />
+            <view wx:if="{{!comp.children.length && comp.props.showPlaceholder}}" class="wk-stick__placeholder">{{comp.props.placeholderText}}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ---------- 布局容器 4/4：layout_flexible_grid 弹性非对称栅格 ---------- -->
+  <view
+    wx:elif="{{comp.type === 'layout_flexible_grid'}}"
+    class="wk-card wk-grid"
+    style="{{comp.styleString}};{{comp.props._rootStyle}}"
+  >
+    <view class="wk-grid__row" style="{{comp.props._rowStyle}}">
+      <view wx:for="{{comp.props._cells}}" wx:key="_i" class="wk-grid__cell" style="{{item._style}}">
+        <dsl-renderer wx:for="{{item.children}}" wx:for-item="kid" wx:key="id" component="{{kid}}" />
+        <view wx:if="{{!item.children.length}}" class="wk-grid__cell-hint" style="color:{{comp.props._accent}}">
+          格 {{item._i}}<text class="wk-grid__cell-grow">· {{item._grow}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 
   <!-- 未知组件类型 -->
   <view

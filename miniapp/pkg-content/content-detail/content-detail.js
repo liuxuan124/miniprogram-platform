@@ -1,5 +1,6 @@
 // pages/content-detail/content-detail.js
 const request = require('../../utils/request')
+const imageRatio = require('../../utils/image-ratio')
 const productService = require('../../services/product')
 const { StorageUtil } = require('../../utils/storage')
 const { createSharePageConfig, openWarmShareSheet } = require('../../utils/share')
@@ -323,6 +324,12 @@ function hasStoredId(key, id) {
   return readIdList(key).includes(String(id))
 }
 
+/** 点赞态读取：未登录不认任何本地点赞记录（避免游客脏数据被当成已点赞） */
+function hasStoredLike(id) {
+  if (!AuthUtil.isLoggedIn()) return false
+  return readIdList(LIKES_KEY).includes(String(id))
+}
+
 function readComments(contentId) {
   const all = StorageUtil.get(COMMENTS_KEY) || {}
   const list = all[String(contentId)]
@@ -388,6 +395,10 @@ Page({
     galleryIndex: 0,
     galleryCount: 0,
     galleryHeight: 750,
+    // 笔记画廊首图（用于探测原始宽高比，修正竖长图被裁切的问题）
+    galleryFirstUrl: '',
+    // page-meta 的页面样式：笔记走小红书风（纯白），公众号贴图保持深色
+    themePageStyle: '',
     noteParagraphs: [],
     hashTags: [],
     artStyle: '',
@@ -402,10 +413,17 @@ Page({
     comments: [],
     commentDraft: '',
     commentSubmitting: false,
+    /** 当前回复目标（楼评论对象），null=普通评论 */
+    replyTarget: null,
+    /** 回复目标的被回复人昵称（回复楼中楼回复时为该回复人昵称） */
+    replyToName: '',
     authorName: AUTHOR_NAME,
     authorAvatar: '',
     authorInitial: '哲',
     authorRole: '',
+    authorId: '',
+    authorTitle: '',
+    authorIntro: '',
     contentLocked: false,
     lockedReason: '',
     memberWall: {
@@ -432,6 +450,41 @@ Page({
       return
     }
     this.setData({ [key]: DEFAULT_AVATAR })
+  },
+
+  /**
+   * 详情页画廊：首屏先用默认高度渲染，再探测首图真实比例并修正高度。
+   * 竖长信息图（3:4 甚至更长）用 aspectFill + 固定高度会被裁掉上下两段。
+   */
+  _probeGalleryRatio() {
+    const url = this.data.galleryFirstUrl
+    if (!url) return
+    // 0) URL 上带了 ?w=&h=&r= —— 零请求最可靠
+    const urlRatio = imageRatio.ratioFromUrl(url)
+    if (urlRatio > 0) { this._applyGalleryHeight(urlRatio); return }
+    // 1) 本地缓存（探测过的）
+    const cached = imageRatio.getCached(url)
+    if (cached > 0) {
+      this._applyGalleryHeight(cached)
+      return
+    }
+    imageRatio.probe([url], () => {
+      const r = imageRatio.getCached(url)
+      if (r > 0) this._applyGalleryHeight(r)
+    })
+  },
+
+  _applyGalleryHeight(ratio) {
+    const byRatio = Math.round((750 * ratio) / 100)
+    const h = Math.max(750, Math.min(1600, byRatio))
+    if (this.data.galleryHeight !== h) this.setData({ galleryHeight: h })
+  },
+
+  observers: {
+    /** 画廊首图确定后探测真实比例，把固定高度修正为按原图比例 */
+    galleryFirstUrl(url) {
+      if (url) this._probeGalleryRatio()
+    },
   },
 
   onLoad(options) {
@@ -583,7 +636,7 @@ Page({
         commentEnabled: true,
         commentCount: d.commentCount || (mode === 'meal' ? 128 : 286),
         commentCountDisplay: d.commentDisplay || (mode === 'meal' ? '128' : '286'),
-        liked: hasStoredId(LIKES_KEY, demoId),
+        liked: hasStoredLike(demoId),
         favorited: hasFavoriteId(demoId),
         likeDisplay: d.likeDisplay || (mode === 'meal' ? '1.9k' : '4.2k'),
         favoriteDisplay: hasFavoriteId(demoId) ? '已收藏' : (d.favoriteDisplay || (mode === 'meal' ? '486' : '1.1k')),
@@ -634,7 +687,7 @@ Page({
       relatedProducts: [],
       contentLocked: true,
       lockedReason: (this.data.memberWall && this.data.memberWall.desc) || '',
-      liked: hasStoredId(LIKES_KEY, demoId),
+      liked: hasStoredLike(demoId),
       favorited: hasFavoriteId(demoId),
       hasCommented: false,
       likeDisplay: '1.2k',
@@ -836,7 +889,16 @@ Page({
             uniq = usableUniq.length ? usableUniq : uniq
           }
           if (uniq.length >= 1) {
-            gallerySlides = uniq.map((url, i) => ({ type: 'image', url, key: `img-${i}` }))
+            gallerySlides = uniq.map((url, i) => ({ type: 'image', url, key: `img-${i}` }));
+          // 首屏就用 URL 上的比例算高度（?w=&h=&r= 由 stamp_image_ratio.py 写入），
+          // 不必等 wx.getImageInfo 探测回调，避免「先 940rpx 再跳高」的闪动。
+          {
+            const firstUrl = resolveMediaUrl(uniq[0] || '')
+            const r = imageRatio.ratioFromUrl(firstUrl)
+            if (r > 0) {
+              galleryHeight = Math.max(750, Math.min(1600, Math.round((750 * r) / 100)))
+            }
+          }
           } else {
             const glyphs = [proto && proto.glyph, '📸', '✨', '💡', '🔥', '📌'].filter(Boolean)
             gallerySlides = glyphs.slice(0, 4).map((g, i) => ({
@@ -897,7 +959,7 @@ Page({
         const rawTopicName = TOPIC_NAME[topic] || article.categoryName || ''
         const topicName = isDisplayableCategory(rawTopicName) ? rawTopicName : ''
         const contentId = article.id
-        const liked = !!article.liked || hasStoredId(LIKES_KEY, contentId)
+        const liked = !!article.liked || hasStoredLike(contentId)
         const favorited = !!article.favorited || hasFavoriteId(contentId)
         const followIds = StorageUtil.get(FOLLOWS_KEY) || []
         const followed = Array.isArray(followIds)
@@ -936,6 +998,9 @@ Page({
             || (warmNoteMatch ? noteDemo.author : '')
             || AUTHOR_NAME
         ).trim() || AUTHOR_NAME
+        const authorId = article.authorId || article.author_id || ''
+        const authorTitle = String(article.authorTitle || article.author_title || '').trim()
+        const authorIntro = String(article.authorIntro || article.author_intro || '').trim()
         const authorRoleRaw = String(
           article.authorRole || article.author_role || ''
         ).trim()
@@ -1037,6 +1102,16 @@ Page({
           galleryIndex: 0,
           galleryCount: contentLocked ? Math.min(1, gallerySlides.length) : gallerySlides.length,
           galleryHeight,
+          // ⚠ 不能引用 `uniq`：它是 `if (isNote) {}` 块内的 let 声明，
+          //    块外访问会抛 `uniq is not defined` 导致整页渲染失败。
+          //    改用块外可见的 gallerySlides。
+          galleryFirstUrl: (!isWechatNewspic && gallerySlides.length && gallerySlides[0].type === 'image')
+            ? resolveMediaUrl(gallerySlides[0].url)
+            : '',
+          // 页面底色：笔记=纯白（小红书风），长文沿用暖阁米色，公众号贴图=深色
+          themePageStyle: isWechatNewspic
+            ? 'background: #1f1f1f;'
+            : (isNote ? 'background: #ffffff;' : 'background: #fdf6ec;'),
           noteParagraphs: contentLocked
             ? (noteParagraphs.slice(0, 2).length
               ? noteParagraphs.slice(0, 2)
@@ -1087,6 +1162,9 @@ Page({
           authorRole,
           authorAvatar,
           authorInitial: authorName.slice(0, 1),
+          authorId,
+          authorTitle,
+          authorIntro,
         })
 
         this._loadRelated({
@@ -1132,6 +1210,14 @@ Page({
               timeText: String(c.createTime || '').replace('T', ' ').slice(0, 16) || '',
               likes: 0,
               mine: isMyCommentRow(c),
+              replyCount: c.replyCount || (c.replies || []).length,
+              replies: (c.replies || []).map((r) => ({
+                id: r.id,
+                nickName: r.nickname || '用户',
+                replyToNickname: r.replyToNickname || '',
+                content: r.content,
+                timeText: String(r.createTime || '').replace('T', ' ').slice(0, 16) || '',
+              })),
             }))
             this.setData({
               comments: mapped,
@@ -1305,6 +1391,24 @@ Page({
     this._setFollowed(true)
   },
 
+  /** 作者卡片点击 → 跳转作者作品列表页 */
+  onAuthorCardTap(e) {
+    const detail = (e && e.detail) || {}
+    const authorId = detail.authorId
+    const name = detail.name || this.data.authorName || ''
+    if (authorId) {
+      wx.navigateTo({
+        url: `/pkg-content/author-feed/author-feed?id=${encodeURIComponent(authorId)}&author=${encodeURIComponent(name)}`,
+      })
+      return
+    }
+    if (name) {
+      wx.navigateTo({
+        url: `/pkg-content/author-feed/author-feed?author=${encodeURIComponent(name)}`,
+      })
+    }
+  },
+
   _setFollowed(followed) {
     const raw = StorageUtil.get(FOLLOWS_KEY) || []
     const list = Array.isArray(raw) ? raw.slice() : []
@@ -1320,6 +1424,7 @@ Page({
   },
 
   onShareTap() {
+    if (!AuthUtil.requireLoginQuiet('分享')) return
     const article = this.data.article || {}
     const id = article.id || this._contentId || ''
     const path = id
@@ -1335,6 +1440,7 @@ Page({
   },
 
   onLikeTap() {
+    if (!AuthUtil.requireLoginQuiet('点赞')) return
     const article = this.data.article || {}
     const id = String(article.id || this._contentId || '').trim()
     if (!id) {
@@ -1392,6 +1498,7 @@ Page({
   },
 
   onFavoriteTap() {
+    if (!AuthUtil.requireLoginQuiet('收藏')) return
     const article = this.data.article || {}
     const id = String(article.id || this._contentId || '').trim()
     if (!id) {
@@ -1450,11 +1557,32 @@ Page({
       wx.showToast({ title: '评论暂未开放', icon: 'none' })
       return
     }
-    this.setData({ showCommentSheet: true })
+    this.setData({ showCommentSheet: true, replyTarget: null, replyToName: '' })
   },
 
   onCloseCommentSheet() {
-    this.setData({ showCommentSheet: false, commentDraft: '' })
+    this.setData({ showCommentSheet: false, commentDraft: '', replyTarget: null, replyToName: '' })
+  },
+
+  onReplyTap(e) {
+    const idx = Number(e.currentTarget.dataset.index)
+    const item = this.data.comments[idx]
+    if (!item) return
+    this.setData({ replyTarget: item, replyToName: item.nickName || '', showCommentSheet: true })
+  },
+
+  onReplySubTap(e) {
+    const pidx = Number(e.currentTarget.dataset.pindex)
+    const ridx = Number(e.currentTarget.dataset.rindex)
+    const parent = this.data.comments[pidx]
+    if (!parent) return
+    const r = parent.replies && parent.replies[ridx]
+    if (!r) return
+    this.setData({ replyTarget: parent, replyToName: r.nickName || '', showCommentSheet: true })
+  },
+
+  onCancelReply() {
+    this.setData({ replyTarget: null, replyToName: '' })
   },
 
   noop() {},
@@ -1480,10 +1608,15 @@ Page({
 
     this.setData({ commentSubmitting: true })
     const user = AuthUtil.getUserInfo() || {}
+    const replyTarget = this.data.replyTarget || null
+    const parentId = replyTarget ? (Number(replyTarget.id) || 0) : 0
+    const replyToNickname = this.data.replyToName || ''
     request.post(`/api/v1/mp/contents/${id}/comments`, {
       content: text.slice(0, 500),
       nickname: user.nickName || '微信用户',
       avatar: user.avatarUrl || '',
+      parentId: parentId || undefined,
+      replyToNickname: replyToNickname || undefined,
     })
       .then((row) => {
         // 评论默认待审隐藏，不立即插入公开列表；底栏仍标「已评论」
@@ -1491,6 +1624,7 @@ Page({
           commentDraft: '',
           commentSubmitting: false,
           hasCommented: true,
+          replyTarget: null,
         })
         wx.showToast({ title: '已提交，审核后可见', icon: 'none' })
       })

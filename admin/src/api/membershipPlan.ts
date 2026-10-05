@@ -6,6 +6,7 @@ import { get, post, put, del } from './request'
 const BASE_URL = '/api/v1/admin/membership-plans'
 
 export type MembershipPlanScope = 'platform' | 'planet'
+export type MembershipAppliesTo = 'single_planet' | 'multi_planet' | 'all_planets'
 
 export interface MembershipPlan {
   id: number
@@ -24,6 +25,10 @@ export interface MembershipPlan {
   expireRemindDays?: number
   sortOrder?: number
   status: number
+  /** 通票适用范围（仅 scope=planet） */
+  appliesTo?: MembershipAppliesTo
+  /** 通票覆盖星球列表（appliesTo=multi_planet 时有值） */
+  appliesPlanets?: string[]
   createdAt?: string
   updatedAt?: string
 }
@@ -42,6 +47,8 @@ export interface MembershipPlanPayload {
   expireRemindDays?: number
   sortOrder?: number
   status?: number
+  appliesTo?: MembershipAppliesTo
+  appliesPlanets?: string[]
 }
 
 function normalizePlan(row: any): MembershipPlan {
@@ -60,6 +67,10 @@ function normalizePlan(row: any): MembershipPlan {
     expireRemindDays: Number(row.expireRemindDays ?? row.expire_remind_days ?? 0),
     sortOrder: Number(row.sortOrder ?? row.sort_order ?? 0),
     status: Number(row.status ?? 1),
+    appliesTo: (row.appliesTo ?? row.applies_to ?? 'single_planet') as MembershipAppliesTo,
+    appliesPlanets: Array.isArray(row.appliesPlanets ?? row.applies_planets)
+      ? (row.appliesPlanets ?? row.applies_planets).map(String)
+      : [],
     createdAt: row.createdAt ?? row.created_at,
     updatedAt: row.updatedAt ?? row.updated_at,
   }

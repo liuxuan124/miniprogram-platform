@@ -416,6 +416,7 @@ Page({
       items: orderItems,
       remark: this.data.remark,
       clientPlatform: iosVirtualPay.getClientPlatform(),
+      channelId: (getApp().globalData && getApp().globalData.channelId) || undefined,
       userCouponId: this.data.userCouponId ? Number(this.data.userCouponId) : undefined,
       virtualRefundConsentVersion: this.data.isVirtual ? (this.data.virtualRefundConsentVersion || undefined) : undefined,
       addressSnapshot: this.data.isVirtual

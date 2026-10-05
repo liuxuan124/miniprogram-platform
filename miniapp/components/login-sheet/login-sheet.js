@@ -98,7 +98,7 @@ Component({
           this.setData(patch, () => this._refreshCanSubmit())
         })
         this._loadBrandConfig(options.action || '')
-        AuthService.prefetchLoginCode()
+        AuthService.prefetchLoginCodeSafely()
         this._setCustomTabBarHidden(true)
         this._ensurePrivacyReady()
       })
@@ -232,7 +232,7 @@ Component({
         pickingAvatar: false,
         nicknameFocused: true,
       }, () => this._refreshCanSubmit())
-      AuthService.prefetchLoginCode()
+      AuthService.prefetchLoginCodeSafely()
       try {
         const { persistLocalFileForUpload } = require('../../utils/image-fallback')
         persistLocalFileForUpload(avatarUrl).then((stable) => {
@@ -292,7 +292,7 @@ Component({
         showPrivacyPopup: false,
         nicknameFocused: false,
       }, () => this._refreshCanSubmit())
-      AuthService.prefetchLoginCode()
+      AuthService.prefetchLoginCodeSafely()
     },
 
     onUncheckPrivacy() {

@@ -9,6 +9,7 @@
     "dsl-renderer": "/components/dsl-renderer/dsl-renderer",
     "dsl-float-button": "/components/dsl-float-button/dsl-float-button",
     "dsl-warm-block": "/components/dsl-warm-block/dsl-warm-block",
-    "env-badge": "/components/env-badge/env-badge"
+    "env-badge": "/components/env-badge/env-badge",
+    "global-resource": "/components/global-resource/global-resource"
   }
 }

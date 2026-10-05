@@ -1,6 +1,6 @@
 <template>
   <div class="hot-news-props">
-    <el-form label-width="78px" size="small">
+    <el-form label-width="72px" size="small">
       <el-divider content-position="left">标题头</el-divider>
       <el-form-item label="标题文案">
         <el-input

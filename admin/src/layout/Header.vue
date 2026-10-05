@@ -200,6 +200,10 @@ async function handleCommand(command: string) {
     appStore.setUiTheme('warm')
     return
   }
+  if (command === 'profile') {
+    router.push('/settings/admin-user')
+    return
+  }
   if (command === 'logout') {
     try {
       await ElMessageBox.confirm('确定退出登录吗？', '提示', {

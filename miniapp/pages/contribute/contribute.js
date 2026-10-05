@@ -6,6 +6,7 @@ const { AuthUtil } = require('../../utils/auth')
 const { StorageUtil } = require('../../utils/storage')
 const { isPersistedMediaUrl } = require('../../utils/image-fallback')
 const { resolveMediaUrl } = require('../../utils/media-url')
+const { getWindowInfo } = require('../../utils/system-info')
 
 function filterPersistedImages(list) {
   return (Array.isArray(list) ? list : []).filter((p) => p && isPersistedMediaUrl(p))
@@ -37,12 +38,37 @@ const FALLBACK_TOPICS = ['内容创业', '写作方法', '工位美学', '读书
 const FALLBACK_FORMS = ['深度长文', '图文笔记']
 const FALLBACK_PUBLISH_TYPES = [
   { key: 'note', label: '图文笔记' },
+  { key: 'video', label: '视频' },
   { key: 'article', label: '长文' },
   { key: 'moment', label: '星球动态' },
 ]
 
+const EDITOR_TITLES = { article: '写长文', note: '写笔记', moment: '发动态', video: '发视频' }
+const VIDEO_MAX_SIZE_MB = 50
+const VIDEO_MAX_DURATION_SEC = 180
+
+function formatDuration(sec) {
+  const s = Math.max(0, Math.round(Number(sec) || 0))
+  const m = Math.floor(s / 60)
+  const r = s % 60
+  return `${m}:${String(r).padStart(2, '0')}`
+}
+
+/**
+ * 后台 contributeConfig.publishTypes 是旧配置（无 video）时会冲掉前端兜底，
+ * 这里保证「视频」入口始终存在：配置里没有就在 图文笔记 后面插入。
+ */
+function withVideoType(types) {
+  const list = Array.isArray(types) && types.length ? types.slice() : FALLBACK_PUBLISH_TYPES.slice()
+  if (!list.some((t) => t && t.key === 'video')) {
+    const idx = list.findIndex((t) => t && t.key === 'note')
+    list.splice(idx >= 0 ? idx + 1 : 0, 0, { key: 'video', label: '视频' })
+  }
+  return list
+}
+
 function getNavMetrics() {
-  const sys = wx.getSystemInfoSync() || {}
+  const sys = getWindowInfo() || {}
   const statusBarHeight = Number(sys.statusBarHeight) || 20
   const winW = Number(sys.windowWidth) || 375
   let navBarHeight = 44
@@ -91,6 +117,11 @@ Page({
     syncPlanet: true,
     memberOnly: false,
     draftSavedAt: '',
+    videoPath: '',
+    videoCover: '',
+    videoDuration: 0,
+    videoDurationText: '',
+    videoRatio: '3:4',
   },
 
   onLoad(options) {
@@ -129,9 +160,7 @@ Page({
         why: Array.isArray(cfg.why) ? cfg.why : [],
         topics: Array.isArray(cfg.topics) && cfg.topics.length ? cfg.topics : FALLBACK_TOPICS,
         forms: Array.isArray(cfg.forms) && cfg.forms.length ? cfg.forms : FALLBACK_FORMS,
-        publishTypes: Array.isArray(cfg.publishTypes) && cfg.publishTypes.length
-          ? cfg.publishTypes
-          : FALLBACK_PUBLISH_TYPES,
+        publishTypes: withVideoType(cfg.publishTypes),
       })
       this._checkCreatorStatus()
     }).catch(() => {
@@ -190,6 +219,12 @@ Page({
         publishType: d.publishType || 'note',
         syncPlanet: d.syncPlanet !== false,
         memberOnly: !!d.memberOnly,
+        videoRatio: d.videoRatio === '1:1' ? '1:1' : '3:4',
+        // 视频临时文件重启后失效，只恢复已落盘的 URL
+        videoPath: filterPersistedImages(d.videoPath)[0] || '',
+        videoCover: filterPersistedImages(d.videoCover)[0] || '',
+        videoDuration: Number(d.videoDuration) || 0,
+        videoDurationText: formatDuration(d.videoDuration),
         draftSavedAt: d.savedAt ? String(d.savedAt) : '',
       })
     } catch (e) { /* ignore */ }
@@ -206,6 +241,10 @@ Page({
         publishType: this.data.publishType,
         syncPlanet: this.data.syncPlanet,
         memberOnly: this.data.memberOnly,
+        videoRatio: this.data.videoRatio,
+        videoPath: filterPersistedImages([this.data.videoPath])[0] || '',
+        videoCover: filterPersistedImages([this.data.videoCover])[0] || '',
+        videoDuration: this.data.videoDuration,
         savedAt,
       })
       this.setData({ draftSavedAt: String(savedAt) })
@@ -405,10 +444,68 @@ Page({
       return
     }
     const key = e.currentTarget.dataset.key
-    const map = { article: '写长文', note: '写笔记', moment: '发动态' }
     this.setData({
       publishType: key,
-      editorTitle: map[key] || '写内容',
+      editorTitle: EDITOR_TITLES[key] || '写内容',
+    })
+    this._savePublishDraft()
+  },
+
+  /** 视频画面比例：3:4 / 1:1（影响编辑预览裁切） */
+  onRatioTap(e) {
+    if (!this.data.editorUnlocked) return
+    const ratio = e.currentTarget.dataset.ratio === '1:1' ? '1:1' : '3:4'
+    if (ratio === this.data.videoRatio) return
+    this.setData({ videoRatio: ratio })
+    this._savePublishDraft()
+  },
+
+  onPickVideo() {
+    if (!this.data.editorUnlocked) {
+      wx.showToast({ title: '审核通过后可编辑', icon: 'none' })
+      return
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['video'],
+      sourceType: ['album', 'camera'],
+      maxDuration: 60,
+      success: (res) => {
+        const f = (res.tempFiles || [])[0]
+        if (!f || !f.tempFilePath) return
+        const duration = Number(f.duration) || 0
+        const sizeMB = (Number(f.size) || 0) / 1024 / 1024
+        if (duration > VIDEO_MAX_DURATION_SEC) {
+          this._toast(`视频 ${formatDuration(duration)}，超 ${VIDEO_MAX_DURATION_SEC / 60} 分钟请先裁剪`)
+          return
+        }
+        if (sizeMB > VIDEO_MAX_SIZE_MB) {
+          this._toast(`视频 ${sizeMB.toFixed(0)}MB，超过 ${VIDEO_MAX_SIZE_MB}MB 上限`)
+          return
+        }
+        this.setData({
+          videoPath: f.tempFilePath,
+          videoCover: f.thumbTempFilePath || '',
+          videoDuration: duration,
+          videoDurationText: formatDuration(duration),
+        })
+        this._savePublishDraft()
+      },
+      fail: (err) => {
+        const msg = String((err && err.errMsg) || '')
+        if (/cancel/i.test(msg)) return
+        wx.showToast({ title: '选视频失败', icon: 'none' })
+      },
+    })
+  },
+
+  onRemoveVideo() {
+    if (!this.data.editorUnlocked) return
+    this.setData({
+      videoPath: '',
+      videoCover: '',
+      videoDuration: 0,
+      videoDurationText: '',
     })
     this._savePublishDraft()
   },
@@ -499,7 +596,10 @@ Page({
   },
 
   onGoEditor() {
-    this.setData({ stage: 2, editorTitle: this.data.editorUnlocked ? '写笔记' : '发布器预览' })
+    const title = this.data.editorUnlocked
+      ? (EDITOR_TITLES[this.data.publishType] || '写内容')
+      : '发布器预览'
+    this.setData({ stage: 2, editorTitle: title })
   },
 
   _uploadDraftImages() {
@@ -508,17 +608,43 @@ Page({
     return Promise.all(locals.map((filePath) => uploadLocalImage(filePath)))
   },
 
+  /** 上传视频本体（multipart，直传不走 base64 回退的重试也无妨） */
+  _uploadVideoFile() {
+    const p = this.data.videoPath
+    if (!p) return Promise.resolve('')
+    if (isPersistedMediaUrl(p)) return Promise.resolve(p)
+    return upload(p, { name: 'file', url: '/api/v1/mp/upload' }).then((uploaded) => {
+      const raw = (uploaded && (uploaded.url || uploaded.fileUrl)) || ''
+      const url = resolveMediaUrl(raw) || raw
+      if (!url || !isPersistedMediaUrl(url)) throw new Error('视频上传失败')
+      return url
+    })
+  },
+
+  /** 上传视频封面（首帧缩略图） */
+  _uploadVideoCover() {
+    const p = this.data.videoCover
+    if (!p) return Promise.resolve('')
+    return uploadLocalImage(p).catch(() => '') // 封面失败不阻塞发布
+  },
+
   onPublishDemo() {
     if (!this.data.editorUnlocked) {
       wx.showToast({ title: '审核通过后开放发布', icon: 'none' })
       return
     }
     if (this.data.submitting) return
-    if (!this.data.draftTitle && !this.data.draftBody && !(this.data.draftImages || []).length) {
-      wx.showToast({ title: '先写点内容再发布', icon: 'none' })
+    if (!AuthUtil.requireLoginForAction('投稿发布')) return
+
+    const isVideo = this.data.publishType === 'video'
+    if (isVideo && !this.data.videoPath) {
+      this._toast('先选择视频再发布')
       return
     }
-    if (!AuthUtil.requireLoginForAction('投稿发布')) return
+    if (!isVideo && !this.data.draftTitle && !this.data.draftBody && !(this.data.draftImages || []).length) {
+      this._toast('先写点内容再发布')
+      return
+    }
 
     const tags = String(this.data.draftTopics || '')
       .split(/\s+/)
@@ -526,30 +652,56 @@ Page({
       .filter(Boolean)
 
     this.setData({ submitting: true })
-    this._uploadDraftImages()
-      .then((images) => post('/api/v1/mp/creator/contents', {
-        title: this.data.draftTitle || '',
-        content: this.data.draftBody || '',
-        contentType: this.data.publishType || 'note',
+    wx.showLoading({ title: isVideo ? '视频上传中…' : '提交中…', mask: true })
+
+    const videoReady = isVideo
+      ? this._uploadVideoFile().then((videoUrl) =>
+          this._uploadVideoCover().then((coverUrl) => ({ videoUrl, coverUrl })))
+      : Promise.resolve({ videoUrl: '', coverUrl: '' })
+
+    videoReady
+      .then(({ videoUrl, coverUrl }) => this._uploadDraftImages().then((images) => ({
         images,
-        tags,
-        syncPlanet: !!this.data.syncPlanet,
-        memberOnly: !!this.data.memberOnly,
-      }, { auth: true, showError: true }))
+        videoUrl,
+        coverUrl,
+      })))
+      .then(({ images, videoUrl, coverUrl }) => {
+        const payload = {
+          title: this.data.draftTitle || '',
+          content: this.data.draftBody || '',
+          contentType: this.data.publishType || 'note',
+          images,
+          tags,
+          syncPlanet: !!this.data.syncPlanet,
+          memberOnly: !!this.data.memberOnly,
+        }
+        if (isVideo) {
+          payload.videoUrl = videoUrl
+          payload.videoDuration = this.data.videoDuration
+          if (coverUrl) payload.coverImage = coverUrl
+        }
+        return post('/api/v1/mp/creator/contents', payload, { auth: true, showError: true })
+      })
       .then(() => {
-        wx.showToast({ title: '已提交，等待审核', icon: 'success' })
         try { StorageUtil.remove(DRAFT_KEY) } catch (e) { /* ignore */ }
+        wx.hideLoading()
+        wx.showToast({ title: '已提交，等待审核', icon: 'success' })
         this.setData({
           draftTitle: '',
           draftBody: '',
           draftImages: [],
           draftTopics: '',
           draftSavedAt: '',
+          videoPath: '',
+          videoCover: '',
+          videoDuration: 0,
+          videoDurationText: '',
           stage: 1,
           editorTitle: '写笔记',
         })
       })
       .catch((err) => {
+        wx.hideLoading()
         const msg = (err && (err.message || err.msg || err.errMsg)) || '发布失败，请重试'
         wx.showToast({ title: String(msg).slice(0, 40), icon: 'none' })
       })

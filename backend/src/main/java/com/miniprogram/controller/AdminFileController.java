@@ -57,10 +57,24 @@ public class AdminFileController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "删除文件")
+    @Operation(summary = "删除文件（软删，进回收站）")
     public R<Void> delete(@PathVariable Long id) {
         fileItemService.deleteFile(id);
         return R.ok(null);
+    }
+
+    @GetMapping("/deleted")
+    @Operation(summary = "回收站列表")
+    public R<PageResult<FileItemVO>> deleted(@RequestParam(required = false) String keyword,
+                                            @RequestParam(defaultValue = "1") Long current,
+                                            @RequestParam(defaultValue = "20") Long size) {
+        return R.ok(fileItemService.listDeleted(keyword, current, size));
+    }
+
+    @PostMapping("/{id}/restore")
+    @Operation(summary = "从回收站恢复")
+    public R<FileItemVO> restore(@PathVariable Long id) {
+        return R.ok(fileItemService.restoreFile(id));
     }
 
     @GetMapping("/groups")
@@ -86,5 +100,13 @@ public class AdminFileController {
     public R<Void> deleteGroup(@PathVariable Long id) {
         fileItemService.deleteGroup(id);
         return R.ok(null);
+    }
+
+    @GetMapping("/{id}/preview-images")
+    @Operation(summary = "端上效果实时预览（真实页面位图 + 试读水印，页数随表单配置；非 PDF 返回空）")
+    public R<List<com.miniprogram.service.FilePreviewImageService.Page>> previewImages(
+            @PathVariable Long id,
+            @RequestParam(required = false) Integer freePages) {
+        return R.ok(fileItemService.renderPreviewImages(id, freePages));
     }
 }

@@ -1,4 +1,9 @@
 // components/dsl-join-group/dsl-join-group.js
+const { get } = require('../../utils/request')
+
+// 取码结果复用窗口：窗口内重复开弹层不再重复请求
+const QR_SYNC_TTL = 5 * 60 * 1000
+
 Component({
   properties: {
     config: { type: Object, value: {} },
@@ -47,6 +52,8 @@ Component({
         qrcode: String((g && g.qrcode) || ''),
         join_type: String((g && g.join_type) || 'qrcode') === 'wecom' ? 'wecom' : 'qrcode',
         wecom_url: String((g && g.wecom_url) || '').trim(),
+        // 与后台「运营中心 › 私域引流」的活码 groupKey 对应；为空则该群始终用内联二维码
+        group_key: String((g && g.group_key) || '').trim(),
       }))
       let cardStyle = String(cfg._cardStyle || '').trim()
       if (!cardStyle) {
@@ -64,12 +71,61 @@ Component({
         tagList: tags,
         groupList: groups,
       })
+      this._syncQrcodes(false, groups)
+    },
+
+    /**
+     * 用后台活码覆盖内联二维码。
+     * - 只有填了 group_key 的群才参与，全都为空时一个请求都不发（老页面零行为变化）；
+     * - 该群在后台没有有效码 / 接口异常 / 未登录 → 一律静默回落内联 qrcode，不 toast、不打断浏览；
+     * - auth:false 是因为该接口已 permitAll；即便线上后端未升级返回 401，也不会触发清登录态跳登录。
+     */
+    _syncQrcodes(force, listOverride) {
+      const list = listOverride || this.data.groupList || []
+      const keys = []
+      list.forEach((g) => {
+        const k = String((g && g.group_key) || '').trim()
+        if (k && keys.indexOf(k) < 0) keys.push(k)
+      })
+      if (!keys.length) return
+      if (this._syncing) return
+      if (!force && this._lastSyncAt && Date.now() - this._lastSyncAt < QR_SYNC_TTL) return
+
+      this._syncing = true
+      const done = () => {
+        this._syncing = false
+      }
+      get(
+        '/api/v1/mp/group-qrcode/batch',
+        { groupKeys: keys.join(',') },
+        { showError: false, auth: false }
+      ).then(
+        (res) => {
+          this._lastSyncAt = Date.now()
+          done()
+          const map = res && typeof res === 'object' ? res : {}
+          const next = (this.data.groupList || []).map((g) => {
+            const k = String((g && g.group_key) || '').trim()
+            const hit = k ? map[k] : null
+            if (hit && hit.qrcodeUrl) {
+              return Object.assign({}, g, { qrcode: String(hit.qrcodeUrl) })
+            }
+            return g
+          })
+          this.setData({ groupList: next })
+        },
+        () => {
+          done()
+        }
+      )
     },
 
     noop() {},
 
     onOpenSheet() {
       this.setData({ sheetVisible: true, qrVisible: false, activeName: '', activeQrcode: '' })
+      // 开弹层时刷新一次取码结果（TTL 内会跳过），保证点开二维码拿到的是当前有效码
+      this._syncQrcodes(false)
     },
 
     onCloseAll() {

@@ -2,6 +2,7 @@ package com.miniprogram.job;
 
 import com.miniprogram.mapper.AnalyticsEventMapper;
 import com.miniprogram.mapper.PageAccessLogMapper;
+import com.miniprogram.mapper.RuntimeEventMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -28,6 +29,7 @@ public class DataRetentionJob {
 
     private final PageAccessLogMapper pageAccessLogMapper;
     private final AnalyticsEventMapper analyticsEventMapper;
+    private final RuntimeEventMapper runtimeEventMapper;
     private final StringRedisTemplate stringRedisTemplate;
 
     /** 每天 03:30 */
@@ -47,18 +49,24 @@ public class DataRetentionJob {
         }
 
         String before = LocalDateTime.now().minusDays(RETENTION_DAYS).format(DT);
-        int accessDeleted = deleteBatches(before, true);
-        int analyticsDeleted = deleteBatches(before, false);
-        log.info("数据保留清理完成 before={} accessDeleted={} analyticsDeleted={}",
-                before, accessDeleted, analyticsDeleted);
+        int accessDeleted = deleteBatches(before, "access");
+        int analyticsDeleted = deleteBatches(before, "analytics");
+        // 2026-10-05 审计：mp_runtime_event（V113 新建，匿名可写，每次启动都写）
+        // 此前没接进保留期清理，会无限增长。deleteOlderThan 早就写好了却没人调用。
+        int runtimeEventDeleted = deleteBatches(before, "runtime_event");
+        log.info("数据保留清理完成 before={} accessDeleted={} analyticsDeleted={} runtimeEventDeleted={}",
+                before, accessDeleted, analyticsDeleted, runtimeEventDeleted);
     }
 
-    private int deleteBatches(String before, boolean accessLog) {
+    private int deleteBatches(String before, String target) {
         int total = 0;
         for (int i = 0; i < MAX_ROUNDS; i++) {
-            int n = accessLog
-                    ? pageAccessLogMapper.deleteOlderThan(before, BATCH)
-                    : analyticsEventMapper.deleteOlderThan(before, BATCH);
+            int n;
+            switch (target) {
+                case "runtime_event" -> n = runtimeEventMapper.deleteOlderThan(before, BATCH);
+                case "analytics" -> n = analyticsEventMapper.deleteOlderThan(before, BATCH);
+                default -> n = pageAccessLogMapper.deleteOlderThan(before, BATCH);
+            }
             total += n;
             if (n < BATCH) {
                 break;

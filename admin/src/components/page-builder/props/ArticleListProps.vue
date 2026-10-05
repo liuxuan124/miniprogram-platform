@@ -1,6 +1,6 @@
 <template>
   <div class="article-list-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <div v-if="!data.show_header" class="ds-hint ds-hint--block">
         未开启内置标题头时，可单独拖入「标题栏」放在列表上方；开启后标题与列表在同一张卡内。
       </div>

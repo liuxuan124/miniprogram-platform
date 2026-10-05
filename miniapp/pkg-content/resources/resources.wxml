@@ -39,7 +39,13 @@
         data-id="{{item.id}}"
         bindtap="onOpenFile"
       >
-        <view class="rs-fl__ic {{item.ext === 'XLSX' ? 'xls' : ''}} {{item.ext === 'ZIP' ? 'zip' : ''}}">{{item.ext}}</view>
+        <image
+          wx:if="{{item.iconUrl}}"
+          class="rs-fl__ic rs-fl__ic--img"
+          src="{{item.iconUrl}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="rs-fl__ic {{item.ext === 'XLSX' ? 'xls' : ''}} {{item.ext === 'ZIP' ? 'zip' : ''}}">{{item.ext}}</view>
         <view class="rs-fl__tx">
           <view class="rs-fl__name">{{item.name}}</view>
           <view class="rs-fl__meta" wx:if="{{item.meta}}">{{item.meta}}</view>

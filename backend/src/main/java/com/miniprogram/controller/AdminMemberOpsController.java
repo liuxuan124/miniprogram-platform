@@ -153,20 +153,28 @@ public class AdminMemberOpsController {
         return R.ok();
     }
 
+    /**
+     * 社区动态（内容）管理。
+     *
+     * <p>V111 起「内容运营 › 动态管理」并入「社区管理 › 内容管理」，
+     * 社区内容管理台成为动态的唯一管理入口，因此读写权限同时接受
+     * 会员运营（member:list）与内容运营（content:list / content:update）两侧角色，
+     * 避免 content_ops 在合并后丢失动态管理能力。
+     */
     @GetMapping("/community/posts")
-    @PreAuthorize("hasAuthority('member:list')")
+    @PreAuthorize("hasAuthority('member:list') or hasAuthority('content:list')")
     public R<List<CommunityPost>> posts(@RequestParam(required = false) String communityId) {
         return R.ok(memberOpsService.listPosts(communityId));
     }
 
     @PostMapping("/community/posts")
-    @PreAuthorize("hasAuthority('member:list')")
+    @PreAuthorize("hasAuthority('member:list') or hasAuthority('content:update')")
     public R<CommunityPost> createPost(@RequestBody Map<String, Object> body) {
         return R.ok(memberOpsService.createPost(body));
     }
 
     @PutMapping("/community/posts/{id}")
-    @PreAuthorize("hasAuthority('member:list')")
+    @PreAuthorize("hasAuthority('member:list') or hasAuthority('content:update')")
     public R<CommunityPost> updatePost(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         return R.ok(memberOpsService.updatePost(id, body));
     }

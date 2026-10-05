@@ -7,8 +7,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * 商品类型：physical / digital / service / membership / ebook / column / resource_pack
- * digital 保留兼容；ebook/column/resource_pack 为暖色原型细分类。
+ * 商品类型：physical / digital / service / membership / ebook / column / resource_pack / ticket
+ * digital 保留兼容；ebook/column/resource_pack/ticket 为暖色原型细分类。
  */
 public final class ProductTypes {
 
@@ -19,13 +19,15 @@ public final class ProductTypes {
     public static final String EBOOK = "ebook";
     public static final String COLUMN = "column";
     public static final String RESOURCE_PACK = "resource_pack";
+    /** 社群入场券：买到的是「进群资格」，交付物是入群凭证而非文件 */
+    public static final String TICKET = "ticket";
 
     public static final List<String> ALL = List.of(
-            PHYSICAL, DIGITAL, SERVICE, MEMBERSHIP, EBOOK, COLUMN, RESOURCE_PACK
+            PHYSICAL, DIGITAL, SERVICE, MEMBERSHIP, EBOOK, COLUMN, RESOURCE_PACK, TICKET
     );
 
     public static final List<String> VIRTUAL = List.of(
-            DIGITAL, MEMBERSHIP, EBOOK, COLUMN, RESOURCE_PACK
+            DIGITAL, MEMBERSHIP, EBOOK, COLUMN, RESOURCE_PACK, TICKET
     );
 
     private ProductTypes() {

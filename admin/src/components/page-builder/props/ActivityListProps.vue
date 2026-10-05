@@ -1,5 +1,5 @@
 <template>
-  <el-form label-width="80px" size="small">
+  <el-form label-width="72px" size="small">
     <el-form-item label="模块标题">
       <el-input :model-value="data.title" @input="emit('update', { title: $event })" placeholder="活动列表标题" />
     </el-form-item>
@@ -37,47 +37,54 @@
     />
 
     <el-divider content-position="left" class="field-divider">活动条目</el-divider>
-    <div v-for="(item, i) in items" :key="i" class="act-card">
-      <div class="act-card__head">
-        <span>活动{{ i + 1 }}</span>
-        <el-button type="danger" text size="small" @click="onRemoveItem(i)">删除</el-button>
-      </div>
-      <el-form-item label="名称" label-width="50px">
-        <el-input :model-value="item.title || ''" @input="onUpdateItem(i, 'title', $event)" placeholder="活动名称" />
-      </el-form-item>
-      <el-form-item label="时间" label-width="50px">
-        <div class="datetime-row">
-          <input type="date" class="datetime-input" :value="datePart(item.date)" @input="(e) => onDateChange(i, e)" />
-          <el-select class="time-select" :model-value="hourPart(item.date)" placeholder="时" @change="(v: string) => onHourChange(i, v)">
-            <el-option v-for="h in hourOptions" :key="h" :label="`${h} 时`" :value="h" />
-          </el-select>
-          <el-select class="time-select" :model-value="minutePart(item.date)" placeholder="分" @change="(v: string) => onMinuteChange(i, v)">
-            <el-option v-for="m in minuteOptions" :key="m" :label="`${m} 分`" :value="m" />
-          </el-select>
-        </div>
-      </el-form-item>
-      <el-form-item label="地点" label-width="50px">
-        <el-input :model-value="item.location || ''" @input="onUpdateItem(i, 'location', $event)" placeholder="活动地点" />
-      </el-form-item>
-      <el-form-item label="封面" label-width="50px">
-        <div class="img-field">
-          <div v-if="previewUrl(item.cover)" class="img-preview">
-            <img :src="previewUrl(item.cover)" alt="" />
-            <el-button text type="danger" size="small" @click="onUpdateItem(i, 'cover', '')">移除</el-button>
+    <SubItemList
+      :items="items"
+      :title-of="(it) => it.title || ''"
+      :key-of="(_it, i) => i"
+      add-text="添加活动"
+      placeholder="未填写活动名称"
+      empty-text="还没有添加活动"
+      :default-open="0"
+      @add="onAddItem"
+      @remove="onRemoveItem"
+    >
+      <template #default="{ item, index: i, update }">
+        <el-form-item label="名称" label-width="50px">
+          <el-input :model-value="item.title || ''" placeholder="活动名称" @input="(v: string) => update({ title: v })" />
+        </el-form-item>
+        <el-form-item label="时间" label-width="50px">
+          <div class="datetime-row">
+            <input type="date" class="datetime-input" :value="datePart(item.date)" @input="(e) => onDateChange(i, e)" />
+            <el-select class="time-select" :model-value="hourPart(item.date)" placeholder="时" @change="(v: string) => onHourChange(i, v)">
+              <el-option v-for="h in hourOptions" :key="h" :label="`${h} 时`" :value="h" />
+            </el-select>
+            <el-select class="time-select" :model-value="minutePart(item.date)" placeholder="分" @change="(v: string) => onMinuteChange(i, v)">
+              <el-option v-for="m in minuteOptions" :key="m" :label="`${m} 分`" :value="m" />
+            </el-select>
           </div>
-          <el-input :model-value="item.cover || ''" @input="onUpdateItem(i, 'cover', $event)" placeholder="封面图片URL" />
-          <label class="upload-btn">
-            上传
-            <input type="file" accept="image/*" hidden @change="(e) => onUploadCover(i, e)" />
-          </label>
-          <AssetPickerButton style="margin-left: 8px" @select="(url: string) => onUpdateItem(i, 'cover', url)" />
-        </div>
-      </el-form-item>
-      <el-form-item label="链接" label-width="50px">
-        <el-input :model-value="item.link_url || ''" @input="onUpdateItem(i, 'link_url', $event)" placeholder="/pages/activity-detail/..." />
-      </el-form-item>
-    </div>
-    <el-button type="primary" text size="small" @click="onAddItem">+ 添加活动</el-button>
+        </el-form-item>
+        <el-form-item label="地点" label-width="50px">
+          <el-input :model-value="item.location || ''" placeholder="活动地点" @input="(v: string) => update({ location: v })" />
+        </el-form-item>
+        <el-form-item label="封面" label-width="50px">
+          <div class="img-field">
+            <div v-if="previewUrl(item.cover)" class="img-preview">
+              <img :src="previewUrl(item.cover)" alt="" />
+              <el-button text type="danger" size="small" @click="update({ cover: '' })">移除</el-button>
+            </div>
+            <el-input :model-value="item.cover || ''" placeholder="封面图 URL" @input="(v: string) => update({ cover: v })" />
+            <label class="upload-btn">
+              上传
+              <input type="file" accept="image/*" hidden @change="(e) => onUploadCover(i, e)" />
+            </label>
+            <AssetPickerButton style="margin-left: 8px" @select="(url: string) => update({ cover: url })" />
+          </div>
+        </el-form-item>
+        <el-form-item label="链接" label-width="50px">
+          <el-input :model-value="item.link_url || ''" placeholder="活动详情链接（选填）" @input="(v: string) => update({ link_url: v })" />
+        </el-form-item>
+      </template>
+    </SubItemList>
   </el-form>
 </template>
 
@@ -88,6 +95,7 @@ import { useImageUpload } from '../composables/useImageUpload'
 import { useListEditor } from '../composables/useListEditor'
 import TitleFontSizeFields from './TitleFontSizeFields.vue'
 import AssetPickerButton from '@/components/AssetPickerButton.vue'
+import SubItemList from '../SubItemList.vue'
 
 const { props: data } = defineProps<{ props: Record<string, any> }>()
 const emit = defineEmits<{ update: [value: Record<string, any>] }>()

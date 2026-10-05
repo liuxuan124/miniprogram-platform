@@ -1384,6 +1384,23 @@
   display: flex; align-items: center; gap: 20rpx;
   padding: 0;
 }
+/* author-card 组件替换 .a-author 后的外层容器 */
+.a-author-card {
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.a-author-card .ac {
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.a-author-card + .a-author__sub {
+  margin-top: 10rpx;
+  padding: 0;
+}
 .a-author__av {
   width: 76rpx; height: 76rpx; border-radius: 999rpx; flex: none; background: #f3e3d0;
 }

@@ -2,10 +2,10 @@
   <div class="login-page">
     <div class="login-panel">
       <div class="brand-block">
-        <img src="/logo.svg" alt="Logo" class="brand-logo" />
+        <img src="/logo-motaibai.svg" alt="Logo" class="brand-logo" />
         <div>
-          <h1 class="brand-title">小程序运营系统</h1>
-          <p class="brand-sub">多场景搭建与运营管理后台</p>
+          <h1 class="brand-title">跨境墨太白运营后台</h1>
+          <p class="brand-sub">跨境增长 · 选品洞察 · 供应链实战</p>
         </div>
       </div>
 

@@ -59,9 +59,20 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
             }
             String appId = resolveAppId();
             String appSecret = resolveAppSecret();
-            if (!StringUtils.hasText(appId) || !StringUtils.hasText(appSecret)) {
+            if (!StringUtils.hasText(appId) || !StringUtils.hasText(appSecret)
+                    || !isUsableCredential(appId, "appid") || !isUsableCredential(appSecret, "secret")) {
+                // 2026-10-05：区分「完全没配」与「配了占位符」两种情况。
+                // 生产曾把 wx_oa_appid 填成 admin、secret 填成 admin@12356，
+                // 原实现只判非空 → 拿占位符去请求 → 每 2 小时报一次 invalid appid，静默失效。
+                // 现在占位符会被视为未配置并（若小程序凭证可用）回落到小程序凭证；
+                // 若两者都不可用，提示里直接点名是哪个配置项坏了，便于一眼定位。
+                String oa = systemConfigService.getConfigValue("wx_oa_appid");
+                boolean oaIsPlaceholder = StringUtils.hasText(oa) && !isUsableCredential(oa, "appid");
                 throw new BusinessException(ErrorCode.WECHAT_API_ERROR.getCode(),
-                        "未配置公众号 AppID/AppSecret，请在系统设置中填写（wx_oa_appid / wx_oa_app_secret，或与小程序相同凭证）");
+                        oaIsPlaceholder
+                                ? "系统设置里的公众号 AppID 是占位符（当前值=" + oa.trim() + "），"
+                                  + "请填真实公众号 AppID（wx 开头 18 位）；留空则自动复用小程序凭证"
+                                : "未配置公众号 AppID/AppSecret，请在系统设置中填写（wx_oa_appid / wx_oa_app_secret，或留空复用小程序凭证）");
             }
             String url = String.format("%s?grant_type=client_credential&appid=%s&secret=%s",
                     TOKEN_URL, appId, appSecret);
@@ -218,27 +229,68 @@ public class WeChatOfficialAccountClientImpl implements WeChatOfficialAccountCli
 
     private String resolveAppId() {
         String oa = systemConfigService.getConfigValue("wx_oa_appid");
-        if (StringUtils.hasText(oa)) {
-            return oa;
+        if (isUsableCredential(oa, "appid")) {
+            return oa.trim();
         }
         String db = systemConfigService.getConfigValue("wx_appid");
-        if (StringUtils.hasText(db)) {
-            return db;
+        if (isUsableCredential(db, "appid")) {
+            return db.trim();
         }
-        return defaultAppId;
+        return isUsableCredential(defaultAppId, "appid") ? defaultAppId.trim() : defaultAppId;
     }
 
     private String resolveAppSecret() {
         String oa = systemConfigService.getConfigValue("wx_oa_app_secret");
-        if (StringUtils.hasText(oa)) {
-            return oa;
+        if (isUsableCredential(oa, "secret")) {
+            return oa.trim();
         }
         String db = systemConfigService.getConfigValue("wx_app_secret");
-        if (StringUtils.hasText(db)) {
-            return db;
+        if (isUsableCredential(db, "secret")) {
+            return db.trim();
         }
-        return defaultAppSecret;
+        return isUsableCredential(defaultAppSecret, "secret") ? defaultAppSecret.trim() : defaultAppSecret;
     }
+
+    /**
+     * 判断一个凭证值是否「真的能用」，而不是看着有值实则占位符。
+     *
+     * <p>2026-10-05 事故：生产 {@code wx_oa_appid} 被填成 {@code admin}、
+     * {@code wx_oa_app_secret} 被填成 {@code admin@12356}（明显是占位符），
+     * 但原实现只判 {@code StringUtils.hasText} —— 非空即通过，
+     * 于是<b>永远回落不到正确的小程序凭证</b>，每 2 小时准时报一次
+     * {@code errcode 40013 invalid appid}，静默失效 3 天没人发现。
+     *
+     * <p>AppID 额外要求 {@code wx} 开头（微信官方格式），这一条能拦掉绝大多数占位符。
+     * Secret 无法格式校验，只能按黑名单 + 长度兜底。
+     */
+    private static boolean isUsableCredential(String value, String kind) {
+        if (!StringUtils.hasText(value)) {
+            return false;
+        }
+        String v = value.trim();
+        String lower = v.toLowerCase();
+        // 常见占位符 / 示例值：这些一旦入库就会被误当真实凭证
+        for (String placeholder : PLACEHOLDER_VALUES) {
+            if (placeholder.equals(lower)) {
+                return false;
+            }
+        }
+        if ("appid".equals(kind)) {
+            // 微信 AppID 固定 wx + 16 位十六进制，长度 18
+            if (!lower.startsWith("wx") || v.length() != 18) {
+                return false;
+            }
+            return v.substring(2).matches("[0-9a-fA-F]{16}");
+        }
+        // Secret：微信 AppSecret 为 32 位十六进制；放宽到 ≥16 位以兼容非标准凭证
+        return v.length() >= 16;
+    }
+
+    /** 被视为「未配置」的占位符值（小写比较）。 */
+    private static final List<String> PLACEHOLDER_VALUES = List.of(
+            "admin", "changeme", "change_me", "your_appid", "your_app_id",
+            "your_secret", "your_app_secret", "xxx", "todo", "test", "placeholder",
+            "string", "none", "null", "example", "demo", "yourappid", "your-secret");
 
     private record CachedToken(String token, long expireAtMs) {
     }

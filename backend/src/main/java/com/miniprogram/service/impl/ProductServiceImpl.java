@@ -9,11 +9,13 @@ import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.common.PageResult;
 import com.miniprogram.dto.*;
+import com.miniprogram.entity.Author;
 import com.miniprogram.entity.MembershipPlan;
 import com.miniprogram.entity.Order;
 import com.miniprogram.entity.Product;
 import com.miniprogram.entity.ProductCategory;
 import com.miniprogram.entity.ProductSku;
+import com.miniprogram.mapper.AuthorMapper;
 import com.miniprogram.mapper.MembershipPlanMapper;
 import com.miniprogram.mapper.OrderMapper;
 import com.miniprogram.mapper.ProductCategoryMapper;
@@ -57,6 +59,7 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
     private final ProductCategoryMapper productCategoryMapper;
     private final OrderMapper orderMapper;
     private final MembershipPlanMapper membershipPlanMapper;
+    private final AuthorMapper authorMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -128,6 +131,10 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getMemberPrice() != null) product.setMemberPrice(dto.getMemberPrice());
         if (dto.getMemberFree() != null) product.setMemberFree(dto.getMemberFree());
         if (dto.getAutoFulfill() != null) product.setAutoFulfill(dto.getAutoFulfill());
+        if (dto.getVideoUrl() != null) product.setVideoUrl(StringUtils.hasText(dto.getVideoUrl()) ? dto.getVideoUrl().trim() : null);
+        if (dto.getVideoPosterUrl() != null) {
+            product.setVideoPosterUrl(StringUtils.hasText(dto.getVideoPosterUrl()) ? dto.getVideoPosterUrl().trim() : null);
+        }
         if (dto.getFulfillContent() != null) product.setFulfillContent(dto.getFulfillContent());
         if (dto.getDeliveryMode() != null) product.setDeliveryMode(dto.getDeliveryMode());
         if (dto.getRefundPolicy() != null) product.setRefundPolicy(dto.getRefundPolicy());
@@ -135,6 +142,11 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getMembershipDays() != null) product.setMembershipDays(dto.getMembershipDays());
         if (dto.getMembershipLevelId() != null) product.setMembershipLevelId(dto.getMembershipLevelId());
         if (dto.getMembershipPlanId() != null) product.setMembershipPlanId(dto.getMembershipPlanId());
+        if (dto.getGiftMembershipDays() != null) product.setGiftMembershipDays(dto.getGiftMembershipDays());
+        if (dto.getGiftPlanetId() != null) {
+            product.setGiftPlanetId(StringUtils.hasText(dto.getGiftPlanetId()) ? dto.getGiftPlanetId().trim() : null);
+        }
+        if (dto.getGiftPlanetDays() != null) product.setGiftPlanetDays(dto.getGiftPlanetDays());
         if (dto.getPublishAt() != null) product.setPublishAt(dto.getPublishAt());
         if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())
                 || ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) {
@@ -159,6 +171,17 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getSkus() != null && !dto.getSkus().isEmpty()) {
             upsertSkus(product.getId(), dto.getSkus());
             syncProductAggregatesFromSkus(product.getId());
+        } else {
+            // 未填规格时自动补一条默认 SKU，避免上架时被「无可用SKU」拦截
+            ProductSku defaultSku = new ProductSku();
+            defaultSku.setProductId(product.getId());
+            defaultSku.setSkuName("默认规格");
+            defaultSku.setPrice(product.getPrice() != null ? product.getPrice() : BigDecimal.ZERO);
+            defaultSku.setOriginalPrice(product.getOriginalPrice());
+            defaultSku.setStock(product.getStock());
+            defaultSku.setSortOrder(0);
+            defaultSku.setStatus(1);
+            productSkuMapper.insert(defaultSku);
         }
 
         return convertToDetailVO(getExistingProduct(product.getId()), true);
@@ -187,6 +210,10 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getUnit() != null) product.setUnit(dto.getUnit());
         if (dto.getSortOrder() != null) product.setSortOrder(dto.getSortOrder());
         if (dto.getAutoFulfill() != null) product.setAutoFulfill(dto.getAutoFulfill());
+        if (dto.getVideoUrl() != null) product.setVideoUrl(StringUtils.hasText(dto.getVideoUrl()) ? dto.getVideoUrl().trim() : null);
+        if (dto.getVideoPosterUrl() != null) {
+            product.setVideoPosterUrl(StringUtils.hasText(dto.getVideoPosterUrl()) ? dto.getVideoPosterUrl().trim() : null);
+        }
         if (dto.getFulfillContent() != null) product.setFulfillContent(dto.getFulfillContent());
         if (dto.getMemberPrice() != null) product.setMemberPrice(dto.getMemberPrice());
         if (dto.getMemberFree() != null) product.setMemberFree(dto.getMemberFree());
@@ -196,7 +223,13 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         if (dto.getMembershipDays() != null) product.setMembershipDays(dto.getMembershipDays());
         if (dto.getMembershipLevelId() != null) product.setMembershipLevelId(dto.getMembershipLevelId());
         if (dto.getMembershipPlanId() != null) product.setMembershipPlanId(dto.getMembershipPlanId());
+        if (dto.getGiftMembershipDays() != null) product.setGiftMembershipDays(dto.getGiftMembershipDays());
+        if (dto.getGiftPlanetId() != null) {
+            product.setGiftPlanetId(StringUtils.hasText(dto.getGiftPlanetId()) ? dto.getGiftPlanetId().trim() : null);
+        }
+        if (dto.getGiftPlanetDays() != null) product.setGiftPlanetDays(dto.getGiftPlanetDays());
         if (dto.getPublishAt() != null) product.setPublishAt(dto.getPublishAt());
+        if (dto.getAuthorId() != null) product.setAuthorId(dto.getAuthorId() > 0 ? dto.getAuthorId() : null);
         if (ProductTypes.isMembership(product.getProductType(), product.getProductTypes())
                 || ProductTypes.isVirtual(product.getProductType(), product.getProductTypes())) {
             if (product.getDeliveryMode() == null || product.getDeliveryMode().isBlank()) {
@@ -323,6 +356,26 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
         }
         if (StringUtils.hasText(query.getStatus())) {
             wrapper.eq(Product::getStatus, normalizeStatus(query.getStatus()));
+        }
+        if (query.getAuthorId() != null && query.getAuthorId() > 0) {
+            wrapper.eq(Product::getAuthorId, query.getAuthorId());
+        }
+        if (StringUtils.hasText(query.getIds())) {
+            java.util.List<Long> idList = java.util.Arrays.stream(query.getIds().split(","))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .map(s -> {
+                        try {
+                            return Long.parseLong(s);
+                        } catch (NumberFormatException e) {
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toList());
+            if (!idList.isEmpty()) {
+                wrapper.in(Product::getId, idList);
+            }
         }
         String sort = query.getSort() == null ? "" : query.getSort().trim().toLowerCase();
         if ("sales_desc".equals(sort)) {
@@ -589,11 +642,24 @@ public class ProductServiceImpl extends BaseServiceImpl<ProductMapper, Product>
                             .in(ProductCategory::getId, categoryIds))
                     .forEach(c -> categoryNames.put(c.getId(), c.getName()));
         }
+        // 作者昵称：一次批量查，避免每行 selectById
+        Set<Long> authorIds = products.stream()
+                .map(Product::getAuthorId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, String> authorNames = new HashMap<>();
+        if (!authorIds.isEmpty()) {
+            authorMapper.selectList(new LambdaQueryWrapper<Author>().in(Author::getId, authorIds))
+                    .forEach(a -> authorNames.put(a.getId(), a.getName()));
+        }
         List<ProductDetailVO> result = new ArrayList<>(products.size());
         for (Product product : products) {
             ProductDetailVO vo = convertToDetailVO(product, false);
             if (product.getCategoryId() != null) {
                 vo.setCategoryName(categoryNames.get(product.getCategoryId()));
+            }
+            if (product.getAuthorId() != null) {
+                vo.setAuthorName(authorNames.get(product.getAuthorId()));
             }
             result.add(vo);
         }

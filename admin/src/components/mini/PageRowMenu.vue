@@ -11,6 +11,8 @@
     <template #dropdown>
       <el-dropdown-menu>
         <el-dropdown-item command="preview">预览</el-dropdown-item>
+        <el-dropdown-item command="qr" divided>扫码看真机</el-dropdown-item>
+        <el-dropdown-item command="versions">版本记录</el-dropdown-item>
         <el-dropdown-item command="rename">重命名</el-dropdown-item>
         <el-dropdown-item command="copy">复制页面</el-dropdown-item>
         <el-dropdown-item
@@ -29,6 +31,7 @@
           {{ isTest ? '取消测试页' : '标为测试页' }}
         </el-dropdown-item>
         <el-dropdown-item command="copy-path">复制路径</el-dropdown-item>
+        <el-dropdown-item command="set-group" divided>设置分组</el-dropdown-item>
         <el-dropdown-item v-if="canOffline" command="offline" divided>下线</el-dropdown-item>
         <el-dropdown-item
           v-if="!archived && !isNav"

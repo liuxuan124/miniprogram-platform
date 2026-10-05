@@ -1,6 +1,11 @@
-<!-- 社区列表：进入 › -->
-<view class="pcl-page">
-  <view class="pcl-hd">
+<!-- 社区列表：pick = 首次引导态（选主星球）／缺省 = 我加入的星球 -->
+<view class="pcl-page {{isPick ? 'pcl-page--pick' : ''}}">
+
+  <view wx:if="{{isPick}}" class="pcl-lead">
+    <text class="pcl-lead__t">先挑一个星球</text>
+    <text class="pcl-lead__s">选一个当你的主星球，下次进来直接就是它。随时可以换。</text>
+  </view>
+  <view wx:else class="pcl-hd">
     <text class="pcl-hd__t">我加入的星球</text>
     <text class="pcl-hd__s">先逛逛，再挑一个常驻的自留地</text>
   </view>
@@ -12,7 +17,7 @@
   <view
     wx:for="{{list}}"
     wx:key="id"
-    class="pcl-card {{item.isMain ? 'pcl-card--primary' : ''}}"
+    class="pcl-card {{item.isMyMain ? 'pcl-card--primary' : ''}}"
   >
     <view
       class="pcl-card__rw"
@@ -23,15 +28,43 @@
       <view class="pcl-card__meta">
         <text class="pcl-card__title">{{item.title}}</text>
         <text class="pcl-card__sb">{{item.subtitle}}</text>
+        <view class="pcl-card__n" wx:if="{{item.membersLabel || item.todayLabel}}">
+          <text wx:if="{{item.membersLabel}}">{{item.membersLabel}}</text>
+          <text wx:if="{{item.membersLabel && item.todayLabel}}" class="pcl-dot">·</text>
+          <text wx:if="{{item.todayLabel}}">{{item.todayLabel}}</text>
+        </view>
       </view>
-      <text class="pcl-card__badge" wx:if="{{item.isMain}}">常驻</text>
-      <text class="pcl-card__badge" wx:else>{{item.joined ? '已加入' : '可加入'}}</text>
+      <text class="pcl-card__badge" wx:if="{{item.isMyMain}}">主星球</text>
+      <text class="pcl-card__badge pcl-card__badge--gray" wx:elif="{{item.joined}}">已加入</text>
+      <text class="pcl-card__badge" wx:else>可加入</text>
     </view>
+
+    <view class="pcl-card__hl" wx:if="{{isPick && item.highlights && item.highlights.length}}">
+      <view wx:for="{{item.highlights}}" wx:for-item="h" wx:key="title" class="pcl-card__hli">
+        <text class="pcl-card__hic">{{h.icon}}</text>
+        <text class="pcl-card__htx">{{h.title}} · {{h.desc}}</text>
+      </view>
+    </view>
+
     <view class="pcl-card__ft">
       <text class="pcl-card__num">{{item.membersLabel || '—'}}</text>
       <view class="pcl-card__acts">
+        <!-- ⚠️ 三态互斥，全用 wx:if / wx:elif：
+             wx:else 不能跨 </block>（CLI 编译期报 `wx:if not found`） -->
         <text
-          wx:if="{{!item.isMain}}"
+          wx:if="{{isPick && !item.isMyMain && item.joined}}"
+          class="pcl-card__set"
+          data-id="{{item.id}}"
+          catchtap="onSetMain"
+        >设为我的主星球</text>
+        <text
+          wx:elif="{{isPick && !item.isMyMain && !item.joined}}"
+          class="pcl-card__set pcl-card__set--ghost"
+          data-id="{{item.id}}"
+          catchtap="onJoinFirst"
+        >先加入</text>
+        <text
+          wx:elif="{{!isPick && !item.isMyMain}}"
           class="pcl-card__set"
           data-id="{{item.id}}"
           catchtap="onSetMain"
@@ -43,6 +76,11 @@
         >去看看 ›</text>
       </view>
     </view>
+  </view>
+
+  <view wx:if="{{isPick && !loading && list.length}}" class="pcl-foot">
+    <view class="pcl-foot__btn" bindtap="onSkip">先逛逛，稍后再选</view>
+    <text class="pcl-foot__tip">不选也能用：默认展示当前主星球，之后在星球页点「切换」随时改</text>
   </view>
 
   <login-sheet id="global-login-sheet" />

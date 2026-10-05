@@ -85,6 +85,15 @@ public class WxAuthServiceImpl implements WxAuthService {
             isNewUser = true;
             log.info("新用户注册: openid={}", openid);
         } else {
+            // V118 审核中心：封禁用户在签发 token 前直接拦下。
+            // 只改 mp_user.status 不够 —— 旧 token 已吊销（ModerationService.banUser 会调
+            // revokeAllForUser），但用户重新走登录能拿新 token，所以这里必须再挡一次。
+            if ("banned".equals(user.getStatus())) {
+                String reason = StringUtils.hasText(user.getBannedReason()) ? user.getBannedReason() : "违反社区规范";
+                log.warn("封禁用户尝试登录 openid={} reason={}", openid, reason);
+                throw new BusinessException(ErrorCode.ACCOUNT_DISABLED.getCode(),
+                        "账号已被封禁：" + reason);
+            }
             // 更新用户信息
             boolean needUpdate = false;
             if (dto.getNickname() != null) {

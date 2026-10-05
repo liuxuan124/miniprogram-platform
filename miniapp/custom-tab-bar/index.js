@@ -71,12 +71,25 @@ function buildListFromConfig(config) {
     return {
       pagePath,
       text: (item.text || item.name) || meta.text || '页面',
-      icon: typeof icon === 'string' && icon.indexOf('/') === 0 ? icon : (meta.icon || '/images/tab/home.png'),
-      selectedIcon: typeof selectedIcon === 'string' && selectedIcon.indexOf('/') === 0
-        ? selectedIcon
-        : (meta.selectedIcon || meta.icon || '/images/tab/home-active.png'),
+      icon: usableIconUrl(icon) || meta.icon || '/images/tab/home.png',
+      selectedIcon: usableIconUrl(selectedIcon) || meta.selectedIcon || meta.icon || '/images/tab/home-active.png',
     }
   })
+}
+
+/**
+ * 图标地址是否可用。
+ * 旧判断只看 `indexOf('/') === 0`，后台「本地上传」返回的是 https://… 完整地址，
+ * 会被判为不可用并静默回落到默认图标——用户传了图却看不到，且没有任何提示。
+ * 这里放行两种形态：小程序包内绝对路径、以及 http(s) 远程地址。
+ */
+function usableIconUrl(value) {
+  if (typeof value !== 'string') return ''
+  const s = value.trim()
+  if (!s) return ''
+  if (s.indexOf('/') === 0) return s
+  if (/^https?:\/\//i.test(s)) return s
+  return ''
 }
 
 function resolveThemeColors(config) {
@@ -167,6 +180,12 @@ Component({
       const pages = getCurrentPages()
       if (!pages.length) return
       const currentPath = this._normalizePath('/' + pages[pages.length - 1].route)
+      // 只在「当前就在 Tab 容器壳」上做兜底。
+      // 若用户已经 navigateTo 进二级页（商品详情/内容详情/下单等），此处 switchTab
+      // 会把用户强行弹回首页（体验版实测：商城点开商品 → 自动回首页）。
+      // 本方法是异步配置回调触发的，栈顶可能已不是 Tab 壳，必须按栈顶路由判定。
+      const tabShells = TAB_SLOT_ROUTES.map((p) => this._normalizePath(p))
+      if (tabShells.indexOf(currentPath) < 0) return
       const visible = tabs.some((item) => this._normalizePath(item.pagePath) === currentPath)
       if (visible) return
       const first = this._normalizePath(tabs[0].pagePath)

@@ -146,6 +146,22 @@
   border: 1px solid #efe7da;
   font-size: 36rpx;
   box-shadow: none;
+  /* emoji 居中；图片则铺满方块并裁切（见下方 --img 变体） */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+/* 图标用素材库图片时：铺满 80rpx 方块、保持比例裁切 */
+.wh-nav--grid5 .wh-nav__ic--img {
+  background: #fff;
+  border: 1px solid #efe7da;
+}
+.wh-nav--grid5 .wh-nav__ic--img image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 .wh-nav__item {
   flex: 1; text-align: center; font-size: 21rpx; color: #6b5443; font-weight: 650;
@@ -173,6 +189,11 @@
 .wh-author__av--apply {
   border: 3rpx dashed #ddbe98; color: #c79a6c; font-size: 38rpx;
   display: flex; align-items: center; justify-content: center; background: #fffaf3;
+}
+/* 未配头像时用姓名首字占位，与后台预览一致 */
+.wh-author__av--initial {
+  display: flex; align-items: center; justify-content: center;
+  color: #a8763f; font-size: 34rpx; font-weight: 700; background: #f6e7d2;
 }
 .wh-author__n { display: block; font-size: 22rpx; font-weight: 680; }
 .wh-author__r { display: block; font-size: 18rpx; color: #b45309; margin-top: 4rpx; }
@@ -236,6 +257,58 @@
   font-size: 25rpx; font-weight: 750; display: flex; align-items: center; justify-content: center;
   position: relative; z-index: 1;
 }
+/* 单卡底栏：CTA 文案在左、「设为主星球」在右（老样式只有整条 CTA 按钮，故__ft 与 __go 互不覆盖） */
+.wh-planet__ft { margin-top: 8rpx; display: flex; align-items: center; gap: 16rpx; position: relative; z-index: 1; }
+.wh-planet__cta {
+  flex: 1; min-width: 0; height: 68rpx; border-radius: 99px; background: #fff; color: #9a3412;
+  font-size: 25rpx; font-weight: 750; display: flex; align-items: center; justify-content: center;
+  /* CTA 是「今日 N 条新动态 · 去看看」这类长文案，不加 nowrap 会在窄卡里折成两行撑破底栏 */
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wh-planet__setmain {
+  flex-shrink: 0; height: 68rpx; padding: 0 26rpx; border-radius: 99px;
+  border: 2rpx solid rgba(255,255,255,.7); color: #fff; font-size: 23rpx; font-weight: 700;
+  display: flex; align-items: center;
+}
+.wh-planet__li--empty, .wh-pcard__li--empty { opacity: .6; font-style: italic; }
+
+/* 多星球横滑 */
+.wh-planets { margin-top: 12rpx; width: 100%; white-space: nowrap; }
+.wh-planets__row { display: inline-flex; align-items: stretch; gap: 24rpx; padding: 4rpx 32rpx 8rpx; }
+.wh-pcard {
+  width: 460rpx; flex-shrink: 0; white-space: normal;
+  border-radius: 36rpx; padding: 28rpx; color: #fff; position: relative; overflow: hidden;
+  background: linear-gradient(135deg, #7c2d12, #b45309 62%, #d97706);
+  box-shadow: 0 14px 30px rgba(124,45,18,.24);
+}
+.wh-pcard__rw { display: flex; align-items: center; gap: 14rpx; position: relative; z-index: 1; }
+.wh-pcard__ic { font-size: 36rpx; }
+.wh-pcard__h { font-size: 30rpx; font-weight: 750; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-pcard__main, .wh-pcard__joined {
+  flex-shrink: 0; font-size: 19rpx; font-weight: 700; padding: 4rpx 14rpx; border-radius: 99px;
+}
+.wh-pcard__main { background: #fbbf24; color: #7c2d12; }
+.wh-pcard__joined { background: rgba(255,255,255,.24); color: #fff; }
+.wh-pcard__sub {
+  display: block; margin-top: 10rpx; font-size: 21rpx; opacity: .82; position: relative; z-index: 1;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.wh-pcard__ls { margin-top: 18rpx; position: relative; z-index: 1; }
+.wh-pcard__li {
+  background: rgba(255,255,255,.13); border: 1rpx solid rgba(255,255,255,.14);
+  border-radius: 22rpx; padding: 14rpx 18rpx; font-size: 22rpx; line-height: 1.4;
+  display: flex; gap: 14rpx; margin-bottom: 12rpx;
+}
+.wh-pcard__tag { font-weight: 750; opacity: .9; flex-shrink: 0; }
+.wh-pcard__tx { opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-pcard__ft { margin-top: 6rpx; display: flex; align-items: center; gap: 12rpx; position: relative; z-index: 1; }
+.wh-pcard__cta { flex: 1; opacity: .88; font-size: 21rpx; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh-pcard__go {
+  flex-shrink: 0; height: 58rpx; padding: 0 24rpx; border-radius: 99px; background: #fff; color: #9a3412;
+  font-size: 23rpx; font-weight: 750; display: flex; align-items: center;
+}
+.wh-planets__more { padding: 20rpx 32rpx 0; }
+.wh-planets__morelink { font-size: 24rpx; color: #a1897a; }
 
 .wh-segs { display: flex; gap: 36rpx; padding: 32rpx 36rpx 8rpx; }
 .wh-seg { font-size: 30rpx; font-weight: 650; color: #a1897a; padding-bottom: 12rpx; position: relative; }

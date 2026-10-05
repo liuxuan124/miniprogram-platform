@@ -21,3 +21,33 @@ export function getUserGrowth(start_date: string, end_date: string) {
 export function getPageAccess(start_date: string, end_date: string) {
   return request.get('/api/v1/admin/statistics/page-access', { params: { start_date, end_date } })
 }
+
+/**
+ * 运行健康指标。
+ * 三个率可能为 null——小程序端还没发版上报时后端不给 0，
+ * 调用方必须区分「待埋点」与「真的是 0」。
+ */
+export interface RuntimeHealth {
+  startDate?: string
+  endDate?: string
+  pageViews?: number
+  uniqueVisitors?: number
+  activePages?: number
+  viewsPerVisitor?: number
+  errorCount?: number
+  blankCount?: number
+  tabLeaveCount?: number
+  /** null = 小程序端未上报，不能当 0 用 */
+  errorRate?: number | null
+  blankRate?: number | null
+  tabBounceRate?: number | null
+  eventReported?: boolean
+  topErrorPages?: { pagePath: string; count: number }[]
+  tabLeaveTop?: { fromRoute: string; toRoute: string; count: number }[]
+}
+
+export function getRuntimeHealth(start_date: string, end_date: string) {
+  return request.get<RuntimeHealth>('/api/v1/admin/statistics/runtime-health', {
+    params: { start_date, end_date },
+  })
+}

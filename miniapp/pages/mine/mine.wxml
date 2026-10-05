@@ -1,3 +1,4 @@
+<global-resource />
 <env-badge />
 <page-meta page-style="{{themePageStyle}}{{pageBackgroundColor ? ';background-color:' + pageBackgroundColor : ''}}" />
 <!-- 绑定了装修页则走 DSL；未绑定（系统页）走下方内置模板 -->
@@ -127,61 +128,29 @@
       </view>
     </view>
 
-    <view class="mn-menu">
-      <view class="mn-menu__row" bindtap="onGoAsk">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🙋</text>我的提问与打卡
-        <text class="mn-menu__vv" wx:if="{{isLoggedIn && questionCount}}">{{questionCount}} 个提问</text>
+    <view
+      class="mn-menu"
+      wx:for="{{menuGroups}}"
+      wx:for-item="group"
+      wx:key="name"
+    >
+      <view
+        class="mn-menu__row"
+        wx:for="{{group.items}}"
+        wx:for-item="item"
+        wx:key="id"
+        bindtap="onMenuRowTap"
+        data-url="{{item.url}}"
+        data-login="{{item.needLogin ? 1 : 0}}"
+        data-title="{{item.title}}"
+        hover-class="mn-menu__row--pressed"
+        hover-stay-time="80"
+        aria-role="button"
+        aria-label="{{item.title}}"
+      >
+        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">{{item.iconText}}</text>{{item.title}}
+        <text class="mn-menu__vv" wx:if="{{item.hint}}">{{item.hint}}</text>
         <text class="mn-menu__ar" wx:else>›</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoContribute">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">✍️</text>成为创作者
-        <text class="mn-menu__vv">投稿招募中</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoOrders">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🛍</text>我的订单
-        <text class="mn-menu__vv" wx:if="{{isLoggedIn && pendingOrderCount}}">{{pendingOrderCount}} 笔待支付</text>
-        <text class="mn-menu__ar" wx:else>›</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoResources">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🗂</text>我的资料库
-        <text class="mn-menu__ar">›</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoOrders">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🧾</text>发票管理
-        <text class="mn-menu__ar">›</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoCoupons">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🎁</text>优惠券
-        <text class="mn-menu__vv" wx:if="{{isLoggedIn && unusedCouponCount}}">{{unusedCouponCount}} 张可用</text>
-        <text class="mn-menu__ar" wx:else>›</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoShare">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🤝</text>邀请好友
-        <text class="mn-menu__vv" wx:if="{{isLoggedIn && inviteCount}}">已邀 {{inviteCount}} 人</text>
-        <text class="mn-menu__ar" wx:else>›</text>
-      </view>
-    </view>
-
-    <view class="mn-menu">
-      <view class="mn-menu__row" bindtap="onGoTemplates">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">🧩</text>整店模版
-        <text class="mn-menu__vv">切换外观</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoJoin">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">👥</text>加入读者群
-        <text class="mn-menu__ar">›</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoService">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">💬</text>联系客服
-        <text class="mn-menu__vv">9:00-21:00 在线</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onGoFeedback">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">📮</text>意见反馈
-        <text class="mn-menu__ar">›</text>
-      </view>
-      <view class="mn-menu__row" bindtap="onSettingsTap">
-        <text class="mn-menu__ic" wx:if="{{mineToggles.showMenuIcons}}">⚙️</text>设置
-        <text class="mn-menu__ar">›</text>
       </view>
     </view>
 

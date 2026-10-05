@@ -1,6 +1,6 @@
 <template>
   <div class="nav-props">
-    <el-form label-width="70px" size="small">
+    <el-form label-width="72px" size="small">
       <el-form-item label="每行数量">
         <el-radio-group :model-value="data.columns" @change="emit('update', { columns: $event as number })">
           <el-radio :value="3">3个</el-radio>

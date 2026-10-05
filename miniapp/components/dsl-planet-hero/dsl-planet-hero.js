@@ -2,7 +2,6 @@ const { getNavLayout } = require('../../utils/nav-layout')
 const PlanetService = require('../../services/planet')
 const { get } = require('../../utils/request')
 const warmPlanet = require('../../data/warm-planet')
-
 const JOIN_ROW_DEFAULT = '👥 加入球友微信群，第一时间收到更新通知'
 
 Component({
@@ -74,7 +73,12 @@ Component({
           .catch(() => {})
       }
       if (manual) return
-      PlanetService.getPlanetHome().then((home) => {
+      // ⚠️ 必须带上当前主星球 id：getPlanetHome() 不传参会拿配置 primary，
+      // 切换主星球后 hero 会显示回旧那颗，表现为「Tab 已切、hero 没切」
+      const homePlanetId = this._homePlanetId
+        || PlanetService.getCachedMainPlanetId()
+        || ''
+      PlanetService.getPlanetHome(homePlanetId).then((home) => {
         if (!home) return
         const planetActive = !!(home.planetMemberActive != null
           ? home.planetMemberActive
@@ -106,7 +110,29 @@ Component({
       }).catch(() => {})
     },
     onSwitch() {
-      wx.navigateTo({ url: '/pkg-content/planet-list/planet-list' })
+      this._openSwitch()
+    },
+    /** 打开切换半屏（组件内自取数据，不走跳页） */
+    _openSwitch() {
+      const sheet = this.selectComponent('#planet-switch-sheet')
+      if (sheet && typeof sheet.open === 'function') {
+        sheet.open()
+        return
+      }
+      // 兜底：组件未挂载时退回列表页
+      wx.navigateTo({ url: '/pkg-content/planet-list/planet-list', fail: () => {} })
+    },
+    /** 半屏切换成功后刷新 hero 自身（标题/副标/加入态都随主星球变） */
+    onSwitchChange(e) {
+      const id = (e && e.detail && e.detail.planetId) || ''
+      if (id) this._homePlanetId = id
+      this._apply()
+    },
+    /** 半屏里点了未加入的星球 → 进介绍页 */
+    onSwitchIntro(e) {
+      const id = (e && e.detail && e.detail.planetId) || ''
+      if (!id) return
+      wx.navigateTo({ url: `/pkg-content/planet-intro/planet-intro?planetId=${encodeURIComponent(id)}` })
     },
     onJoin() {
       if (this.data.joinText === '已加入') {

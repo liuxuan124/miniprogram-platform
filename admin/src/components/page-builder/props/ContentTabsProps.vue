@@ -5,7 +5,7 @@
         <span>分页 {{ pIdx + 1 }}</span>
         <el-button text type="danger" size="small" :disabled="panes.length <= 2" @click="removePane(pIdx)">删除</el-button>
       </div>
-      <el-form label-width="56px" size="small">
+      <el-form label-width="72px" size="small">
         <el-form-item label="标题">
           <el-input :model-value="pane.title || ''" maxlength="8" @input="(v: string) => patchPane(pIdx, { title: v })" />
         </el-form-item>
