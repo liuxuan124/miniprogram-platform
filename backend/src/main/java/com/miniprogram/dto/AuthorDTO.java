@@ -29,6 +29,13 @@ public class AuthorDTO {
     @Size(max = 64, message = "头衔最长64个字符")
     private String title;
 
+    /**
+     * 作者标签，逗号分隔（如：官方主理人,S级创作者）。
+     * V121 新增。写入时统一 trim/去空/去重，保证同一组标签只有一种存储写法。
+     */
+    @Size(max = 255, message = "标签最长255个字符")
+    private String tags;
+
     /** 简介 */
     @Size(max = 512, message = "简介最长512个字符")
     private String intro;

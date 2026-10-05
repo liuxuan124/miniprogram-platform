@@ -12,6 +12,14 @@ public interface AuthorService {
     /** 列出全部作者（按 sort_order 升序）；status/role/userId/keyword 可选筛选 */
     List<AuthorDTO> listAuthors(Integer status, String role, Long userId, String keyword);
 
+    /**
+     * 首页作者区块「动态聚合」模式查询（V122）。
+     * 只返回启用档案；tags 非空时按标签多选筛选（OR 语义，命中任一即入选）；
+     * sortBy 支持 weight(默认，sort_order 升序) / latest(create_time 倒序) /
+     * article_count(内容+专栏数倒序)；limit 收敛到 3~8。
+     */
+    List<AuthorDTO> listAuthorsForAggregation(List<String> tags, String sortBy, Integer limit);
+
     /** 创建作者 */
     AuthorDTO createAuthor(AuthorDTO dto);
 

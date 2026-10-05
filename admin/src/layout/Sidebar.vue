@@ -135,6 +135,10 @@ import {
   // 运营中心：审核中心 / 全局资源位（原先菜单已配 icon 名但未注册，导致图标位空白）
   Warning,
   Promotion,
+  // 小程序搭建工作流新增菜单的图标，同样必须在这里注册，否则侧栏图标位空白
+  Menu,
+  View,
+  Operation,
 } from '@element-plus/icons-vue'
 
 interface MenuItem {
@@ -194,6 +198,9 @@ const iconMap: Record<string, any> = {
   Search,
   Warning,
   Promotion,
+  Menu,
+  View,
+  Operation,
 }
 
 const route = useRoute()
@@ -211,7 +218,15 @@ const permissionStore = usePermissionStore()
 const featureModulesStore = useFeatureModulesStore()
 const industryProfileStore = useIndustryProfileStore()
 const openGroups = ref<string[]>([])
+/** 二级子菜单的展开集合 */
 const openKeys = ref<string[]>([])
+/**
+ * 🔴 2026-10-06：用户手动收起的一级组 / 二级子菜单。
+ * 路由变化的自动展开会跳过它们，解决「刚收起就被顶开、关不掉」。
+ * （小程序分组从 9 项平铺改为 6 组后，一次跳转可能命中多组，没有这个记录会明显抖动）
+ */
+const userCollapsedGroups = ref<Set<string>>(new Set())
+const userCollapsedSubs = ref<Set<string>>(new Set())
 
 /** 品牌标识：墨太白（跨境墨太白）——图标用盾牌勾标，名称统一 */
 const brandLogo = '/logo-motaibai.svg'
@@ -243,17 +258,78 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
       { title: '搜索运营', path: '/ops/search', icon: 'Search', activePrefix: '/ops/search' },
       { title: '审核中心', path: '/ops/moderation', icon: 'Warning', activePrefix: '/ops/moderation' },
       { title: '全局资源位', path: '/ops/resource', icon: 'Promotion', activePrefix: '/ops/resource' },
+      { title: '通知中心', path: '/ops/notification', icon: 'Bell', activePrefix: '/ops/notification' },
     ],
   },
   {
+    // 小程序搭建工作流（2026-10-06 IA 重组）
+    //
+    // 原来是什么：9 个子入口平铺（概览/品牌/系统配置/页面搭建/页面配置/导航/预览/发布/模板），
+    // 「页面搭建」与「页面配置」职责相邻却并排，模板库孤零零挂在末尾，
+    // 用户每次都要重新扫一遍 9 行才知道自己在哪一步。
+    // 现在是什么：按搭建顺序收成 6 组 ——
+    //   搭建工作台（入口 + 进度）
+    //   基础配置（品牌信息 / 系统功能）
+    //   页面管理（页面列表 / 系统页配置 / 模板库）
+    //   导航配置 / 预览检查 / 发布与版本
+    // 顺序即搭建顺序；任何一项都能独立进入，日常维护不必从头走。
     title: '小程序',
     children: [
-      { title: '概览', path: '/mini/overview', icon: 'Odometer', activePrefix: '/mini/overview', permissions: ['page:list'] },
-      { title: '外观', path: '/mini/appearance', icon: 'Brush', activePrefix: '/mini/appearance', permissions: ['page:list'] },
-      { title: '页面', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
-      { title: '模板', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
+      {
+        title: '搭建工作台',
+        path: '/mini/overview',
+        icon: 'Odometer',
+        activePrefix: '/mini/overview',
+        permissions: ['page:list'],
+      },
+      {
+        title: '基础配置',
+        icon: 'Setting',
+        children: [
+          { title: '品牌信息', path: '/mini/brand', icon: 'Brush', activePrefix: '/mini/brand', permissions: ['page:list'] },
+          { title: '系统功能', path: '/mini/system', icon: 'Setting', activePrefix: '/mini/system', permissions: ['page:list'] },
+        ],
+      },
+      {
+        title: '页面管理',
+        icon: 'Document',
+        children: [
+          { title: '页面列表', path: '/mini/pages', icon: 'Document', activePrefix: '/mini/pages', permissions: ['page:list'] },
+          { title: '页面配置', path: '/mini/page-config', icon: 'Operation', activePrefix: '/mini/page-config', permissions: ['page:list'] },
+          { title: '模板库', path: '/mini/templates', icon: 'Shop', activePrefix: '/mini/templates', permissions: ['page:list'] },
+          // 固定页（系统页）配置：与「系统功能」是不同层面的东西，放页面管理下更贴近使用场景
+          { title: '我的页', path: '/page-builder/mine', icon: 'User', activePrefix: '/page-builder/mine', permissions: ['page:list'] },
+          { title: '登录页', path: '/page-builder/login', icon: 'Lock', activePrefix: '/page-builder/login', permissions: ['page:list'] },
+        ],
+      },
+      {
+        title: '导航配置',
+        path: '/mini/navigation',
+        icon: 'Menu',
+        activePrefix: '/mini/navigation',
+        permissions: ['page:list'],
+      },
+      {
+        title: '预览检查',
+        path: '/mini/preview',
+        icon: 'View',
+        activePrefix: '/mini/preview',
+        permissions: ['page:list'],
+      },
+      {
+        title: '发布与版本',
+        path: '/mini/publish',
+        icon: 'Upload',
+        activePrefix: '/mini/publish',
+        // 发布页本身只需登录可见（它内部会按 page:publish 判定能否发布），
+        // 这里仍要求 page:list —— 与工作台同门槛，避免超管之外的角色看到点不动
+        permissions: ['page:list'],
+      },
     ],
   },
+  // 注：旧「整店模板外观」页（/page-builder/appearance）与旧 /mini/appearance 的兼容
+  // 由 router 的 redirect 处理，不在侧栏占位——侧栏是给日常用的导航，
+  // 不该摆「历史入口」这种占位分组。旧地址与深链接依然可用。
   {
     title: '内容运营',
     children: [
@@ -407,6 +483,10 @@ function itemMatchesRoute(item: MenuItem): boolean {
   return Boolean(item.children?.some((c) => isActive(c) || isParentActive(c)))
 }
 
+/**
+ * 组的开合。userCollapsedGroups 的用途见上面的声明：
+ * 记录用户主动收起的行为，避免路由变化时被自动展开顶开。
+ */
 function isGroupOpen(title: string) {
   return openGroups.value.includes(title)
 }
@@ -414,8 +494,14 @@ function isGroupOpen(title: string) {
 function toggleGroup(title: string) {
   if (isGroupOpen(title)) {
     openGroups.value = openGroups.value.filter((k) => k !== title)
+    // 记下这是用户主动收起的，之后的自动展开不再顶开它
+    userCollapsedGroups.value = new Set([...userCollapsedGroups.value, title])
   } else {
     openGroups.value = [...openGroups.value, title]
+    // 重新打开 → 撤销「收起」标记
+    const next = new Set(userCollapsedGroups.value)
+    next.delete(title)
+    userCollapsedGroups.value = next
   }
 }
 
@@ -430,8 +516,13 @@ function toggleSubmenu(item: MenuItem) {
   }
   if (isSubOpen(item)) {
     openKeys.value = openKeys.value.filter((k) => k !== item.title)
+    // 同上：记录用户主动收起，自动展开不再顶开
+    userCollapsedSubs.value = new Set([...userCollapsedSubs.value, item.title])
   } else {
     openKeys.value = [...openKeys.value, item.title]
+    const next = new Set(userCollapsedSubs.value)
+    next.delete(item.title)
+    userCollapsedSubs.value = next
   }
 }
 
@@ -439,17 +530,45 @@ function go(path: string) {
   router.push(path)
 }
 
+/**
+ * 路由变化时展开「当前所在的组 / 子菜单」。
+ *
+ * 🔴 2026-10-06 修正「展开收起不稳定」：
+ * 原来是纯追加（openGroups = [...openGroups, title]），
+ * 于是用户手动收起某个组后，**任何一次路由切换都会把它重新弹开**——
+ * 表现为「刚收起就被顶开」「关不掉」。
+ *
+ * 现在的规则：
+ *  - 当前路由所在的一级组：必须展开（否则用户看不到自己在哪）；
+ *  - 其余组：保持用户上次的开合状态，不再被自动顶开。
+ * 用 openGroups 指定「哪几个保持展开」，其余视为收起。
+ */
 watch(
   () => [route.path, menuGroups.value] as const,
   () => {
     const current = menuGroups.value.find((g) => g.children.some(itemMatchesRoute))
     if (current && !openGroups.value.includes(current.title)) {
       openGroups.value = [...openGroups.value, current.title]
+      // 当前组必须可见 → 撤销它的「手动收起」标记，否则它会被当作用户不想看
+      if (userCollapsedGroups.value.has(current.title)) {
+        const next = new Set(userCollapsedGroups.value)
+        next.delete(current.title)
+        userCollapsedGroups.value = next
+      }
     }
     for (const group of menuGroups.value) {
       for (const item of group.children) {
-        if (item.children?.length && itemMatchesRoute(item) && !openKeys.value.includes(item.title)) {
-          openKeys.value = [...openKeys.value, item.title]
+        if (!item.children?.length) continue
+        // 当前路由命中的子菜单必须展开（含撤销它的「手动收起」标记）
+        if (itemMatchesRoute(item)) {
+          if (!openKeys.value.includes(item.title)) {
+            openKeys.value = [...openKeys.value, item.title]
+          }
+          if (userCollapsedSubs.value.has(item.title)) {
+            const next = new Set(userCollapsedSubs.value)
+            next.delete(item.title)
+            userCollapsedSubs.value = next
+          }
         }
       }
     }

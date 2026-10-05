@@ -228,6 +228,7 @@ public class AuthorServiceImpl extends BaseServiceImpl<AuthorMapper, Author>
         if (!StringUtils.hasText(entity.getRole())) {
             entity.setRole("editor");
         }
+        entity.setTags(normalizeTags(entity.getTags()));
         if (entity.getSortOrder() == null) {
             entity.setSortOrder(0);
         }
@@ -256,6 +257,9 @@ public class AuthorServiceImpl extends BaseServiceImpl<AuthorMapper, Author>
         }
         if (dto.getTitle() != null) {
             entity.setTitle(dto.getTitle());
+        }
+        if (dto.getTags() != null) {
+            entity.setTags(normalizeTags(dto.getTags()));
         }
         if (dto.getIntro() != null) {
             entity.setIntro(dto.getIntro());
@@ -382,6 +386,103 @@ public class AuthorServiceImpl extends BaseServiceImpl<AuthorMapper, Author>
     }
 
     // ==================== 私有方法 ====================
+
+    /**
+     * 标签归一化：拆分逗号 → trim → 去空 → 去重 → 排序 → 重新拼。
+     * 必须排序，否则同一组标签因录入顺序不同会有多种写法，
+     * FIND_IN_SET 虽不受影响，但后台按标签聚合统计会散成多组。
+     * 单个标签长度上限 32，防止有人把整段简介粘进来。
+     */
+    private String normalizeTags(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        String[] parts = raw.split("[,，]");
+        List<String> tags = new ArrayList<>();
+        for (String part : parts) {
+            String t = part.trim();
+            if (t.isEmpty()) {
+                continue;
+            }
+            if (t.length() > 32) {
+                t = t.substring(0, 32);
+            }
+            if (!tags.contains(t)) {
+                tags.add(t);
+            }
+        }
+        if (tags.isEmpty()) {
+            return null;
+        }
+        java.util.Collections.sort(tags);
+        String joined = String.join(",", tags);
+        return joined.length() > 255 ? joined.substring(0, 255) : joined;
+    }
+
+    /**
+     * 首页作者区块「动态聚合」模式专用查询（V122）。
+     *
+     * 与 {@link #listAuthors} 的区别：
+     *   - 只返回启用（status=1）未删除的档案
+     *   - 支持按标签多选筛选（命中任一标签即入选，OR 语义）
+     *   - 支持三种排序：weight=sort_order 升序、latest=create_time 倒序、article_count=内容+专栏数倒序
+     *   - 返回值额外带 homePath，省得小程序端各自拼路径（拼错就是 404）
+     *
+     * 标签筛选用 FIND_IN_SET 而不是 LIKE：LIKE '%官方主理人%' 会把'官方主理人plus' 一并命中。
+     */
+    @Override
+    public List<AuthorDTO> listAuthorsForAggregation(List<String> tags, String sortBy, Integer limit) {
+        int max = limit == null || limit <= 0 ? 5 : Math.min(limit, 8);
+        LambdaQueryWrapper<Author> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Author::getStatus, 1);
+        if (tags != null && !tags.isEmpty()) {
+            // OR 语义：任一标签命中即可。tags 逐个 AND FIND_IN_SET。
+            StringBuilder sql = new StringBuilder();
+            for (int i = 0; i < tags.size(); i++) {
+                String t = tags.get(i) == null ? "" : tags.get(i).trim();
+                if (t.isEmpty()) {
+                    continue;
+                }
+                sql.append(i == 0 ? "" : " OR ").append("FIND_IN_SET('")
+                        .append(t.replace("'", "''")).append("', tags) > 0");
+            }
+            if (sql.length() > 0) {
+                wrapper.apply(sql.toString());
+            }
+        }
+        String sort = sortBy == null ? "weight" : sortBy.trim();
+        if ("latest".equals(sort)) {
+            wrapper.orderByDesc(Author::getCreateTime).orderByDesc(Author::getId);
+        } else if ("article_count".equals(sort)) {
+            // 内容/专栏数在库里没有字段，先按权重兜底排序，取数后Java 侧重排（见下方）
+            wrapper.orderByAsc(Author::getSortOrder).orderByAsc(Author::getId);
+        } else {
+            wrapper.orderByAsc(Author::getSortOrder).orderByAsc(Author::getId);
+        }
+        List<AuthorDTO> list = this.list(wrapper).stream().map(this::toDTO).collect(Collectors.toList());
+        fillCounts(list);
+        if ("article_count".equals(sort)) {
+            // 内容数 + 专栏数倒序；同数时按 sort_order 升序保持稳定
+            list.sort((a, b) -> {
+                int ca = nvl(a.getContentCount()) + nvl(a.getProductCount());
+                int cb = nvl(b.getContentCount()) + nvl(b.getProductCount());
+                if (ca != cb) {
+                    return cb - ca;
+                }
+                int sa = a.getSortOrder() == null ? 0 : a.getSortOrder();
+                int sb = b.getSortOrder() == null ? 0 : b.getSortOrder();
+                return Integer.compare(sa, sb);
+            });
+        }
+        if (list.size() > max) {
+            return new ArrayList<>(list.subList(0, max));
+        }
+        return list;
+    }
+
+    private int nvl(Integer v) {
+        return v == null ? 0 : v;
+    }
 
     private Author getExistingAuthor(Long id) {
         Author entity = this.getById(id);

@@ -56,6 +56,18 @@ public class WarmHomeVO {
         private String desc;
         private String price;
         private String origin;
+        /**
+         * 专栏集数，形如「已更 32 讲」；无数据时为空串。
+         * 2026-10-05 新增：装修器「品牌专栏」组件新增「显示专栏集数」开关，
+         * 但 mp_product 没有独立字段，集数此前在 shortColumnTitle 里被当成
+         * 标题后缀丢掉（商品名形如「一个人的内容生意 · 32 讲」），故在此单独回传。
+         */
+        private String lessons;
+        /**
+         * 主理人昵称；mp_product.author_id 为空时为空串。
+         * 2026-10-05 新增，供装修器「显示主理人信息」开关使用。
+         */
+        private String host;
     }
 
     @Data

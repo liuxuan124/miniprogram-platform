@@ -620,6 +620,53 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                 dto.getAttachments(), userId));
     }
 
+    /**
+     * 星球动态流排序。
+     *
+     * <p>三种取值（与后台属性面板的「排序方式」下拉一一对应）：
+     * <ul>
+     *   <li>{@code new}（默认）—— 最新发布：sort_order 升序 + published_at 降序</li>
+     *   <li>{@code hot} —— 热门：view_count 降序 + published_at 降序</li>
+     *   <li>{@code reply} —— 最后回复：按 mp_content_comment 里最后一条评论时间降序</li>
+     * </ul>
+     *
+     * <p>「最后回复」用相关子查询取 MAX(create_time)：
+     * mp_content 没有 last_reply_at 列，也没有 comment_count 冗余列
+     * （评论数在 toDetailDTO 出口按需 count，列表层不做冗余），
+     * 因此只能实时聚合。子查询走 idx_cmt_content(content_id, status, deleted) 索引，
+     * 且外层已按 planet_id/status 过滤，单次查询的评论扫描量可控。
+     *
+     * <p>置顶永远排最前：运营置顶是硬规则，不能被排序方式覆盖。
+     * 没有任何评论的动态 last_reply_at 为 NULL，MySQL 的 NULL 在 DESC 下排最后，
+     * 正好等于「没被回复过的不占前排」。
+     *
+     * <p>注意：这里的 SQL 片段是固定字面量，<b>不接受任何用户输入</b>；
+     * sortBy 只用来做白名单分支判断，未命中一律回落 new。
+     *
+     * <p>「最后回复」分支必须用 last() 承载<b>整个</b> ORDER BY（含置顶列）：
+     * 若先 orderByDesc(isPinned) 再 last("ORDER BY ...")，拼出来会有两条 ORDER BY，
+     * MySQL 直接报语法错。所以三个分支各自负责完整排序，互不混用。
+     */
+    private void applyPlanetFeedSort(LambdaQueryWrapper<Content> wrapper, String sortBy) {
+        String sort = sortBy == null ? "" : sortBy.trim().toLowerCase();
+        if ("hot".equals(sort) || "popular".equals(sort)) {
+            wrapper.orderByDesc(Content::getIsPinned);
+            wrapper.orderByDesc(Content::getViewCount);
+            wrapper.orderByDesc(Content::getPublishedAt);
+        } else if ("reply".equals(sort)) {
+            wrapper.last("ORDER BY mp_content.is_pinned DESC, "
+                    + "(SELECT MAX(c.create_time) FROM mp_content_comment c "
+                    + "WHERE c.content_id = mp_content.id AND c.deleted = 0 AND c.status = 1) DESC, "
+                    + "mp_content.published_at DESC");
+        } else {
+            // new = 默认档，同时承接空值与任何未知取值：
+            // 拼错/过期的 sortBy 静默回落「最新发布」，而不是不排序（列表顺序错乱更难排查）。
+            wrapper.orderByDesc(Content::getIsPinned);
+            wrapper.orderByAsc(Content::getSortOrder);
+            wrapper.orderByDesc(Content::getPublishedAt);
+        }
+    }
+
     @Override
     public PageResult<ContentDetailDTO> listPublishedContentsForPlanet(ContentQueryDTO queryDTO, Long userId) {
         ContentQueryDTO q = queryDTO != null ? queryDTO : new ContentQueryDTO();
@@ -647,9 +694,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.and(w -> w.isNull(Content::getAuditStatus)
                 .or()
                 .notIn(Content::getAuditStatus, java.util.Arrays.asList("pending", "rejected")));
-        wrapper.orderByDesc(Content::getIsPinned);
-        wrapper.orderByAsc(Content::getSortOrder);
-        wrapper.orderByDesc(Content::getPublishedAt);
+        applyPlanetFeedSort(wrapper, q.getSortBy());
 
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Content> page =
                 this.page(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(

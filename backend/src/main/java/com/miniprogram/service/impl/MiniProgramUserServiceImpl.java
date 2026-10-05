@@ -61,6 +61,24 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
 
     private static final List<String> PAID_ORDER_STATUSES = List.of("paid", "shipped", "completed");
 
+    /**
+     * V121 列表排序白名单：前端列头点一下就换排序，必须在服务端做。
+     * <p>key = 前端传的 sortBy，value = 直接拼进 SQL 的表达式。
+     * <p>为什么用白名单而不是把 orderBy 原样透传：orderBy 是拼进 SQL 的裸字符串，
+     * 不校验就是注入点。方向同理，只放行 asc/desc。
+     * <p>累计消费 / 订单数不是 mp_user 的列，是 enrich 时用子查询算的，
+     * 所以排序也必须用同样的子查询表达式 —— 两处口径必须一致，
+     * 否则会出现「按消费排序但消费列显示的是另一个数」。
+     */
+    private static final Map<String, String> SORT_EXPRESSIONS = Map.of(
+            "points", "mp_user.points",
+            "spend", "(SELECT COALESCE(SUM(o.pay_amount),0) FROM mp_order o"
+                    + " WHERE o.user_id = mp_user.id AND o.status IN ('paid','shipped','completed'))",
+            "orders", "(SELECT COUNT(1) FROM mp_order o"
+                    + " WHERE o.user_id = mp_user.id AND o.status IN ('paid','shipped','completed'))",
+            "lastVisit", "mp_user.last_visit_at",
+            "created", "mp_user.create_time");
+
     private final OrderMapper orderMapper;
     private final FormDataMapper formDataMapper;
     private final ActivitySignupMapper activitySignupMapper;
@@ -74,7 +92,7 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
     @Override
     public PageResult<MiniProgramUserVO> listUsers(MiniProgramUserQueryDTO queryDTO) {
         LambdaQueryWrapper<MiniProgramUser> wrapper = buildListWrapper(queryDTO);
-        wrapper.orderByDesc(MiniProgramUser::getCreateTime);
+        applySort(wrapper, queryDTO.getOrderBy(), queryDTO.getOrderDir());
 
         Page<MiniProgramUser> page = this.page(new Page<>(queryDTO.getCurrent(), queryDTO.getSize()), wrapper);
         List<MiniProgramUserVO> records = enrichList(page.getRecords(), false);
@@ -85,6 +103,25 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
         result.setSize(page.getSize());
         result.setRecords(records);
         return result;
+    }
+
+    /**
+     * V121：按白名单应用排序。
+     * <p>未指定或不在白名单内时回落到「注册时间倒序」，与 V121 之前的行为一致 ——
+     * 排序是新增能力，绝不能顺手改掉列表原有的默认顺序。
+     * <p>用 last() 而不是 orderBy：累计消费/订单数的排序键是子查询表达式，
+     * orderBy 走 Lambda 字段映射拼不出这个形状。last() 的内容全部来自上面的常量表，
+     * 前端输入无法到达这里。
+     */
+    private void applySort(LambdaQueryWrapper<MiniProgramUser> wrapper, String sortBy, String orderDir) {
+        String expression = StringUtils.hasText(sortBy) ? SORT_EXPRESSIONS.get(sortBy.trim()) : null;
+        if (expression == null) {
+            wrapper.orderByDesc(MiniProgramUser::getCreateTime);
+            return;
+        }
+        String direction = "asc".equalsIgnoreCase(orderDir) ? "ASC" : "DESC";
+        // 次级排序键固定 id：同一批同值用户翻页时不会重复/漏掉
+        wrapper.last("ORDER BY " + expression + " " + direction + ", mp_user.id ASC");
     }
 
     @Override
@@ -104,6 +141,13 @@ public class MiniProgramUserServiceImpl extends BaseServiceImpl<MiniProgramUserM
         LocalDateTime since = LocalDateTime.now().minusDays(7);
         vo.setActiveUsers7d(this.count(new LambdaQueryWrapper<MiniProgramUser>()
                 .ge(MiniProgramUser::getLastVisitAt, since)));
+
+        // V121 环比基准：第 7~14 天前的上一个 7 日窗口。没有它前端做不出「较上周 +12%」。
+        // 上界用 since（不含）而不是 now，避免与本窗口重叠导致两个数字都虚高。
+        LocalDateTime prevSince = LocalDateTime.now().minusDays(14);
+        vo.setActiveUsersPrev7d(this.count(new LambdaQueryWrapper<MiniProgramUser>()
+                .ge(MiniProgramUser::getLastVisitAt, prevSince)
+                .lt(MiniProgramUser::getLastVisitAt, since)));
 
         QueryWrapper<Order> orderUsers = new QueryWrapper<>();
         orderUsers.select("COUNT(DISTINCT user_id) AS cnt")

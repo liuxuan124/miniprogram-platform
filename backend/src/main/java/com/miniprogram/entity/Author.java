@@ -41,6 +41,13 @@ public class Author extends BaseEntity {
     /** 头衔/职位（如：主理人、特约作者） */
     private String title;
 
+    /**
+     * 作者标签，逗号分隔（如：官方主理人,S级创作者）。
+     * V121 新增：给首页作者区块的「动态聚合」模式做筛选维度。
+     * 纯内容作者也能打标签 —— 这是不用 mp_member_tag 的原因（那条路要求先接入用户池）。
+     */
+    private String tags;
+
     /** 简介 */
     private String intro;
 

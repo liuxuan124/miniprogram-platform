@@ -586,6 +586,9 @@ public class MemberOpsService {
             m.put("whoName", t.getWhoName());
             m.put("lastText", t.getLastText());
             m.put("status", t.getStatus());
+            m.put("source", t.getSource());
+            m.put("orderId", t.getOrderId());
+            m.put("unread", t.getUnread() != null && t.getUnread() != 0);
             m.put("lastReply", t.getLastReply());
             m.put("createTime", t.getCreateTime());
             m.put("updateTime", t.getUpdateTime());
@@ -597,6 +600,27 @@ public class MemberOpsService {
                     if (plan != null) m.put("planName", plan.getName());
                 }
             }
+            out.add(m);
+        }
+        return out;
+    }
+
+    /** 完整往来消息（sender: user / admin / system） */
+    public List<Map<String, Object>> listTicketMessages(Long ticketId) {
+        if (ticketId == null) {
+            return List.of();
+        }
+        List<SupportMessage> rows = supportMessageMapper.selectList(new LambdaQueryWrapper<SupportMessage>()
+                .eq(SupportMessage::getTicketId, ticketId)
+                .orderByAsc(SupportMessage::getId)
+                .last("LIMIT 200"));
+        List<Map<String, Object>> out = new ArrayList<>();
+        for (SupportMessage msg : rows) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", msg.getId());
+            m.put("sender", msg.getSender());
+            m.put("content", msg.getContent());
+            m.put("createTime", msg.getCreateTime());
             out.add(m);
         }
         return out;
@@ -616,6 +640,8 @@ public class MemberOpsService {
         supportMessageMapper.insert(msg);
         t.setLastReply(content.trim());
         t.setStatus("done");
+        // 已回复即视为用户侧已读，否则端上会一直显示未读红点
+        t.setUnread(0);
         t.setUpdateTime(LocalDateTime.now());
         supportTicketMapper.updateById(t);
         if (t.getUserId() != null) {
@@ -943,7 +969,12 @@ public class MemberOpsService {
 
     // ---- helpers ----
 
-    private List<User> resolveSegmentUsers(String code) {
+    /**
+     * 按 preset ruleCode 解析命中用户。
+     * <p>通知中心群发复用此方法，保证「分群触达」与「通知群发」的人群口径完全一致 ——
+     * 两处各写一套筛选必然出现「分群里 100 人、群发只发到 80 人」。
+     */
+    public List<User> resolveSegmentUsers(String code) {
         LocalDateTime now = LocalDateTime.now();
         if ("expire_7d".equals(code)) {
             return userMapper.selectList(new LambdaQueryWrapper<User>()

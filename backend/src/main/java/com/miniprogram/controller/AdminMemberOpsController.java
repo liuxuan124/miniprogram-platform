@@ -142,6 +142,13 @@ public class AdminMemberOpsController {
         return R.ok(memberOpsService.listTickets(status));
     }
 
+    /** 完整往来消息。此前只有 lastText/lastReply 两个摘要字段，运营看不到上下文就敢回复。 */
+    @GetMapping("/support/tickets/{id}/messages")
+    @PreAuthorize("hasAuthority('member:list') or hasAuthority('user:list')")
+    public R<List<Map<String, Object>>> ticketMessages(@PathVariable Long id) {
+        return R.ok(memberOpsService.listTicketMessages(id));
+    }
+
     @PostMapping("/support/tickets/{id}/reply")
     @PreAuthorize("hasAuthority('member:list') or hasAuthority('user:list')")
     public R<Void> replyTicket(@PathVariable Long id, @RequestBody Map<String, Object> body) {

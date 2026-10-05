@@ -94,6 +94,10 @@ public class User extends BaseEntity {
     @Schema(description = "运营备注")
     private String adminNote;
 
+    // ── V124 通知偏好 ──
+    @Schema(description = "通知偏好 JSON：{\"order\":true,\"member\":true,\"planet\":true,\"ops\":false}，缺项视为开启")
+    private String notifyPreference;
+
     // ── V118 审核中心：封禁 ──
     @Schema(description = "账号状态：active 正常 / banned 已封禁")
     private String status;

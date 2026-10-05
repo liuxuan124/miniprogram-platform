@@ -196,7 +196,9 @@ public class GrowthAdminController {
     }
 
     @PutMapping("/subscribe/templates")
-    @PreAuthorize("hasRole('super_admin') or hasAuthority('system:config')")
+    // 订阅消息模板是运营日常配置（上线新场景要填模板 ID），锁在 super_admin 会让
+    // 运营在「通知中心」看到页面却存不进去。这里放开给 user:list，与客服/通知中心同一口径。
+    @PreAuthorize("hasRole('super_admin') or hasAuthority('system:config') or hasAuthority('user:list')")
     public R<Void> saveTemplate(@RequestBody SubscribeTemplate body) {
         if (body == null || !StringUtils.hasText(body.getScene())) {
             return R.fail(400201, "scene 必填");

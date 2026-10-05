@@ -215,6 +215,19 @@ export const usePageStore = defineStore('page', () => {
   const dsl = ref<PageDSL>(createDefaultDSL())
   /** 当前选中的组件 ID */
   const selectedComponentId = ref<string | null>(null)
+  /**
+   * 画布 → 属性面板的定位信号（不进 DSL，纯 UI 状态）。
+   * 画布里点了分段标签这类「子项」，右侧面板据此展开并滚到对应配置项。
+   * ⚠️ 必须做成「每次触发自增 token」，不能只存 segKey：
+   * 连续点同一个标签两次时 key 没变，靠 watch(key) 不会二次触发。
+   */
+  const canvasFocus = ref<{ token: number; key: string } | null>(null)
+  let canvasFocusSeq = 0
+  /** 通知属性面板滚到画布里刚点中的子项（key 为子项标识，如分段 key） */
+  function focusFromCanvas(key: string) {
+    canvasFocusSeq += 1
+    canvasFocus.value = { token: canvasFocusSeq, key }
+  }
   /** 是否与上次成功落库的 DSL 不一致（用于离开拦截） */
   const isDirty = ref(false)
   /** 保存中 */
@@ -406,15 +419,27 @@ export const usePageStore = defineStore('page', () => {
     markSavedToServer()
   }
 
-  /** 重置编辑器 */
+  /**
+   * 重置编辑器
+   *
+   * 🔴 2026-10-06 修复「返回后再进编辑器变空白 + 一直提示未保存」：
+   * 原来这里把 lastSavedDslJson 置空串 ''，而 dsl 已经是 createEmptyDSL()
+   * 这个非空对象 → hasUnpersistedChanges 立刻为 true。
+   * 表现是：点「页面」返回 → onBeforeUnmount 调 resetEditor() →
+   * 状态变「未命名页面/v1/空白」且被判为有未保存修改 → 再点进同一页面时
+   * 拿到的就是这份空白态，而「继续编辑」也停在空白。
+   *
+   * 正确做法：重置后的状态是「干净的空白页」，基准必须等于当前 dsl，
+   * 这样既不会误报未保存，也不会把空白态当成待保存内容。
+   */
   function resetEditor() {
     currentPage.value = null
     dsl.value = createEmptyDSL()
     selectedComponentId.value = null
     sessionBaseline = null
-    lastSavedDslJson.value = ''
-    isDirty.value = false
     resetHistory()
+    // 基准 = 重置后的 dsl 本身，而不是空串
+    markSavedToServer()
   }
 
   /** 将 warm_home 壳展开为可编辑暖阁区块 */
@@ -670,6 +695,8 @@ export const usePageStore = defineStore('page', () => {
     dsl,
     selectedComponentId,
     selectedComponent,
+    canvasFocus,
+    focusFromCanvas,
     components,
     pageConfig,
     globalConfig,

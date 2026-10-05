@@ -8,6 +8,7 @@ import com.miniprogram.dto.planet.MainPlanetVO;
 import com.miniprogram.dto.planet.PlanetCommunityVO;
 import com.miniprogram.entity.Content;
 import com.miniprogram.entity.Product;
+import com.miniprogram.mapper.AuthorMapper;
 import com.miniprogram.mapper.ContentMapper;
 import com.miniprogram.mapper.ProductMapper;
 import com.miniprogram.service.MembershipAccessService;
@@ -40,6 +41,8 @@ public class WarmHomeServiceImpl implements WarmHomeService {
     private final SystemConfigService systemConfigService;
     private final ContentMapper contentMapper;
     private final ProductMapper productMapper;
+    /** 专栏「主理人信息」需要按 product.author_id 回查昵称（2026-10-05 新增） */
+    private final AuthorMapper authorMapper;
     private final PlanetStatsService planetStatsService;
     private final MembershipAccessService membershipAccessService;
     private final ObjectMapper objectMapper;
@@ -97,6 +100,9 @@ public class WarmHomeServiceImpl implements WarmHomeService {
             card.setBadge(str(meta.get("badge"), ""));
             Object gold = meta.get("badgeGold");
             card.setBadgeGold(gold instanceof Boolean ? (Boolean) gold : Boolean.FALSE);
+            // 集数与主理人：供装修器「品牌专栏」的显隐开关使用（2026-10-05 新增）
+            card.setLessons(resolveColumnLessons(meta, p));
+            card.setHost(resolveColumnHost(p));
             columns.add(card);
         }
         vo.setColumns(columns);
@@ -403,6 +409,47 @@ public class WarmHomeServiceImpl implements WarmHomeService {
         }
         return name.trim();
     }
+
+    /**
+     * 解析专栏集数，形如「已更 32 讲」（2026-10-05 新增）。
+     *
+     * <p>取值优先级：columnMeta.lessons（运营在后台显式配的）→ 商品描述里的「32 讲 / 32期」
+     * → 商品名「· 32 讲」后缀。都没有则返回空串，由前端决定是否渲染该行。
+     *
+     * <p>为什么从文本里抠而不是加字段：mp_product 没有集数列，而线上历史数据
+     * （如「一个人的内容生意 · 32 讲」「24 讲 · 8600 人在学」）已经把集数写在文案里，
+     * 新加列会要求运营重新录一遍，先兼容存量更实际。
+     */
+    private String resolveColumnLessons(Map<String, Object> meta, Product p) {
+        String explicit = str(meta.get("lessons"), "");
+        if (StringUtils.hasText(explicit)) return explicit.trim();
+        for (String source : new String[]{str(p.getDescription(), ""), str(p.getName(), "")}) {
+            if (!StringUtils.hasText(source)) continue;
+            java.util.regex.Matcher m = LESSONS_PATTERN.matcher(source);
+            if (m.find()) {
+                return "已更 " + m.group(1) + " 讲";
+            }
+        }
+        return "";
+    }
+
+    /** 专栏主理人昵称；商品未关联作者档案时返回空串（2026-10-05 新增） */
+    private String resolveColumnHost(Product p) {
+        Long authorId = p.getAuthorId();
+        if (authorId == null) return "";
+        try {
+            com.miniprogram.entity.Author author = authorMapper.selectById(authorId);
+            return author == null ? "" : str(author.getName(), "");
+        } catch (Exception e) {
+            // 作者表异常不该让整个首页专栏位挂掉
+            log.warn("resolveColumnHost failed, authorId={}", authorId, e);
+            return "";
+        }
+    }
+
+    /** 匹配「32 讲」「24期」「18 回」这类集数表述 */
+    private static final java.util.regex.Pattern LESSONS_PATTERN =
+            java.util.regex.Pattern.compile("(\\d{1,4})\\s*[讲期回课]");
 
     private String formatCompact(long n) {
         if (n >= 10000) {

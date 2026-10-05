@@ -123,3 +123,13 @@ tools/mcp-miniprogram/node_modules/
 # Python 缓存
 __pycache__/
 *.pyc
+
+# 2026-10-06 新增：验证脚本产物与临时 harness（不入库）
+*-verify.png
+*-verify.tmp.*
+.cnv-harness/
+*-test-out*/
+admin/.mine-test-out*/
+admin/vite.*-test.config.ts
+admin/vitest.config.ts.timestamp-*.mjs
+probe-*.tmp.*
