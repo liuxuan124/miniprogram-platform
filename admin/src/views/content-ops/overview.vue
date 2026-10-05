@@ -58,9 +58,9 @@
         <MiniIcon name="note" :size="20" />
         <span><b>写笔记</b><span class="muted" style="font-size:12.5px">图文短内容</span></span>
       </button>
-      <button type="button" class="way" @click="goWrite('file')">
+      <button type="button" class="way" @click="router.push('/content/files')">
         <MiniIcon name="file" :size="20" />
-        <span><b>上传资料</b><span class="muted" style="font-size:12.5px">PDF 等文件</span></span>
+        <span><b>上传资料</b><span class="muted" style="font-size:12.5px">PDF 等文件，进文件管理</span></span>
       </button>
       <button type="button" class="way" @click="goWrite('moment')">
         <MiniIcon name="spark" :size="20" />
@@ -97,7 +97,7 @@
         <div v-else class="muted" style="margin-top:16px">暂无已发布内容</div>
       </section>
 
-      <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="ov2-side">
         <section class="card">
           <h2 class="h2">最近发布与排期</h2>
           <div style="margin-top:8px">

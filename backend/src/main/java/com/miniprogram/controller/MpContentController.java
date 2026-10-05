@@ -34,7 +34,14 @@ public class MpContentController {
 
     @Operation(summary = "内容列表", description = "小程序端获取已发布内容列表，支持分类/标签筛选")
     @GetMapping
-    public R<PageResult<ContentDetailDTO>> listPublishedContents(ContentQueryDTO queryDTO) {
+    public R<PageResult<ContentDetailDTO>> listPublishedContents(
+            ContentQueryDTO queryDTO,
+            @RequestParam(value = "sort_by", required = false) String sortByAlias) {
+        // DSL 数据源使用 snake_case 的 sort_by，@ModelAttribute 绑不到 sortBy，这里做别名兼容
+        if (queryDTO != null && !org.springframework.util.StringUtils.hasText(queryDTO.getSortBy())
+                && org.springframework.util.StringUtils.hasText(sortByAlias)) {
+            queryDTO.setSortBy(sortByAlias);
+        }
         return R.ok(contentService.listPublishedContents(queryDTO));
     }
 
@@ -57,7 +64,7 @@ public class MpContentController {
             dto.setLiked(false);
             dto.setFavorited(false);
             dto.setCommentCount(featureModuleGuard.isEnabled("comment")
-                    ? contentInteractService.listComments(id).size()
+                    ? contentInteractService.getState(id, null).getCommentCount()
                     : 0);
         }
         return R.ok(dto);
@@ -99,7 +106,7 @@ public class MpContentController {
         featureModuleGuard.requireCommentModule();
         Long userId = requireUserId();
         return R.ok(contentInteractService.addComment(
-                id, userId, body.getNickname(), body.getAvatar(), body.getContent()));
+                id, userId, body.getNickname(), body.getAvatar(), body.getContent(), body.getParentId(), body.getReplyToNickname()));
     }
 
     private Long requireUserId() {
@@ -124,5 +131,9 @@ public class MpContentController {
         private String content;
         private String nickname;
         private String avatar;
+        /** 父评论ID，NULL=楼主评论；非 NULL=二级回复 */
+        private Long parentId;
+        /** 被回复用户昵称（回复楼中楼回复时为另一回复人；楼主回复时为楼主昵称） */
+        private String replyToNickname;
     }
 }

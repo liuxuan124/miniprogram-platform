@@ -285,6 +285,47 @@
   padding-top: 8rpx;
 }
 
+/* 锁定态：整行降透明度 + 角标，明确「需开通才能取」 */
+.md-file--locked {
+  opacity: .72;
+}
+
+.md-file__lock {
+  align-self: flex-start;
+  padding: 2rpx 10rpx;
+  border-radius: 999rpx;
+  color: var(--brand);
+  background: #fbe6d4;
+  font-size: 19rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.md-file__acts {
+  flex: none;
+  display: flex;
+  gap: 10rpx;
+}
+
+.md-file__btn {
+  padding: 8rpx 20rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* 试读 = 主色描边（可点、看部分内容）；开通 = 主色实心（转化入口） */
+.md-file__btn--trial {
+  color: var(--brand);
+  border: 1rpx solid currentColor;
+}
+
+.md-file__btn--open {
+  color: #fff;
+  background: var(--brand);
+}
+
 .md-loading,
 .md-empty {
   min-height: 60vh;

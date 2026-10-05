@@ -1,7 +1,7 @@
 import { ContentStatus, CONTENT_FORMAT_META, type ContentFormatType } from '@/types/content'
 import { inferContentFormat } from '@/utils/content-format'
 
-export type UiContentType = 'article' | 'note' | 'video' | 'file' | 'moment'
+export type UiContentType = 'article' | 'note' | 'video' | 'moment'
 
 export function formatReads(n?: number | null): string {
   if (n == null || !Number.isFinite(Number(n))) return '—'
@@ -33,23 +33,14 @@ export function statusLabel(status?: string): string {
 
 export function typeLabel(fmt?: string): string {
   const key = String(fmt || 'article')
-  if (key === 'file') return '资料'
   if (key === 'moment') return '动态'
   return CONTENT_FORMAT_META[key as ContentFormatType]?.label || '长文'
 }
 
-function attachmentCountOf(data: Record<string, unknown>): number {
-  const n = Number(data.attachmentCount ?? data.attachment_count ?? 0)
-  if (Number.isFinite(n) && n > 0) return n
-  const list = data.attachments
-  return Array.isArray(list) ? list.length : 0
-}
-
-/** Map API contentType / inferred format → UI type（五类入口互不合并） */
+/** Map API contentType / inferred format → UI type（资料帖已下线，文件资料统一走「文件库」） */
 export function mapFormatToUi(raw: unknown): UiContentType {
   const data = (raw && typeof raw === 'object' ? raw : { contentType: raw }) as Record<string, unknown>
   const explicit = String(data.contentType || data.content_type || data.type || '').toLowerCase()
-  if (explicit === 'file') return 'file'
   if (explicit === 'moment') return 'moment'
   if (explicit === 'note') return 'note'
   if (explicit === 'video') return 'video'
@@ -58,8 +49,6 @@ export function mapFormatToUi(raw: unknown): UiContentType {
   if (fmt === 'video') return 'video'
   if (fmt === 'moment') return 'moment'
   if (fmt === 'note') return 'note'
-  // 无明确类型但有附件 → 资料
-  if (attachmentCountOf(data) > 0) return 'file'
   return 'article'
 }
 
@@ -81,7 +70,6 @@ export function typeIcon(ui: UiContentType): string {
   if (ui === 'note') return 'note'
   if (ui === 'moment') return 'spark'
   if (ui === 'video') return 'video'
-  if (ui === 'file') return 'file'
   return 'doc'
 }
 

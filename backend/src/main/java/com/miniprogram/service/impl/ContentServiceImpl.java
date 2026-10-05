@@ -27,10 +27,12 @@ import com.miniprogram.service.ContentCategoryService;
 import com.miniprogram.service.ContentService;
 import com.miniprogram.service.FileEntitlementService;
 import com.miniprogram.service.MembershipAccessService;
+import com.miniprogram.service.AuthorService;
 import com.miniprogram.compliance.WxContentSecurityService;
 import com.miniprogram.service.SystemConfigService;
 import com.miniprogram.service.knowledge.KnowledgeSyncService;
 import com.miniprogram.util.ContentSourceResolver;
+import com.miniprogram.dto.AuthorDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -65,6 +67,7 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
     private final KnowledgeSyncService knowledgeSyncService;
     private final EntitlementEngine entitlementEngine;
     private final WxContentSecurityService wxContentSecurityService;
+    private final AuthorService authorService;
 
     @Override
     public PageResult<ContentDetailDTO> listContents(ContentQueryDTO queryDTO) {
@@ -117,6 +120,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
 
         Content entity = new Content();
         BeanUtils.copyProperties(dto, entity);
+        // 选了作者档案时，以档案为准回填 author/author_avatar/author_role（小程序渲染链路不变）
+        applyAuthorProfile(entity, dto.getAuthorId());
         entity.setTags(toJsonString(dto.getTags()));
         entity.setImages(toJsonString(dto.getImages()));
         applyAttachments(entity, dto.getAttachments());
@@ -255,6 +260,10 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         }
         if (dto.getAuthorAvatar() != null) {
             entity.setAuthorAvatar(dto.getAuthorAvatar());
+        }
+        // 选了作者档案时，以档案为准回填 author/author_avatar/author_role，并写入 author_id
+        if (dto.getAuthorId() != null) {
+            applyAuthorProfile(entity, dto.getAuthorId());
         }
         if (dto.getSource() != null) {
             entity.setSource(dto.getSource());
@@ -487,12 +496,16 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         mpQuery.setSize(queryDTO.getSize());
         mpQuery.setKeyword(queryDTO.getKeyword());
         mpQuery.setCategoryId(queryDTO.getCategoryId());
+        mpQuery.setCategoryIds(queryDTO.getCategoryIds());
         mpQuery.setTag(queryDTO.getTag());
         mpQuery.setContentType(queryDTO.getContentType());
+        mpQuery.setContentTypes(queryDTO.getContentTypes());
         mpQuery.setAuthor(queryDTO.getAuthor());
+        mpQuery.setAuthorId(queryDTO.getAuthorId());
         mpQuery.setAuthorRole(queryDTO.getAuthorRole());
         mpQuery.setSortBy(queryDTO.getSortBy());
         mpQuery.setId(queryDTO.getId());
+        mpQuery.setIds(queryDTO.getIds());
         mpQuery.setRecommended(queryDTO.getRecommended());
         mpQuery.setStatus("published");
 
@@ -529,9 +542,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.and(w -> w.isNull(Content::getAuditStatus)
                 .or()
                 .notIn(Content::getAuditStatus, java.util.Arrays.asList("pending", "rejected")));
-        if ("hot".equals(sortBy)) {
+        if ("hot".equals(sortBy) || "popular".equals(sortBy)) {
             wrapper.orderByDesc(Content::getViewCount);
             wrapper.orderByDesc(Content::getPublishedAt);
+        } else if ("oldest".equals(sortBy)) {
+            // 最早发布在前（DSL 页签「排序=最早」）
+            wrapper.orderByAsc(Content::getPublishedAt);
         } else {
             wrapper.orderByAsc(Content::getSortOrder);
             wrapper.orderByDesc(Content::getPublishedAt);
@@ -595,7 +611,13 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         dto.setLocked(true);
         dto.setLockedReason(check.getReason());
         dto.setContent(check.getPreviewBody());
-        dto.setAttachments(Collections.emptyList());
+        // 未解锁也要 enrich 附件：让每份资料按自己的 read_mode 判定（免费资料在门禁态
+        // 仍显示可下载），否则前端只能写死「星球会员可看」，与实际权限不符。
+        if (dto.getAttachments() == null || dto.getAttachments().isEmpty()) {
+            dto.setAttachments(parseAttachments(entity.getAttachments()));
+        }
+        dto.setAttachments(fileEntitlementService.enrichAttachments(
+                dto.getAttachments(), userId));
     }
 
     @Override
@@ -640,12 +662,12 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             ContentDetailDTO dto = toPlanetListDTO(entity);
             boolean unlocked = member || ("preview_n".equals(mode) && (offset + i) < previewN);
             applyPlanetGate(dto, unlocked, mode, false);
-            if (unlocked && dto.getAttachments() != null && !dto.getAttachments().isEmpty()) {
-                String filePlanetId = StringUtils.hasText(entity.getPlanetId())
-                        ? entity.getPlanetId().trim() : gatePlanetId;
-                dto.setAttachments(fileEntitlementService.enrichAttachments(
-                        dto.getAttachments(), userId, filePlanetId));
-            }
+            // 门禁态同样 enrich 附件，让 free / member 混合挂载时各按自身 read_mode 显示；
+            // 否则整条动态的附件都退化成裸字段，前端只能一律写「星球会员可看」。
+            String filePlanetId = StringUtils.hasText(entity.getPlanetId())
+                    ? entity.getPlanetId().trim() : gatePlanetId;
+            dto.setAttachments(fileEntitlementService.enrichAttachments(
+                    dto.getAttachments(), userId, filePlanetId));
             records.add(dto);
         }
         return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
@@ -684,7 +706,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             dto.setAttachments(fileEntitlementService.enrichAttachments(
                     dto.getAttachments(), userId, gatePlanetId));
         } else {
-            // 详情未解锁：仍返回附件元信息（无 URL），便于展示 PDF 卡片
+            // 详情未解锁：仍返回附件元信息（无 URL），便于展示 PDF 卡片；
+            // 并 enrich 让 free 资料在门禁态也正确显示「可下载」，只有 member 档才提示开通。
             if (dto.getAttachments() == null || dto.getAttachments().isEmpty()) {
                 dto.setAttachments(parseAttachments(entity.getAttachments()));
             }
@@ -692,6 +715,8 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
                     ? (dto.getAttachments() == null ? 0 : dto.getAttachments().size())
                     : entity.getAttachmentCount());
             redactAttachmentUrls(dto);
+            dto.setAttachments(fileEntitlementService.enrichAttachments(
+                    dto.getAttachments(), userId, gatePlanetId));
         }
         return dto;
     }
@@ -839,6 +864,16 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         LambdaQueryWrapper<Content> wrapper = new LambdaQueryWrapper<>();
         wrapper.like(StringUtils.hasText(queryDTO.getKeyword()), Content::getTitle, queryDTO.getKeyword());
         wrapper.eq(queryDTO.getCategoryId() != null, Content::getCategoryId, queryDTO.getCategoryId());
+        // 多分类筛选（DSL 页签「多类别」）：逗号分隔，只接受纯数字，非法值忽略
+        if (StringUtils.hasText(queryDTO.getCategoryIds())) {
+            List<Long> categoryIdList = java.util.Arrays.stream(queryDTO.getCategoryIds().split(","))
+                    .map(String::trim)
+                    .filter(s -> s.matches("\\d+"))
+                    .map(Long::valueOf)
+                    .distinct()
+                    .toList();
+            wrapper.in(!categoryIdList.isEmpty(), Content::getCategoryId, categoryIdList);
+        }
         if (StringUtils.hasText(queryDTO.getStatus())) {
             wrapper.eq(Content::getStatus, queryDTO.getStatus().trim());
         } else {
@@ -846,6 +881,15 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
             wrapper.ne(Content::getStatus, "deleted");
         }
         wrapper.eq(StringUtils.hasText(queryDTO.getContentType()), Content::getContentType, queryDTO.getContentType());
+        // 多内容形态筛选（DSL 页签「内容形式」多选）：逗号分隔，合法值白名单过滤
+        if (StringUtils.hasText(queryDTO.getContentTypes())) {
+            List<String> contentTypeList = java.util.Arrays.stream(queryDTO.getContentTypes().split(","))
+                    .map(String::trim)
+                    .filter(s -> s.matches("[a-z_]{1,32}"))
+                    .distinct()
+                    .toList();
+            wrapper.in(!contentTypeList.isEmpty(), Content::getContentType, contentTypeList);
+        }
         wrapper.eq(StringUtils.hasText(queryDTO.getSource()), Content::getSource, queryDTO.getSource());
         wrapper.eq(queryDTO.getPlanetExclusive() != null, Content::getPlanetExclusive, queryDTO.getPlanetExclusive());
         if (StringUtils.hasText(queryDTO.getPlanetId())) {
@@ -863,7 +907,18 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         wrapper.eq(StringUtils.hasText(queryDTO.getAuditStatus()), Content::getAuditStatus, queryDTO.getAuditStatus());
         wrapper.eq(StringUtils.hasText(queryDTO.getAuthorRole()), Content::getAuthorRole, queryDTO.getAuthorRole());
         wrapper.eq(StringUtils.hasText(queryDTO.getAuthor()), Content::getAuthor, queryDTO.getAuthor());
+        wrapper.eq(queryDTO.getAuthorId() != null && queryDTO.getAuthorId() > 0, Content::getAuthorId, queryDTO.getAuthorId());
         wrapper.eq(queryDTO.getId() != null, Content::getId, queryDTO.getId());
+        // 多 ID 筛选（DSL「指定内容」页签）：只接受纯数字 ID，非法值直接忽略
+        if (StringUtils.hasText(queryDTO.getIds())) {
+            java.util.List<Long> idList = java.util.Arrays.stream(queryDTO.getIds().split(","))
+                    .map(String::trim)
+                    .filter(s -> s.matches("\\d+"))
+                    .map(Long::valueOf)
+                    .distinct()
+                    .toList();
+            wrapper.in(!idList.isEmpty(), Content::getId, idList);
+        }
         if (queryDTO.getRecommended() != null && queryDTO.getRecommended() != 0) {
             wrapper.eq(Content::getIsRecommended, 1);
         }
@@ -889,7 +944,42 @@ public class ContentServiceImpl extends BaseServiceImpl<ContentMapper, Content>
         dto.setCopyrightNature(entity.getCopyrightNature());
         dto.setCopyrightSources(parseStringList(entity.getCopyrightSourcesJson()));
         dto.setReprintAuthorization(entity.getReprintAuthorization());
+        // 按作者档案带出头衔 + 简介，供小程序作者卡片展示
+        if (dto.getAuthorId() != null && dto.getAuthorId() > 0) {
+            AuthorDTO authorProfile = authorService.getAuthorById(dto.getAuthorId());
+            if (authorProfile != null) {
+                dto.setAuthorTitle(authorProfile.getTitle());
+                dto.setAuthorIntro(authorProfile.getIntro());
+            }
+        }
         return dto;
+    }
+
+    /**
+     * 按 authorId 把作者档案的 name/avatar/role 回填到 Content 三字段（小程序渲染链路不变）。
+     * authorId 为 null/0 时清空关联（不动三字段，让手填值生效）。
+     */
+    private void applyAuthorProfile(Content entity, Long authorId) {
+        if (authorId == null || authorId <= 0) {
+            entity.setAuthorId(null);
+            return;
+        }
+        AuthorDTO profile = authorService.getAuthorById(authorId);
+        if (profile == null) {
+            log.warn("applyAuthorProfile: 作者档案 {} 不存在，忽略回填", authorId);
+            entity.setAuthorId(null);
+            return;
+        }
+        entity.setAuthorId(authorId);
+        if (StringUtils.hasText(profile.getName())) {
+            entity.setAuthor(profile.getName());
+        }
+        if (StringUtils.hasText(profile.getAvatarUrl())) {
+            entity.setAuthorAvatar(profile.getAvatarUrl());
+        }
+        if (StringUtils.hasText(profile.getRole())) {
+            entity.setAuthorRole(profile.getRole());
+        }
     }
 
     private void validateCopyrightForPublish(Content entity) {

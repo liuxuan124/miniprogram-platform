@@ -1,6 +1,6 @@
 <template>
   <div class="moments-feed-props">
-    <el-form label-width="88px" size="small">
+    <el-form label-width="72px" size="small">
       <div class="ds-hint ds-hint--block">知识星球式动态时间线，展示 content_type=moment 的已发布内容（正文+图片+资料附件）。</div>
       <el-form-item label="显示作者">
         <el-switch :model-value="data.show_author !== false" @change="(v: boolean) => emit('update', { show_author: v })" />
