@@ -4,6 +4,7 @@ import com.miniprogram.common.R;
 import com.miniprogram.dto.WxLoginDTO;
 import com.miniprogram.dto.WxLoginVO;
 import com.miniprogram.dto.WxPhoneDTO;
+import com.miniprogram.dto.WxPhoneBindVO;
 import com.miniprogram.dto.WxProfileUpdateDTO;
 import com.miniprogram.security.SecurityUtils;
 import com.miniprogram.service.WxAuthService;
@@ -31,11 +32,12 @@ public class MpAuthController {
     }
 
     @PostMapping("/phone")
-    @Operation(summary = "获取微信手机号", description = "通过微信手机号按钮获取的code绑定手机号，并可同步昵称头像")
-    public R<String> bindPhone(@Valid @RequestBody WxPhoneDTO dto) {
+    @Operation(summary = "获取微信手机号",
+            description = "通过微信手机号按钮获取的code绑定手机号，并可同步昵称头像。"
+                    + "V119：手机号幂等，若该号已属于另一账号会自动并入，merged=true 时端上需重新登录换 token")
+    public R<WxPhoneBindVO> bindPhone(@Valid @RequestBody WxPhoneDTO dto) {
         Long userId = SecurityUtils.getRequiredCurrentUserId();
-        String phone = wxAuthService.bindPhone(userId, dto.getCode(), dto.getNickname(), dto.getAvatarUrl());
-        return R.ok(phone);
+        return R.ok(wxAuthService.bindPhone(userId, dto.getCode(), dto.getNickname(), dto.getAvatarUrl()));
     }
 
     @PutMapping("/profile")

@@ -8,6 +8,7 @@ import com.miniprogram.common.BusinessException;
 import com.miniprogram.common.ErrorCode;
 import com.miniprogram.dto.WxLoginDTO;
 import com.miniprogram.dto.WxLoginVO;
+import com.miniprogram.dto.WxPhoneBindVO;
 import com.miniprogram.entity.User;
 import com.miniprogram.mapper.UserMapper;
 import com.miniprogram.security.JwtTokenProvider;
@@ -148,7 +149,7 @@ public class WxAuthServiceImpl implements WxAuthService {
     }
 
     @Override
-    public String bindPhone(Long userId, String code, String nickname, String avatarUrl) {
+    public WxPhoneBindVO bindPhone(Long userId, String code, String nickname, String avatarUrl) {
         // 1. 获取微信接口调用凭证（access_token）
         String accessToken = getAccessToken();
 
@@ -182,6 +183,39 @@ public class WxAuthServiceImpl implements WxAuthService {
         if (user == null) {
             throw new BusinessException(ErrorCode.DATA_NOT_FOUND);
         }
+
+        // V119 手机号幂等（真正的重复账号根因就在这一步）：
+        // 微信的 openid 是「一个小程序内的身份」，手机号是「一个人」。同一个人换微信 /
+        // 换设备 / 重新授权时 openid 会变，于是按 openid 建的账号就一个个堆起来，
+        // 但手机号是同一个 —— 原实现直接 setPhone 覆盖，从不查这个号是否已属于别人，
+        // 而 mp_user.phone 又没有唯一索引兜底，于是 1 个手机号能挂 11~12 个账号。
+        // 这里改成「先按 phone 找已存活的账号」：命中就复用那个账号，不再新建。
+        User byPhone = getAliveUserByPhone(phoneNumber);
+        boolean merged = false;
+        if (byPhone != null && !byPhone.getId().equals(userId)) {
+            // 把当前（多为刚建的空壳）账号并入手机号既有账号，再按既有账号继续。
+            // 之所以能直接复用：空壳账号除 openid 外没有资产，资产都在主账号上。
+            log.info("[登录幂等] 手机号 {} 已属于 userId={}，当前 userId={} 并入复用",
+                    phoneNumber, byPhone.getId(), userId);
+            if (!StringUtils.hasText(byPhone.getNickname()) && StringUtils.hasText(user.getNickname())) {
+                byPhone.setNickname(user.getNickname());
+            }
+            if (!StringUtils.hasText(byPhone.getAvatarUrl()) && StringUtils.hasText(user.getAvatarUrl())) {
+                byPhone.setAvatarUrl(user.getAvatarUrl());
+            }
+            // 释放当前账号的 openid 占用：合并账号被软删后仍占着 uk_openid，
+            // 而 @TableLogic 会让软删行在 getUserByOpenid 里查不到 → 该 openid 下次
+            // 登录会撞 Duplicate entry 直接失败。这里先把 openid 改写成墓碑值，
+            // 让「这个微信」下次登录能重新建号并再次被本方法并回主账号。
+            if (StringUtils.hasText(user.getOpenid())) {
+                user.setOpenid("merged:" + user.getOpenid());
+            }
+            userMapper.updateById(user);
+            userMapper.deleteById(userId);
+            user = byPhone;
+            merged = true;
+        }
+
         user.setPhone(phoneNumber);
         if (StringUtils.hasText(nickname)) {
             user.setNickname(nickname);
@@ -194,8 +228,12 @@ public class WxAuthServiceImpl implements WxAuthService {
         }
         userMapper.updateById(user);
 
-        log.info("用户 {} 绑定手机号成功", userId);
-        return phoneNumber;
+        log.info("用户 {} 绑定手机号成功{}", userId, merged ? "（已并入同手机号主账号）" : "");
+        WxPhoneBindVO vo = new WxPhoneBindVO();
+        vo.setPhone(phoneNumber);
+        vo.setUserId(user.getId());
+        vo.setMerged(merged);
+        return vo;
     }
 
     @Override
@@ -289,6 +327,24 @@ public class WxAuthServiceImpl implements WxAuthService {
     private User getUserByOpenid(String openid) {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getOpenid, openid);
+        return userMapper.selectOne(wrapper);
+    }
+
+    /**
+     * V119：按手机号查「存活」账号（@TableLogic 自动排除 deleted=1）。
+     *
+     * <p>取最早创建的那个作为归属账号：合并规则与后台「重复账号」列表口径一致
+     * （都按 create_time ASC），避免登录侧和后台侧各选一个主账号来回漂移。
+     */
+    private User getAliveUserByPhone(String phone) {
+        if (!StringUtils.hasText(phone)) {
+            return null;
+        }
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(User::getPhone, phone)
+                .orderByAsc(User::getCreateTime)
+                .orderByAsc(User::getId)
+                .last("LIMIT 1");
         return userMapper.selectOne(wrapper);
     }
 
