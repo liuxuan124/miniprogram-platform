@@ -95,12 +95,15 @@ async function runOneTapLogin({ phoneCode, nickName, localAvatar }) {
   const displayAvatar = localAvatar || serverUser.avatarUrl || ''
 
   let phone
+  let mergedIntoExisting = false
   try {
-    phone = await AuthService.bindPhone(
+    const bindRes = await AuthService.bindPhone(
       phoneCode,
       { nickname: finalNick || undefined },
       { showError: false }
     )
+    phone = (bindRes && bindRes.phone) || ''
+    mergedIntoExisting = !!(bindRes && bindRes.merged)
   } catch (bindErr) {
     if (alreadyBound) {
       // 老用户：wxLogin 已建立正式登录态，绑号失败不阻断
@@ -109,6 +112,22 @@ async function runOneTapLogin({ phoneCode, nickName, localAvatar }) {
     } else {
       AuthService.logout({ redirectToLogin: false, manual: false })
       throw bindErr
+    }
+  }
+
+  // V119 手机号幂等：本次登录的 openid 对应的空壳账号已被并入「该手机号既有账号」，
+  // 手上这张 token 属于已软删的空壳账号，继续用会一路 401。
+  // 必须重新 wxLogin 走一遍：login() 按 openid 查不到（已被墓碑化）→ 建新号 →
+  // 再 bindPhone 会被同一段逻辑并回主账号，最终拿到主账号的 token。
+  if (mergedIntoExisting) {
+    console.warn('[login-flow] 手机号已属于其它账号，已并入，重新登录以换取主账号 token')
+    const relogin = await AuthService.wxLogin(
+      { nickname: trimmedNick || undefined },
+      { showError: false }
+    )
+    const reUser = (relogin && relogin.userInfo) || {}
+    if (reUser.phoneBound) {
+      phone = reUser.phone || phone
     }
   }
 

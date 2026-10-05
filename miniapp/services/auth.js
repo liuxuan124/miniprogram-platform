@@ -185,15 +185,26 @@ const AuthService = {
 
   /**
    * 绑定手机号（可同步昵称/头像）
+   *
+   * V119：后端返回的是对象而非裸字符串 —— { phone, userId, merged }。
+   * merged=true 表示这个手机号此前已属于另一个账号，本次已并入，
+   * 端上需要重新 wxLogin 换一张属于主账号的 token（见 login-flow.js）。
+   * 兼容处理：若后端仍是旧版返回字符串，就包成 { phone }。
+   *
    * @param {string} code
    * @param {Object} [profile]
-   * @returns {Promise<string>}
+   * @returns {Promise<{phone: string, userId?: number, merged: boolean}>}
    */
   bindPhone(code, profile = {}) {
     const payload = { code }
     if (profile.nickname) payload.nickname = profile.nickname
     if (profile.avatarUrl) payload.avatarUrl = profile.avatarUrl
-    return post('/api/v1/mp/auth/phone', payload).then((phone) => phone)
+    return post('/api/v1/mp/auth/phone', payload).then((res) => {
+      if (res && typeof res === 'object') {
+        return { phone: res.phone, userId: res.userId, merged: !!res.merged }
+      }
+      return { phone: res, merged: false }
+    })
   },
 
   /**

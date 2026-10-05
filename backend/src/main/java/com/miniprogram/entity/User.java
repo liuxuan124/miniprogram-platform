@@ -1,5 +1,6 @@
 package com.miniprogram.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.miniprogram.common.BaseEntity;
@@ -75,6 +76,14 @@ public class User extends BaseEntity {
 
     @Schema(description = "关联会员ID")
     private Long memberId;
+
+    /**
+     * V119 账号合并留痕：从账号被并入的主账号 id。
+     * 软删行仍保留该值，配合 mp_account_merge_log 可完整回溯合并链。
+     */
+    @Schema(description = "被合并进的主账号id（V119）")
+    @TableField("merged_into")
+    private Long mergedInto;
 
     @Schema(description = "创作者身份 contributor，审核通过写入")
     private String creatorRole;

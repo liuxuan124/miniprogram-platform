@@ -36,6 +36,12 @@ public class MemberOpsService {
     private final SupportMessageMapper supportMessageMapper;
     private final UserFeedbackMapper userFeedbackMapper;
     private final CommunityPostMapper communityPostMapper;
+    /** V119 账号合并：以下 5 张表是线上 34 个重复账号真正有数据的资产表 */
+    private final OrderMapper orderMapper;
+    private final MemberPointsLogMapper memberPointsLogMapper;
+    private final ContentFavoriteMapper contentFavoriteMapper;
+    private final ContentCommentMapper contentCommentMapper;
+    private final AiConversationMapper aiConversationMapper;
     /**
      * 社区发帖正文与附件统一落在 mp_content（V103/V104），
      * community_post 退化为「社区运营元数据表」桥接 content_id。
@@ -290,6 +296,11 @@ public class MemberOpsService {
                     && (keep.getMemberExpireAt() != null && other.getMemberExpireAt().isAfter(keep.getMemberExpireAt())))) {
                 if (other.getMemberExpireAt() != null) keep.setMemberExpireAt(other.getMemberExpireAt());
             }
+
+            // V119：先迁移资产，再软删从账号。顺序不能反 —— 软删后 @TableLogic
+            // 会让下面这些 mapper 的查询查不到从账号，资产就永远留在了孤儿行上。
+            Map<String, Integer> moved = migrateAssets(mergeId, keepId, other);
+
             // 迁移标签
             List<UserMemberTag> tags = userMemberTagMapper.selectList(new LambdaQueryWrapper<UserMemberTag>()
                     .eq(UserMemberTag::getUserId, mergeId));
@@ -322,26 +333,106 @@ public class MemberOpsService {
                     membershipAccessService.adminGiftSubscription(keepId, sub.getPlanId(), days);
                 }
             }
+
+            // 迁移后该 openid 已无归属，写进合并日志再墓碑化
+            String oldOpenid = other.getOpenid();
             AccountMergeLog mlog = new AccountMergeLog();
             mlog.setKeepUserId(keepId);
             mlog.setMergedUserId(mergeId);
             mlog.setPhone(other.getPhone());
             mlog.setAdminId(SecurityUtils.getCurrentUserId());
             mlog.setCreateTime(LocalDateTime.now());
+            Map<String, Object> detail = new LinkedHashMap<>();
+            detail.put("mergedNickname", other.getNickname());
+            detail.put("mergedPoints", other.getPoints());
+            detail.put("mergedOpenid", oldOpenid);
+            detail.put("movedAssets", moved);
             try {
-                mlog.setDetailJson(objectMapper.writeValueAsString(Map.of(
-                        "mergedNickname", other.getNickname(),
-                        "mergedPoints", other.getPoints()
-                )));
+                mlog.setDetailJson(objectMapper.writeValueAsString(detail));
             } catch (Exception ignored) {
             }
             accountMergeLogMapper.insert(mlog);
+
+            // V119 关键：墓碑化 openid 后再软删。
+            // uk_openid 是普通唯一索引，软删不会释放它；而 @TableLogic 让 getUserByOpenid
+            // 查不到软删行 —— 于是这个微信下次登录会走「insert」分支并撞
+            // Duplicate entry，导致该用户被永久锁死。先把 openid 改成墓碑值，
+            // 腾出唯一键，该微信下次登录即可重新建号并被 bindPhone 并回主账号。
+            if (StringUtils.hasText(oldOpenid)) {
+                other.setOpenid("merged:" + oldOpenid);
+                userMapper.updateById(other);
+            }
+            other.setMergedInto(keepId);
+            userMapper.updateById(other);
             // 软删从账号
             miniProgramUserMapper.deleteById(mergeId);
+            // 合并后从账号手上已签发的 token 必须吊销，否则旧 token 在有效期内仍能调通接口
+            jwtBlacklistService.revokeAllForUser(mergeId);
             merged++;
         }
         userMapper.updateById(keep);
         return Map.of("merged", merged, "keepUserId", keepId);
+    }
+
+    /**
+     * V119：把从账号的业务资产改挂到主账号。
+     *
+     * <p>只迁移「从账号独占、迁走即等价」的行；不动有唯一约束、会撞车的表
+     * （mp_content_favorite / mp_content_like 这类 (user_id, target_id) 唯一的表
+     * 已按「主账号没有才搬」处理，避免 Duplicate entry）。
+     *
+     * @return 各表实际迁移行数，写进合并日志便于事后对账
+     */
+    private Map<String, Integer> migrateAssets(Long mergeId, Long keepId, User other) {
+        Map<String, Integer> moved = new LinkedHashMap<>();
+        moved.put("orders", orderMapper.update(null, new LambdaUpdateWrapper<Order>()
+                .eq(Order::getUserId, mergeId)
+                .set(Order::getUserId, keepId)));
+        moved.put("pointsLogs", retargetPointsLog(mergeId, keepId));
+        moved.put("favorites", retargetFavorites(mergeId, keepId));
+        moved.put("comments", contentCommentMapper.update(null, new LambdaUpdateWrapper<ContentComment>()
+                .eq(ContentComment::getUserId, mergeId)
+                .set(ContentComment::getUserId, keepId)));
+        moved.put("aiConversations", aiConversationMapper.update(null, new LambdaUpdateWrapper<AiConversation>()
+                .eq(AiConversation::getUserId, mergeId)
+                .set(AiConversation::getUserId, keepId)));
+        return moved;
+    }
+
+    /** 积分流水：只改归属，积分值本身已经在 keep.points 里累加过，不要重复加 */
+    private int retargetPointsLog(Long fromId, Long toId) {
+        return memberPointsLogMapper.update(null, new LambdaUpdateWrapper<MemberPointsLog>()
+                .eq(MemberPointsLog::getUserId, fromId)
+                .set(MemberPointsLog::getUserId, toId));
+    }
+
+    /**
+     * 收藏表 (user_id, content_id) 语义上唯一：主账号已收藏过的内容不能重复搬，
+     * 否则撞 Duplicate entry 整批回滚。只搬「主账号还没收藏过」的那些行。
+     */
+    private int retargetFavorites(Long fromId, Long toId) {
+        List<ContentFavorite> from = contentFavoriteMapper.selectList(new LambdaQueryWrapper<ContentFavorite>()
+                .eq(ContentFavorite::getUserId, fromId));
+        if (from.isEmpty()) {
+            return 0;
+        }
+        Set<Long> keepContentIds = contentFavoriteMapper.selectList(new LambdaQueryWrapper<ContentFavorite>()
+                        .eq(ContentFavorite::getUserId, toId))
+                .stream().map(ContentFavorite::getContentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        int n = 0;
+        for (ContentFavorite f : from) {
+            if (f.getContentId() != null && keepContentIds.contains(f.getContentId())) {
+                // 主账号已有同一收藏，从账号这条直接删掉（语义上已被主账号那条覆盖）
+                contentFavoriteMapper.deleteById(f.getId());
+                continue;
+            }
+            f.setUserId(toId);
+            contentFavoriteMapper.updateById(f);
+            n++;
+        }
+        return n;
     }
 
     public List<MemberTag> getUserTags(Long userId) {
