@@ -4,8 +4,10 @@
     <template v-else>
       <div class="head">
         <div>
-          <h1 class="h1">模板库</h1>
-          <div class="sub">整店模板换整套风格；页面模板只新建一页</div>
+          <h1 class="h1">模板管理</h1>
+          <div class="sub">
+提供整店风格套件与单页模板，支持一键套用预设，或将当前小程序沉淀为专属模板。
+          </div>
         </div>
         <div class="actions">
           <button type="button" class="btn" :disabled="creating" @click="createFromCurrent">
@@ -25,6 +27,33 @@
         <button type="button" role="tab" :class="{ on: tab === 'mine' }" @click="tab = 'mine'">
           我的模板 {{ mineTabTotal }}
         </button>
+      </div>
+
+      <!-- 🔴 2026-10-06 二级筛选独立成行 + 补搜索框。
+           原来「一级分类Tab」与「二级场景胶囊」挤在同一行（.tabs-line 里），
+           视觉上分不清主次；且**完全没有搜索**——
+           「页面模板」有 22 个时只能靠滚动找。
+           现在：一级 Tab 一行 / 搜索 + 场景胶囊一行，层次清楚。 -->
+      <div class="tpl-filterbar">
+        <label class="tpl-search">
+          <MiniIcon name="search" :size="14" />
+          <input
+            v-model.trim="keyword"
+            type="search"
+            :placeholder="searchPlaceholder"
+            aria-label="搜索模板"
+          />
+          <button
+            v-if="keyword"
+            type="button"
+            class="tpl-search__clear"
+            title="清空"
+            @click="keyword = ''"
+          >
+            <MiniIcon name="x" :size="13" />
+          </button>
+        </label>
+
         <div class="scene-chips">
           <button
             v-for="s in sceneChipViews"
@@ -51,10 +80,17 @@
             class="tpl"
             :class="{ using: isInUse(item), picked: pendingActivate?.id === Number(item.id) }"
           >
-            <div class="tpl-art" :class="{ 'tpl-art--img': !!storeThumb(item) }" :style="tplArtStyle(item)">
-              <img v-if="storeThumb(item)" class="tpl-art-img" :src="storeThumb(item)" alt="" loading="lazy" />
+            <!-- 🔴 2026-10-06：封面改用「结构化线框」而非素材图。
+                 原先这里用 images/nav-icons 里的图标素材凑封面，导致：
+                 暖阁整店= 深蓝矩形、内容社群与轻量三栏共用一张九宫格拼贴图。 -->
+            <div class="tpl-art tpl-art--img" :style="tplArtStyle(item)">
+              <TemplateSkeletonCover
+                :item="item"
+                :fallback-img="storeThumb(item)"
+                :code="String(item.templateCode || '')"
+              />
               <div
-                v-else
+                v-if="false"
                 v-for="n in 3"
                 :key="n"
                 class="tpl-phone"
@@ -130,16 +166,28 @@
           </article>
         </div>
         <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
-          <span>{{ sceneFilter === 'all' ? '还没有整店模板' : '这个场景下还没有模板' }}</span>
+          <span>
+            {{
+              keyword
+                ? '没有匹配「' + keyword + '」的整店模板'
+                : sceneFilter === 'all'
+                  ? '还没有整店模板'
+                  : '这个场景下还没有模板'
+            }}
+          </span>
           <button type="button" class="btn" :disabled="creating" @click="createFromCurrent">
             把当前小程序存为模板
           </button>
         </div>
 
+        <!-- 🔴 2026-10-06：v-if 不再强制要求 previewSrc。
+             整店模板现在走「可交互多页手机壳」，它不需要静态图 URL；
+             原来 `&& previewSrc` 会让"有结构但没图"的模板**连面板都打不开**。 -->
         <TemplatePreviewPanel
-          v-if="sidePanel === 'preview' && previewTitle && previewSrc"
+          v-if="sidePanel === 'preview' && previewTitle"
           :title="previewTitle"
           :preview-src="previewSrc"
+          :item="previewKind === 'store' ? previewStoreItem : null"
           :loading="previewLoading"
           :show-apply="previewKind === 'store'"
           :show-qr="previewKind === 'store'"
@@ -200,7 +248,11 @@
         <div v-if="filteredPageTemplates.length" class="tpl-grid">
           <article v-for="tpl in filteredPageTemplates" :key="String(tpl.id || tpl.key)" class="tpl">
             <div class="tpl-art tpl-art--img" :style="{ background: pageArtBg(tpl) }">
-              <img class="tpl-art-img" :src="pageThumb(tpl)" alt="" loading="lazy" />
+              <TemplateSkeletonCover
+                :skeleton="pageSkeleton(tpl)"
+                :fallback-img="pageThumb(tpl)"
+                :code="String(tpl.category || tpl.name || '')"
+              />
             </div>
             <div class="tpl-body">
               <b>{{ tpl.name }}</b>
@@ -232,7 +284,15 @@
           </article>
         </div>
         <div v-else class="gen-empty" style="min-height: 200px; gap: 14px">
-          <span>{{ sceneFilter === 'all' ? '还没有页面模板' : '这个场景下还没有模板' }}</span>
+          <span>
+            {{
+              keyword
+                ? '没有匹配「' + keyword + '」的页面模板'
+                : sceneFilter === 'all'
+                  ? '还没有页面模板'
+                  : '这个场景下还没有模板'
+            }}
+          </span>
           <button type="button" class="btn" @click="router.push('/mini/pages/new-ai')">用 AI 生成一页</button>
         </div>
       </div>
@@ -246,11 +306,12 @@
             class="tpl"
             :class="{ using: isInUse(item) }"
           >
-            <div class="tpl-art" :class="{ 'tpl-art--img': !!storeThumb(item) }" :style="tplArtStyle(item)">
-              <img v-if="storeThumb(item)" class="tpl-art-img" :src="storeThumb(item)" alt="" loading="lazy" />
-              <div v-else class="tpl-phone" style="height: 130px">
-                <i :style="{ height: '16px', background: accentOf(item) }" /><i /><i style="width: 70%" />
-              </div>
+            <div class="tpl-art tpl-art--img" :style="tplArtStyle(item)">
+              <TemplateSkeletonCover
+                :item="item"
+                :fallback-img="storeThumb(item)"
+                :code="String(item.templateCode || '')"
+              />
             </div>
             <div class="tpl-body">
               <div class="tpl-title-row">
@@ -398,7 +459,8 @@ import DevicePreview from '@/components/mini/DevicePreview.vue'
 import SaveStoreTemplateDialog from '@/components/mini/SaveStoreTemplateDialog.vue'
 import TemplatePreviewPanel from '@/components/mini/TemplatePreviewPanel.vue'
 import type { ReleaseRecord } from '@/types/page'
-import { pageTemplateThumbUrl, storeTemplateThumbUrl } from '@/utils/template-thumb'
+import { pageTemplateThumbUrl, storeTemplateThumbUrl, extractTemplateSkeleton } from '@/utils/template-thumb'
+import TemplateSkeletonCover from '@/components/mini/TemplateSkeletonCover.vue'
 import {
   TEMPLATE_SCENE_CHIPS,
   TEMPLATE_SCENE_LABEL,
@@ -409,6 +471,7 @@ import {
 } from '@/constants/templateScenes'
 import { pageTemplateSubtitle } from '@/utils/pageTemplateMeta'
 import { apiErrorMessage, shouldShowLocalError } from '@/utils/apiError'
+import { toRecords } from '@/utils/list-response'
 
 defineOptions({ name: 'MiniTemplates' })
 
@@ -422,6 +485,32 @@ const loaded = ref(false)
 const tab = ref<'store' | 'page' | 'mine'>((route.query.tab as any) === 'page' || route.query.tab === 'mine'
   ? (route.query.tab as 'page' | 'mine')
   : 'store')
+/** 🔴 2026-10-06 模板搜索：原来完全没有检索入口，22 个页面模板只能靠滚动找 */
+const keyword = ref('')
+
+/** 占位文案随 Tab 变，避免"搜整店"却拿去搜页面模板 */
+const searchPlaceholder = computed(() =>
+  tab.value === 'page' ? '搜索页面模板名称或分类' : '搜索整店模板名称',
+)
+
+/**
+ * 名称/描述/场景任一命中即匹配；空关键词时恒 true（不改变原行为）。
+ *
+ * 🔴 2026-10-06 支持**中英混输**：按空格拆词，任一词命中即算匹配。
+ *   原来用整串 `includes(kw)`，搜「知识 knowledge」这种组合词**永远搜不到**
+ *   ——「知识付费整店」不包含「知识 knowledge」这个连续子串。
+ *   运营切中英输入法时很容易这么输，搜不到会以为"没有这个模板"。
+ *
+ * 拆词规则：按空白切分、去空、全部转小写；不做分词（中文无需分词即可子串命中）。
+ */
+function matchKeyword(...fields: unknown[]): boolean {
+  const raw = keyword.value.trim().toLowerCase()
+  if (!raw) return true
+  const words = raw.split(/\s+/).filter(Boolean)
+  const haystack = fields.map((f) => String(f ?? '').toLowerCase()).join(' \u0001 ')
+  return words.some((w) => haystack.includes(w))
+}
+
 const sceneFilter = ref<TemplateSceneKey>('all')
 const storeTemplates = ref<ReleaseRecord[]>([])
 const pageTemplates = ref<any[]>([])
@@ -507,14 +596,31 @@ const storeListBase = computed(() => {
   })
 })
 
-const filteredStoreTemplates = computed(() => storeListBase.value.filter((r) => matchStoreScene(r)))
+const filteredStoreTemplates = computed(() =>
+  storeListBase.value.filter(
+    (r) =>
+      matchStoreScene(r) &&
+      matchKeyword(
+        displayNameFull(r),
+        (r as any).releaseNotes,
+        (r as any).templateScene,
+        (r as any).templateCode,
+      ),
+  ),
+)
 
 const filteredPageTemplates = computed(() =>
-  pageTemplates.value.filter((t) => matchPageScene(t as Record<string, unknown>)),
+  pageTemplates.value.filter(
+    (t) =>
+      matchPageScene(t as Record<string, unknown>) &&
+      matchKeyword(t.name, (t as any).category, (t as any).description, (t as any).scene),
+  ),
 )
 
 const filteredMineTemplates = computed(() =>
-  myTemplates.value.filter((r) => matchStoreScene(r)),
+  myTemplates.value.filter(
+    (r) => matchStoreScene(r) && matchKeyword(displayNameFull(r), (r as any).releaseNotes),
+  ),
 )
 
 const storeTabTotal = computed(() => storeListBase.value.length)
@@ -574,7 +680,7 @@ function isLiveTemplate(item: ReleaseRecord) {
   return isInUse(item) && !(item as any).pending
 }
 
-function displayNameFull(item: ReleaseRecord) {
+function displayNameFull(item: ReleaseRecord | Record<string, any>) {
   return String((item as any).templateName || item.releaseNotes || `模板 #${item.id}`)
 }
 
@@ -586,6 +692,11 @@ function storeThumb(item: ReleaseRecord) {
   const cover = String((item as any).coverUrl || (item as any).cover_url || '').trim()
   if (cover) return cover
   return storeTemplateThumbUrl(item)
+}
+
+/** 页面模板：从自己的 DSL 提取骨架（单页，所以只有一个 tab） */
+function pageSkeleton(tpl: Record<string, unknown>) {
+  return extractTemplateSkeleton({ snapshot: JSON.stringify({ pages: [{ name: tpl.name, dslContent: tpl.dslContent ?? tpl.dsl }] }) } as any)
 }
 
 function pageThumb(tpl: Record<string, unknown>) {
@@ -812,17 +923,70 @@ async function confirmActivate(item: ReleaseRecord) {
   sidePanel.value = 'impact'
 }
 
+/**
+ * 套用整店模板 —— 这是全站**破坏性最强的操作**。
+ *
+ * 🔴 2026-10-06 加防呆。原来这里是 `doActivate()` 直接调接口、**零确认**：
+ *   卡片左下角一个「应用模板」按钮，点一下就把当前小程序
+ *   4~5 个页面 + 底部导航 + 品牌色全部换成模板的。
+ *   运营误触 → 已搭建的页面全丢，且**只能从历史快照手动找回**。
+ *
+ * 现在四重防呆：
+ *   1. 必须先在右侧「影响面」面板看过（面板里已列出会被替换的页面与导航）；
+ *   2. 二次确认弹窗，且**明确列出**会被替换什么（不是泛泛地说"会覆盖"）；
+ *   3. 🔴 要求**手动输入「应用」二字** —— 不能靠点一下鼠标完成；
+ *      批量操作时"手快连点"是主要事故来源，这一条专门挡它；
+ *   4. 明确告知**未发布的改动会被丢弃**。
+ *
+ * 另：套用只改**编辑态草稿**，不影响线上 —— 真正生效仍需去「版本管理」发布。
+ * 这条必须说清楚，否则运营会以为已经生效。
+ */
 async function doActivate() {
   if (!pendingActivate.value) return
-  activatingId.value = pendingActivate.value.id
+  const item = pendingActivate.value
+  const name = displayNameFull(item as unknown as ReleaseRecord)
+  const tabCount = impactTabs.value.length
+  const pageCount = impactPageCount.value
+
+  // 防呆 2 + 3：列出影响面 + 要求手输确认词
+  const lines = [
+    `即将把「${name}」套用到当前小程序：`,
+    '',
+    pageCount ? `· 替换 ${pageCount} 个页面内容` : '',
+    tabCount ? `· 替换底部导航（${tabCount} 个入口：${impactTabs.value.slice(0, 5).map((t: any) => t.text || t.name || '?').join('、')}${tabCount > 5 ? '…' : ''}）` : '',
+    '· 套用该模板的品牌配色与主题',
+    '',
+    '⚠️ 当前「未发布的改动」会被丢弃，且无法自动找回。',
+    '⚠️ 套用只改编辑态草稿，**不会立刻影响线上用户**；需要去「版本管理」发布后才生效。',
+    '',
+    '若不确定，请先点「取消」并到「版本管理」确认当前状态。',
+    '',
+    '请输入「应用」二字以确认：',
+  ].filter(Boolean)
+
   try {
-    await activateStoreTemplate(pendingActivate.value.id)
+    await ElMessageBox.prompt(lines.join('\n'), `套用整店模板：${name}`, {
+      confirmButtonText: '确认套用',
+      cancelButtonText: '取消',
+      type: 'warning',
+      inputPlaceholder: '应用',
+      inputValidator: (v: string) =>
+        String(v || '').trim() === '应用' ? true : '请准确输入「应用」二字',
+      customClass: 'tpl-confirm',
+    })
+  } catch {
+    return
+  }
+
+  activatingId.value = item.id
+  try {
+    await activateStoreTemplate(item.id)
     ElMessage.success(
-      '已套用整店模板：页面内容已切换。站点导航/配色若有草稿请到「发布」确认；用户侧以发布后为准。',
+      '已套用整店模板到草稿：页面内容已切换。站点导航/配色请到「版本管理」发布后才会影响用户。',
     )
     closeSidePanel()
     await load()
-    router.push('/mini/releases')
+    router.push('/mini/versions')
   } catch (e: unknown) {
     const msg = apiErrorMessage(e, '套用失败')
     if (msg && shouldShowLocalError(e)) ElMessage.error(msg)
@@ -905,7 +1069,7 @@ async function editStoreSite(item: ReleaseRecord) {
       await activateStoreTemplate(id)
       await load()
     }
-    router.push('/mini/appearance?tab=brand')
+    router.push('/mini/workbench?tab=brand')
   } catch (e: unknown) {
     if (e === 'cancel') return
     const msg = apiErrorMessage(e, '打开编辑失败')
@@ -1062,8 +1226,12 @@ async function load() {
       getMiniSite('draft').catch(() => null),
       getMiniSite('live').catch(() => null),
     ])
-    storeTemplates.value = ((storeRes as any)?.data || []) as ReleaseRecord[]
-    pageTemplates.value = ((pageRes as any)?.data?.records || (pageRes as any)?.data?.list || (pageRes as any)?.data || []) as any[]
+    // 🔴 不能用 `|| []`：若data 是**对象**（错误响应 / 结构变化 / 多包一层），
+    //   `|| []` 不生效（对象是truthy），后续 .find / .filter / .map 会抛
+    //   "X.value.filter is not a function" → 整页白屏。2026-10-06 实测。
+    //   toRecords 保证返回值一定是数组；解包口径统一，见 utils/list-response.ts。
+    storeTemplates.value = toRecords<ReleaseRecord>(storeRes)
+    pageTemplates.value = toRecords<any>(pageRes)
     currentTabBar.value = site?.tabBar || []
     siteTemplateId.value = site?.templateId != null ? Number(site.templateId) : null
     liveTemplateId.value = live?.templateId != null ? Number(live.templateId) : null
@@ -1094,12 +1262,69 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="scss">
+/* ── 二级筛选栏（2026-10-06）───────────────────────────────────────────
+   原来「一级分类Tab」与「场景胶囊」在同一个 .tabs-line 里，
+   主次不分；现在拆成两行：一行 Tab、一行 搜索+场景。 */
+.tpl-filterbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--saas-border);
+  margin-bottom: 10px;
+}
+
+.tpl-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: 240px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-md);
+  background: var(--saas-surface);
+  color: var(--saas-ink-3);
+  transition: border-color var(--saas-t) var(--saas-ease);
+  &:focus-within {
+    border-color: var(--saas-accent);
+    box-shadow: var(--saas-ring);
+  }
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    font-size: var(--saas-fs-cap);
+    color: var(--saas-ink);
+    outline: none;
+    &::placeholder { color: var(--saas-ink-3); }
+    /* 去掉 Safari/Chrome 原生搜索框的清除按钮，我们自己有 */
+    &::-webkit-search-cancel-button { display: none; }
+  }
+}
+.tpl-search__clear {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: var(--saas-r-full);
+  background: var(--saas-sunken);
+  color: var(--saas-ink-3);
+  cursor: pointer;
+  &:hover { color: var(--saas-ink); }
+}
+
 .scene-chips {
-  margin-left: auto;
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  padding-bottom: 6px;
+  padding-bottom: 0;
   .chip--empty {
     opacity: .45;
     cursor: not-allowed;
