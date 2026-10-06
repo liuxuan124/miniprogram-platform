@@ -170,6 +170,7 @@
             :step="LIMIT.step"
             :fallback="LIMIT.fallback"
             @update:model-value="(v: number) => patch({ display_limit: v })"
+              semantic="count"
           />
           <div v-if="cfg.data_mode === 'manual' && rows.length < cfg.display_limit" class="cp-warn">
             <el-icon><WarningFilled /></el-icon>

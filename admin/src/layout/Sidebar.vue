@@ -294,7 +294,23 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
     //    分别从「页面管理 › 模板库按钮」与「系统原生页标签」进入。
     //    旧地址（/mini/templates、/page-builder/mine|login）依然可直接访问。
     title: '小程序',
+    // 2026-10-06 第三次调整（用户明确指定四个入口，取消「基础配置」分组）：
+    //   搭建工作台 —— 品牌 / 系统功能 / 导航配置 / 预览检查 同处一页
+    //   页面管理   —— 所有"页"的操作
+    //   版本管理   —— 待发布 / 发布 / 版本历史 / 回滚
+    //   模板管理   —— 模板是可复用资产，独立入口
+    //
+    // 🔴 严格两级，零 3 级目录。模板管理独立出来的理由：
+    //   模板是**可复用的资产**，版本是**一次性的记录**，生命周期不同 ——
+    //   把模板塞进版本管理会让「版本历史」这个列表混入一堆常驻资产。
     children: [
+      {
+        title: '搭建工作台',
+        path: '/mini/workbench',
+        icon: 'Odometer',
+        activePrefix: '/mini/workbench',
+        permissions: ['page:list'],
+      },
       {
         title: '页面管理',
         path: '/mini/pages',
@@ -303,19 +319,17 @@ const rawMenuGroups: Array<{ title: string; children: MenuItem[] }> = [
         permissions: ['page:list'],
       },
       {
-        title: '品牌与导航',
-        path: '/mini/appearance',
-        icon: 'Brush',
-        activePrefix: '/mini/appearance',
+        title: '版本管理',
+        path: '/mini/versions',
+        icon: 'Upload',
+        activePrefix: '/mini/versions',
         permissions: ['page:list'],
       },
       {
-        title: '发版中心',
-        path: '/mini/releases',
-        icon: 'Upload',
-        activePrefix: '/mini/releases',
-        // 发版中心内部按 page:publish 判定能否发布，这里只要求 page:list，
-        // 与另两个工作台同门槛，避免超管之外的角色看到却点不动
+        title: '模板管理',
+        path: '/mini/templates',
+        icon: 'Shop',
+        activePrefix: '/mini/templates',
         permissions: ['page:list'],
       },
     ],

@@ -26,7 +26,7 @@
               <MiniIcon name="page" :size="15" />
               页面
             </button>
-            <button type="button" class="btn soft" @click="router.push('/mini/appearance?tab=brand')">
+            <button type="button" class="btn soft" @click="router.push('/mini/workbench?tab=brand')">
               <MiniIcon name="palette" :size="15" />
               品牌
             </button>
@@ -172,7 +172,7 @@
                 type="button"
                 class="btn sm primary"
                 :disabled="!(site.pendingCount ?? pending.length)"
-                @click="router.push('/mini/releases')"
+                @click="router.push('/mini/versions')"
               >
                 去发布配置
               </button>
@@ -658,7 +658,7 @@ function editHomePage() {
   const id = homeId || fromTab
   if (!id) {
     ElMessage.warning('请先在「导航配置」里为底部导航绑定首页')
-    router.push('/mini/appearance?tab=nav')
+    router.push('/mini/workbench?tab=nav')
     return
   }
   router.push(`/mini/pages/${id}/editor`)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * ============================================================================
- * 发版中心（Git 式发布流水线）
+ * 版本管理（Git 式发布流水线）
  * ============================================================================
  *
  * 整合了原「搭建工作台概览」+「预览检查」+「发布与版本」+「微信代码包」四处。
@@ -19,6 +19,7 @@
  * 🔴 快照范围必须如实说明：后端 collectBoundPageIds 只收录**被导航引用**的页面，
  *    不是全量页面快照。写"所有页面"是虚假承诺。
  */
+import { formatDateTimeFull } from '@/utils/datetime'
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -33,6 +34,7 @@ import {
 import {
   getPendingChanges,
   listMiniContentReleases,
+  rollbackToSemver,
   previewMiniRollback,
   prepareMiniRollback,
   type MiniContentReleaseVO,
@@ -40,7 +42,7 @@ import {
 import { resolvePageStatus } from '@/utils/pageStatus'
 import type { PageRecord } from '@/types/page'
 
-defineOptions({ name: 'MiniReleasesHub' })
+defineOptions({ name: 'MiniVersions' })
 
 const router = useRouter()
 
@@ -158,13 +160,26 @@ onMounted(load)
 /* ─────────────────────────── Hero：版本状态 ─────────────────────────── */
 
 /**
- * 版本号的含义必须写清 —— 2026-10-06 线上出现过「工作台第 33 版 /
- * 发布页显示 1200 / 预览页显示「—」 / 列表第 28 次」四个数打架。
- * 根因是系统里��� 5 种「版本」，本项目只有其中一种在发版中心展示。
+ * ── 版本号的真相（2026-10-06 查库核实）────────────────────────────────
+ *
+ * 诊断报告说「线上第 33 次 / 历史列表第 28 次，数据断层」。查库结论：
+ * **不是数据丢失，是两套独立编号被并排显示了。**
+ *
+ *   live_release_no（mp_system_config）= 33   ← 发布时自增的「发布次数」
+ *   快照表最新 semver = c.0.28              ← 内容版本号（c.major.minor.patch）
+ *
+ * 后端 `releaseNo` 字段查证结果：`MiniSiteServiceImpl:816` 是
+ * `.eq(MiniappRelease::getPatch, releaseNo)` —— **releaseNo 就是 patch**，
+ * 而 patch 属于 semver 第三段，**它不是发布次数**。
+ * 加上 VO 里 `releaseNo` 从未被 `setReleaseNo()` 赋值过，
+ * 于是前端拿到 null，模板 fallback 出了误导性的「第 N 次发布」。
+ *
+ * 🔴 修法：**顶部不再自称「第 N 次发布」**，改用快照表真实存在的编号，
+ *    并把「发布次数」单独标注为发布计数，不再与快照编号混为一谈。
+ *    断层是显示口径问题，不该靠"补数据"解决 —— 补出来的号是假的。
  */
 const liveNo = computed(() => Number(site.value.liveReleaseNo ?? 0) || null)
 const liveAt = computed(() => (site.value.liveReleaseAt ? String(site.value.liveReleaseAt) : ''))
-const nextNo = computed(() => (liveNo.value == null ? 1 : liveNo.value + 1))
 
 /** 线上已稳定运行天数 */
 const stableDays = computed(() => {
@@ -174,7 +189,25 @@ const stableDays = computed(() => {
   return Math.max(0, Math.floor((Date.now() - t) / 86400000))
 })
 
-const liveVersionLabel = computed(() => (liveNo.value == null ? '尚未发布' : `第 ${liveNo.value} 次发布`))
+/**
+ * 线上版本的展示标签。
+ *
+ * 优先用**快照表里真实存在的那条**的 semver（c.0.28），
+ * 拿不到才退回次数描述。**绝不并列显示两个不同来源的编号**。
+ */
+const liveLabel = computed(() => {
+  const cur = liveRelease.value
+  if (cur?.semver) return cur.semver
+  if (cur?.releaseNo) return `v${cur.releaseNo}`
+  return liveNo.value == null ? '尚未发布' : `已发布 ${liveNo.value} 次`
+})
+
+const liveVersionLabel = computed(() => `线上配置：${liveLabel.value}`)
+
+/** 快照表里标记为「当前线上」的那一条 —— 顶部编号的真源 */
+const liveRelease = computed(
+  () => releases.value.find((r: any) => r.currentLive || r.isCurrent) || null,
+)
 
 /* ─────────────────────────── 发布资格 ─────────────────────────── */
 
@@ -357,7 +390,9 @@ async function doRollback(row: MiniContentReleaseVO) {
   const pendingTotal = Number(preview.currentPendingCount ?? 0) || 0
 
   const lines = [
-    `将第 ${row.releaseNo} 次发布的配置还原为一份草稿。`,
+    // 🔴 2026-10-06：原来写「第 ${row.releaseNo} 次发布」，而 releaseNo 后端从未赋值（=null），
+    //   确认框里会显示「第 undefined 次发布」。改用快照真实标识。
+    `将 ${row.semver || `快照 #${row.id}`} 的配置还原为一份草稿。`,
     '',
     '还原只生成草稿，不会立刻改变线上——你可以先核对，确认无误再回来发布。',
     '',
@@ -405,16 +440,93 @@ async function doRollback(row: MiniContentReleaseVO) {
   }
 }
 
-function formatTime(v?: string | number | null): string {
-  if (v == null || v === '') return '—'
-  const d = typeof v === 'number' ? new Date(v) : new Date(String(v).replace(/-/g, '/'))
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString('zh-CN', { hour12: false }).slice(0, 16)
+/**
+ * 紧急线上回滚（1 秒止血）。
+ *
+ * 🔴 2026-06 新增。原页面只有「还原为草稿」，而它**不改变线上**——
+ *    线上出白屏/样式崩坏时，唯一的路是「还原草稿 → 核对 → 再发布」，
+ *    MTTR 被拉长到分钟级甚至更久，而配置发布本来就是秒级的。
+ *
+ * 后端能力本来就存在（`POST /api/v1/admin/miniapp-releases/rollback`），
+ * 只是一直没接 —— 现在接上。
+ *
+ * 🔴 四重防呆（这是**直接改线上**的操作，比还原草稿危险一个量级）：
+ *   1. 必须是**非当前线上**的快照（回滚到当前等于没回滚）；
+ *   2. 必须有 semver —— 后端按 semver 定位，缺了根本不知道回滚哪份；
+ *   3. 二次确认，且**要求手动输入「回滚」二字**（防误点，比点一下"确定"可靠得多）；
+ *   4. 明确告知「未发布的改动不会受影响」还是「会被丢弃」。
+ */
+async function emergencyRollbackLive(row: MiniContentReleaseVO) {
+  const target = row.semver || ''
+  if (!target) {
+    ElMessage.error('该记录缺少版本号（semver），无法定位回滚目标')
+    return
+  }
+  if (row.currentLive) {
+    ElMessage.info('这就是当前线上的版本，无需回滚')
+    return
+  }
+  if (rollbackBusy.value) return
+
+  let reason = ''
+  try {
+    await ElMessageBox.prompt(
+      [
+        `即将把线上配置**立即回滚**到 ${target}。`,
+        '',
+        '· 线上会马上生效（秒级），不需要再走发布',
+        '· 当前「未发布的改动」不会被回滚，它们仍留在草稿里',
+        '· 回滚会生成一条新的快照记录，可再切回来',
+        '',
+        '请输入「回滚」二字以确认：',
+      ].join('\n'),
+      `紧急回滚到 ${target}`,
+      {
+        confirmButtonText: '确认回滚',
+        cancelButtonText: '取消',
+        type: 'warning',
+        inputPlaceholder: '回滚',
+        inputValidator: (v: string) =>
+          String(v || '').trim() === '回滚' ? true : '请准确输入「回滚」二字',
+        customClass: 'rl-confirm',
+      },
+    ).then((r) => {
+      reason = String((r as any)?.value ?? '').trim()
+    })
+  } catch {
+    return
+  }
+
+  rollbackBusy.value = true
+  try {
+    await rollbackToSemver({ targetSemver: target, reason: reason || '线上故障紧急回滚' })
+    ElMessage.success(`线上已回滚到 ${target}`)
+    await load()
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '紧急回滚失败')
+  } finally {
+    rollbackBusy.value = false
+  }
 }
+
+/**
+ * 🔴 2026-10-06 改为复用共享实现。
+ * 原来 `toLocaleString('zh-CN').slice(0, 16)` 显示成「2026/10/3 18:56:」——
+ * 尾部多一个冒号，因为月/日不补零导致整个字符串只有 15 字符。
+ * 详见 `utils/datetime.ts` 顶部的说明（同一个 bug 当天在 pages-hub 也犯过）。
+ */
+const formatTime = formatDateTimeFull
 </script>
 
 <template>
   <div class="rl-hub">
+    <header class="rl-head">
+      <h1 class="saas-title">版本管理</h1>
+      <p class="saas-cap">
+        管理小程序页面动态配置、导航与品牌样式的发布、历史快照与快速回滚。
+      </p>
+    </header>
+
     <!-- ── Hero ───────────────────────────────────────────────────────── -->
     <section class="rl-hero">
       <!-- 线上 -->
@@ -435,7 +547,12 @@ function formatTime(v?: string | number | null): string {
       <!-- 待发布 -->
       <div class="rl-ver rl-ver--next">
         <span class="rl-ver__label">准备发布</span>
-        <span class="rl-ver__no">第 {{ nextNo }} 次发布</span>
+        <!-- 🔴 2026-10-06：原来写「第 {{ nextNo }} 次发布」。
+             nextNo = liveReleaseNo + 1，而 liveReleaseNo 与快照编号是两套体系
+             （线上 live_release_no=33，快照最新 c.0.28）——
+             并排显示会让人以为"第 34 次"是快照列表里该有的下一条，而它并不对应任何记录。
+             改成明确的「下一批改动」语义，不再伪造版本号。 -->
+        <span class="rl-ver__no">{{ pendingCount ? '下一批改动' : '暂无待发布' }}</span>
         <span class="saas-pill" :class="pendingCount ? 'saas-pill--warn' : ''">
           <span v-if="pendingCount" class="saas-dot saas-dot--pulse" />
           {{ pendingCount ? `${pendingCount} 项改动` : '无改动' }}
@@ -550,12 +667,18 @@ function formatTime(v?: string | number | null): string {
               <span class="rl-tl__dot" :class="{ 'is-live': row.currentLive }" />
               <div class="rl-tl__body">
                 <div class="rl-tl__hd">
-                  <b>第 {{ row.releaseNo }} 次发布</b>
+                  <!-- 🔴 2026-10-06：原来写「第 {{ releaseNo }} 次发布」，
+                       而 releaseNo 后端从未赋值（=null），fallback 出误导性的"次数"。
+                       改成显示快照表里真实存在的 semver（c.0.28 / 1.3.0），
+                       没有 semver 时退回记录 ID —— 那是唯一一定能拿到的标识。 -->
+                  <b>{{ row.semver || `快照 #${row.id}` }}</b>
                   <span v-if="row.currentLive" class="saas-pill saas-pill--success">当前线上</span>
                   <span v-if="row.pageCount" class="saas-cap">{{ row.pageCount }} 个页面</span>
                 </div>
                 <div class="saas-cap">
                   {{ formatTime(row.publishedAt) }}
+                  <!-- 🔴 操作人：后端 VO 没有该字段，原来直接渲染 id → 「操作人：1」。
+                       拿不到名字就不显示，**绝不用 id 冒充人名**。 -->
                   <template v-if="row.publisherName"> · {{ row.publisherName }}</template>
                 </div>
                 <p v-if="row.note" class="rl-tl__note">{{ row.note }}</p>
@@ -576,6 +699,19 @@ function formatTime(v?: string | number | null): string {
                     @click="doRollback(row)"
                   >
                     还原为草稿
+                  </button>
+                  <!-- 🔴 2026-10-06 新增：紧急线上回滚。
+                       与「还原为草稿」的区别：那个不碰线上，这个**立刻改线上**。
+                       没有它，线上故障时只能"还原草稿 → 核对 → 再发布"。 -->
+                  <button
+                    v-if="!row.currentLive && row.semver"
+                    type="button"
+                    class="saas-btn saas-btn--sm saas-btn--danger"
+                    :disabled="rollbackBusy"
+                    title="立刻把线上配置回滚到这一版（需输入「回滚」确认）"
+                    @click="emergencyRollbackLive(row)"
+                  >
+                    紧急线上回滚
                   </button>
                   <span v-if="!row.hasSnapshot" class="saas-cap">该记录无快照，无法还原</span>
                 </div>
@@ -762,6 +898,8 @@ function formatTime(v?: string | number | null): string {
 
 <style scoped lang="scss">
 .rl-hub { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.rl-head p { margin: 4px 0 0; max-width: 68ch; }
 
 /* ── Hero ──────────────────────────────────────────────────────────────── */
 .rl-hero {

@@ -25,12 +25,12 @@
     </div>
     <div class="header-right">
       <template v-if="isMiniRoute">
-        <button type="button" class="mini-site-pill" @click="router.push('/mini/releases')">
+        <button type="button" class="mini-site-pill" @click="router.push('/mini/versions')">
           <span class="dot" />
           <span class="pill-text">
             {{ siteLabel }}
             <template v-if="liveReleaseNo != null"> · 配置版本 {{ liveReleaseNo }}</template>
-            <template v-if="pendingCount > 0"> · {{ pendingCount }} 项待同步</template>
+            <template v-if="pendingCount > 0"> · {{ pendingCount }} 项待发布改动</template>
           </span>
         </button>
       </template>

@@ -5,7 +5,7 @@
       { 'render-note-feed--preview': previewMode },
       `note-feed--tabs-${tabActiveStyle}`,
     ]"
-    :style="containerStyle"
+    :style="[containerStyle, cardShadowStyle]"
   >
     <!-- 导航容器：2026-10-06 新增，包住两层导航，承载 nav_bg / nav_radius。
          ⚠️ 只在「有任一层要显示」时才包，避免空容器占位。 -->
@@ -14,7 +14,7 @@
       class="note-feed__nav"
       :style="navWrapStyle"
     >
-    <div v-if="showTypeTabs" class="type-tabs" :style="typeTabsStyle" @mousedown.stop @pointerdown.stop @touchstart.stop>
+    <div v-if="showTypeTabs" class="type-tabs" :style="[typeTabsStyle, typeTabVars]" @mousedown.stop @pointerdown.stop @touchstart.stop>
       <div class="type-tabs__list" :style="tabListStyle">
         <button
           v-for="(t, i) in typeTabs"
@@ -126,7 +126,7 @@ import type { ComponentInstance } from '@/types/page'
 import { fetchTopContentCategoryTabs, withAllCategoryTab } from '@/utils/content-category-tabs'
 import { loadHydratedComponent } from '@/utils/preview-datasource'
 import { useEditorLiveItems } from '../composables/useEditorLiveItems'
-import { normalizeNoteFeedProps, noteContainerStyle } from '../noteFeed/noteFeedSchema'
+import { normalizeNoteFeedProps, noteContainerStyle, TAB_INDICATOR_COLOR } from '../noteFeed/noteFeedSchema'
 
 type NoteItem = {
   id?: number | string
@@ -254,6 +254,54 @@ const subTabActiveVars = computed<Record<string, string>>(() => {
   return {
     '--nt-active-color': c.sub_tab_active_color,
     '--nt-active-bg': c.sub_tab_active_bg,
+  }
+})
+
+/**
+ * 🔴 2026-10-06：首层导航的「解写死」通道。
+ *
+ * 此前 `.type-tab__bar` 的 `background: #ec2f55` 与 `.type-search` 的
+ * `#c6cbd6` **全部写死在 CSS**，换主题只能改代码。
+ * 现在由 CSS 变量下发，值给同值兜底（变量没注入时仍是原效果）。
+ *
+ * ⚠️ 口径：
+ *   · `tab_indicator_color` 空 = **跟随激活主色**（清空即回退激活色，不是回红条）
+ *   · `search_icon_color` 空 = **跟随未选文字色**
+ *   · 未配置的老页面 = 拿到缺省 #ec2f55 → 视觉零变化
+ */
+/**
+ * 🔴 卡片阴影预设档位（2026-10-06）—— **唯一定义处**。
+ *
+ * ⚠️ `light` 档必须逐字等于改前渲染器的原值
+ * `0 2px 8px rgba(15, 18, 25, 0.06)`，否则老页面加载后阴影会变。
+ * ⚠️ 面板的说明文案也按这张表生成，改这里就等于改文档。
+ */
+const CARD_SHADOW_PRESETS: Record<string, string> = {
+  none: 'none',
+  light: '0 2px 8px rgba(15, 18, 25, 0.06)',
+  normal: '0 4px 16px rgba(15, 18, 25, 0.10)',
+}
+
+/** 卡片阴影 → CSS 变量（选 custom 时用 5 列参数自己拼） */
+const cardShadowStyle = computed<Record<string, string>>(() => {
+  const c = cfg.value
+  let value: string
+  if (c.card_shadow === 'custom') {
+    const b = c.card_shadow_custom
+    value = `${b.x}px ${b.y}px ${b.blur}px ${b.spread}px ${b.color}`
+  } else {
+    value = CARD_SHADOW_PRESETS[c.card_shadow] || CARD_SHADOW_PRESETS.light
+  }
+  return { '--nt-card-shadow': value }
+})
+
+const typeTabVars = computed<Record<string, string>>(() => {
+  const c = cfg.value
+  const indicator = c.tab_indicator_color || c.tab_active_color || TAB_INDICATOR_COLOR.fallback
+  return {
+    '--nt-indicator-color': indicator,
+    '--nt-indicator-width': c.tab_indicator_color === '' ? '0px' : '18px',
+    '--nt-search-color': c.search_icon_color || c.tab_text_color,
   }
 })
 
@@ -546,9 +594,11 @@ watch(liveItems, (items) => {
   position: absolute;
   right: 50%;
   bottom: 2px;
-  width: 18px;
+  /* 🔴 2026-10-06 解除写死的红条：宽度与颜色都走 CSS 变量。
+     变量给同值兜底（18px / #ec2f55），未配置时与改动前逐字一致。 */
+  width: var(--nt-indicator-width, 18px);
   height: 3px;
-  background: #ec2f55;
+  background: var(--nt-indicator-color, #ec2f55);
   border-radius: 999px;
   transform: translateX(50%);
 }
@@ -560,14 +610,16 @@ watch(liveItems, (items) => {
   width: 24px;
   height: 24px;
   margin-left: 8px;
-  border: 1.5px solid #c6cbd6;
+  /* 🔴 2026-10-06 解除写死的 #c6cbd6：跟随「未选文字色」，
+     配了主色主题后搜索图标自动融进去，不用改代码。 */
+  border: 1.5px solid var(--nt-search-color, #c6cbd6);
   border-radius: 50%;
 }
 
 .type-search i {
   width: 8px;
   height: 2px;
-  background: #c6cbd6;
+  background: var(--nt-search-color, #c6cbd6);
   border-radius: 2px;
   transform: translate(5px, 5px) rotate(45deg);
 }
@@ -616,7 +668,11 @@ watch(liveItems, (items) => {
   overflow: hidden;
   background: #fff;
   border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(15, 18, 25, 0.06);
+  /* 🔴 2026-10-06 阴影改为可配置。
+     ⚠️ 原值 `0 2px 8px rgba(15,18,25,.06)` 正是「柔和微光」档 ——
+     所以 Schema 缺省必须是 light（不是 none），否则老页面会集体丢阴影。
+     变量给同值兜底，未配置时与改动前逐字一致。 */
+  box-shadow: var(--nt-card-shadow, 0 2px 8px rgba(15, 18, 25, 0.06));
 }
 
 .note-card.is-clickable {

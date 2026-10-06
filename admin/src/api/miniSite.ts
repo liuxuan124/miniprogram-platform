@@ -101,10 +101,26 @@ export type MiniPublishResultVO = {
 
 export type MiniContentReleaseVO = {
   id?: number
+  /**
+   * 🔴 `releaseNo` 不可信：后端 VO 有这个字段但**从未 `setReleaseNo()` 赋值**，
+   *    而且 `MiniSiteServiceImpl:816` 证明它等价于 `patch`（semver 第三段），
+   *    不是"发布次数"。2026-10-06 线上因此出现「顶部第 33 次 / 列表最新 c.0.28」。
+   *    展示请优先用 `semver`，没有才退回 `id`。
+   */
   releaseNo?: number
+  /**
+   * 快照自身的版本号（线上真实存在，如 `c.0.28` / `1.3.0`）。
+   * 后端 `mp_miniapp_release.semver`。**这是唯一可靠的版本标识。**
+   */
+  semver?: string
+  /** 快照记录的记录 id（VO 里叫 `note`，与"发布说明"同名不同义，易混） */
   note?: string
   publishedAt?: string
   publisherId?: number
+  /**
+   * 操作人姓名。后端当前**没有这个字段**（表 `mp_miniapp_release` 无 create_by），
+   * 所以前端拿不到就完全不显示 —— 绝不用 id 冒充人名。
+   */
   publisherName?: string
   currentLive?: boolean
   hasSnapshot?: boolean
@@ -242,6 +258,32 @@ export async function publishMiniSite(payload?: {
 }
 
 /** GET 内容发布时间线 */
+/**
+ * 紧急线上回滚：把线上配置直接指回某个历史快照。
+ *
+ * 🔴 与「还原为草稿」的区别（这是两件事，不能混）：
+ *   · 还原为草稿 = 只改编辑态，**不影响线上**，要再走一次发布
+ *   · 紧急回滚   = **立刻改变线上**，用于线上白屏/样式崩坏时1 秒止血
+ * 后端能力本来就存在（`MiniappReleaseController#rollbackRelease`），
+ * 之前前端没接 —— 于是只剩"还原草稿 → 重新发布"这条MTTR 很长的路。
+ *
+ * 契约来自后端 `RollbackDTO`：
+ *   targetSemver      目标快照的 semver（如 c.0.28）—— **必填，不是 releaseNo**
+ *   reason            回滚原因（会写进操作日志，排查时要看）
+ *   offlineExtraPages 是否下线回滚后多出来的页面，默认 true
+ * 权限：`page:publish`
+ */
+export async function rollbackToSemver(params: {
+  targetSemver: string
+  reason?: string
+  offlineExtraPages?: boolean
+}) {
+  return post<MiniRollbackResultVO>(
+    '/miniapp-releases/rollback',
+    { offlineExtraPages: true, ...params } as Record<string, unknown>,
+  )
+}
+
 export async function listMiniContentReleases(): Promise<MiniContentReleaseVO[]> {
   try {
     const res = await get<MiniContentReleaseVO[]>(`${BASE}/releases`, undefined, { showError: false })

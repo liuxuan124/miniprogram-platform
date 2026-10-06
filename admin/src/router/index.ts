@@ -70,14 +70,24 @@ export const asyncRoutes: RouteRecordRaw[] = [
     component: Layout,
     name: 'Mini',
     meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-    redirect: '/mini/pages',
+    redirect: '/mini/workbench',
     children: [
-      /* ── 三个工作台（侧栏只显示这三个）─────────────────────────────────
-         2026-10-06 从 9 个平铺 / 6 组分组进一步收敛为 3 个工作台：
-         页面管理 / 品牌与导航 / 发版中心。
-         收敛依据是「用户要完成的几件事」而不是「技术模块的划分」——
-         原来「品牌信息」「导航配置」「系统功能」改的都是同一个外壳，
-         「概览」「预览检查」「发布与版本」是同一次发布的三个侧面。          */
+      /* ── 四个入口（侧栏只显示这四个）────────────────────────────────────
+         2026-10-06 第三次调整（用户明确指定）：
+           搭建工作台 / 页面管理 / 版本管理 / 模板管理，取消「基础配置」分组。
+         划分依据是**用户要完成的四件事**：
+           ·搭建工作台 —— 配置（品牌/系统/导航）+ 验证（预览检查）同处一���
+           · 页面管理 —— 所有"页"的操作
+           · 版本管理 —— 一次发布的四个侧面
+           · 模板管理 —— 模板是独立的资产，不属于版本，也不是页面的子概念
+         上一版把模板塞进「版本管理」是错的：模板是**可复用的资产**，
+         版本是**一次性的记录**，两者生命周期完全不同。                    */
+      {
+        path: 'workbench',
+        name: 'MiniWorkbench',
+        component: () => import('@/views/mini/appearance-hub.vue'),
+        meta: { title: '搭建工作台', icon: 'Odometer', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+      },
       {
         path: 'pages',
         name: 'MiniPages',
@@ -85,38 +95,33 @@ export const asyncRoutes: RouteRecordRaw[] = [
         meta: { title: '页面管理', icon: 'Document', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
-        path: 'appearance',
-        name: 'MiniAppearanceHub',
-        component: () => import('@/views/mini/appearance-hub.vue'),
-        meta: { title: '品牌与导航', icon: 'Brush', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
-      },
-      {
-        path: 'releases',
-        name: 'MiniReleasesHub',
+        path: 'versions',
+        name: 'MiniVersions',
         component: () => import('@/views/mini/releases-hub.vue'),
-        meta: { title: '发版中心', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '版本管理', icon: 'Upload', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
-
-      /* ── 旧地址兼容 ────────────────────────────────────────────────────
-         🔴 这些 redirect 不是"过时的历史"，是**正在被人使用的深链接**：
-         旧书签、外部文档、我上一轮给用户的链接都指向它们。
-         全部保留并指到对应工作台，尽量带上 query 让上下文延续。
-         用函数式 redirect 而不是字符串，才能把原 query 带过去。          */
-      { path: 'overview', redirect: '/mini/releases', meta: { title: '搭建工作台', hidden: true } },
-      { path: 'brand', redirect: { path: '/mini/appearance', query: { tab: 'brand' } }, meta: { title: '品牌信息', hidden: true } },
-      { path: 'system', redirect: { path: '/mini/appearance', query: { tab: 'flags' } }, meta: { title: '系统配置', hidden: true } },
-      { path: 'page-config', redirect: '/mini/pages', meta: { title: '页面配置', hidden: true } },
-      { path: 'navigation', redirect: { path: '/mini/appearance', query: { tab: 'nav' } }, meta: { title: '导航配置', hidden: true } },
-      { path: 'preview', redirect: '/mini/releases', meta: { title: '预览检查', hidden: true } },
-      { path: 'publish', redirect: '/mini/releases', meta: { title: '发布与版本', hidden: true } },
-
-      /* ── 仍是独立页的（不是配置，是创作流程）───────────────────────── */
       {
         path: 'templates',
         name: 'MiniTemplates',
         component: () => import('@/views/mini/templates.vue'),
-        meta: { title: '模板库', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
+        meta: { title: '模板管理', icon: 'Shop', roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
+
+      /* ── 旧地址兼容 ────────────────────────────────────────────────────
+         🔴 这些 redirect 不是"过时的历史"，是**正在被人使用的深链接**：
+         旧书签、外部文档、我之前给用户的链接都指向它们。
+         全部保留并尽量带上 query 让上下文延续（旧功能没被删，只换了入口）。 */
+      { path: 'overview', redirect: '/mini/workbench', meta: { title: '搭建工作台', hidden: true } },
+      { path: 'appearance', redirect: '/mini/workbench', meta: { title: '品牌与导航', hidden: true } },
+      { path: 'releases', redirect: '/mini/versions', meta: { title: '发版中心', hidden: true } },
+      { path: 'brand', redirect: { path: '/mini/workbench', query: { tab: 'brand' } }, meta: { title: '品牌信息', hidden: true } },
+      { path: 'system', redirect: { path: '/mini/workbench', query: { tab: 'flags' } }, meta: { title: '系统功能', hidden: true } },
+      { path: 'navigation', redirect: { path: '/mini/workbench', query: { tab: 'nav' } }, meta: { title: '导航配置', hidden: true } },
+      { path: 'preview', redirect: { path: '/mini/workbench', query: { tab: 'preview' } }, meta: { title: '预览检查', hidden: true } },
+      { path: 'page-config', redirect: '/mini/pages', meta: { title: '页面配置', hidden: true } },
+      { path: 'publish', redirect: '/mini/versions', meta: { title: '发布与版本', hidden: true } },
+
+      /* ── 仍是独立页的（不是配置，是创作流程）───────────────────────── */
       {
         path: 'pages/new-ai',
         name: 'MiniNewAi',
@@ -136,18 +141,18 @@ export const asyncRoutes: RouteRecordRaw[] = [
     component: Layout,
     name: 'PageBuilder',
     meta: { title: '小程序', icon: 'Monitor', roles: ['super_admin', 'content_ops'], permissions: ['page:list'], hidden: true },
-    redirect: '/mini/pages',
+    redirect: '/mini/workbench',
     children: [
       {
         path: 'overview',
         name: 'PageBuilderOverview',
-        redirect: '/mini/releases',
+        redirect: '/mini/workbench',
         meta: { title: '搭建工作台', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
         path: 'start',
         name: 'PageBuilderStart',
-        redirect: '/mini/pages',
+        redirect: '/mini/workbench',
         meta: { title: '页面管理', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
@@ -155,7 +160,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
         // （它与 /mini/brand + /mini/navigation 是同一批能力的两套实现，已收编到新路由）
         path: 'appearance',
         name: 'PageBuilderAppearance',
-        redirect: '/mini/appearance',
+        redirect: '/mini/workbench',
         meta: { title: '品牌与导航', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {
@@ -200,7 +205,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'release',
         name: 'PageBuilderRelease',
-        redirect: '/mini/releases',
+        redirect: '/mini/versions',
         meta: { title: '发版中心', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:publish'] },
       },
       {
@@ -213,7 +218,7 @@ export const asyncRoutes: RouteRecordRaw[] = [
       {
         path: 'version-management',
         name: 'VersionManagement',
-        redirect: '/mini/releases',
+        redirect: '/mini/versions',
         meta: { title: '发版中心', hidden: true, roles: ['super_admin', 'content_ops'], permissions: ['page:list'] },
       },
       {

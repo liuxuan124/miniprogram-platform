@@ -18,6 +18,7 @@
  *   2. 上线/下线是**立即生效**的独立接口，不进草稿 —— 文案必须说清；
  *   3. 页面状态口径与发布中心完全一致（复用 resolvePageStatus）。
  */
+import { formatDateTimeShort } from '@/utils/datetime'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -25,7 +26,7 @@ import MiniIcon from '@/components/mini/MiniIcon.vue'
 import { loadAllPages, pageKey } from '@/composables/usePageCatalog'
 import { getMiniSite, type MiniSiteVO } from '@/api/miniSite'
 import { refreshMiniPending } from '@/composables/useMiniPending'
-import { updatePage, publishPage, unpublishPage, duplicatePage } from '@/api/page'
+import { updatePage, publishPage, unpublishPage, duplicatePage, createPage, deletePage } from '@/api/page'
 import {
   resolvePageStatus,
   inferPageGroup,
@@ -42,7 +43,7 @@ const router = useRouter()
 
 /* ─────────────────────────── 状态 ─────────────────────────── */
 
-type ScopeKey = 'all' | 'decorate' | 'system' | 'draft'
+type ScopeKey = 'all' | 'decorate' | 'system' | 'draft' | 'ai'
 
 const loading = ref(true)
 const loadError = ref('')
@@ -65,6 +66,98 @@ const form = ref({
   online: true,
 })
 const advancedOpen = ref(false)
+
+/* ─────────────────────── 批量选择（2026-10-06 新增）───────────────────────
+ * 为什么加：AI 搭页会在库里堆出大量未发布的临时页（线上已 21 条），
+ * 逐条点「···」再确认太慢，清理成本高到没人愿意做→ 垃圾永远留着。
+ * 后端只有 `DELETE /pages/{id}` 单条接口、没有批量端点，
+ * 所以这里前端循环调用；**必须串行**，并发会打爆连接池且部分失败难追踪。
+ */
+const selectedIds = ref<Set<string>>(new Set())
+const batchBusy = ref(false)
+
+/** 只有真实页面能被删；系统原生页是合成的，删了会坏导航 */
+const selectableRows = computed(() => visibleRows.value.filter((p) => !p.isSystem))
+
+function isSelected(p: any): boolean {
+  return selectedIds.value.has(String(p.id))
+}
+function toggleSelect(p: any) {
+  const id = String(p.id)
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) next.delete(id)
+  else next.add(id)
+  selectedIds.value = next
+}
+function selectAllVisible() {
+  const all = new Set<string>()
+  for (const p of selectableRows.value) all.add(String(p.id))
+  // 已经全选时再点= 取消全选，符合常见交互预期
+  selectedIds.value = selectedIds.value.size === all.size ? new Set() : all
+}
+function clearSelection() {
+  selectedIds.value = new Set()
+}
+
+const allSelected = computed(
+  () =>
+    selectableRows.value.length > 0 &&
+    selectedIds.value.size === selectableRows.value.length,
+)
+
+/**
+ * 批量删除。
+ *
+ * 🔴 三重保护，缺一不可：
+ *   1. 二次确认，且**默认把页面名列出来**（避免手滑删错一批）；
+ *   2. 逐条串行 + 逐条捕获错误 —— 失败的那几条要单独报出来，
+ *      不能因为一条失败就中断后面（否则用户不知道到底删了哪些）；
+ *   3. 成功才从选择集里移除，失败的留在列表里等用户重试。
+ */
+async function batchDelete() {
+  const rows = visibleRows.value.filter((p) => selectedIds.value.has(String(p.id)))
+  if (!rows.length) return
+  const preview = rows.slice(0, 8).map((p) => p.name || p.path)
+  const more = rows.length > 8 ? `\n…等共 ${rows.length} 个页面` : ''
+  try {
+    await ElMessageBox.confirm(
+      `将删除以下页面（不可恢复）：\n${preview.join('\n')}${more}`,
+      `确认删除 ${rows.length} 个页面？`,
+      { confirmButtonText: `删除 ${rows.length} 个`, cancelButtonText: '取消', type: 'warning' },
+    )
+  } catch {
+    return
+  }
+
+  batchBusy.value = true
+  const failed: string[] = []
+  const okIds: string[] = []
+  for (const p of rows) {
+    try {
+      await deletePage(Number(p.id))
+      okIds.push(String(p.id))
+    } catch (e: unknown) {
+      failed.push(`${p.name || p.path}：${e instanceof Error ? e.message : '删除失败'}`)
+    }
+  }
+  batchBusy.value = false
+
+  if (okIds.length) {
+    const next = new Set(selectedIds.value)
+    for (const id of okIds) next.delete(id)
+    selectedIds.value = next
+    ElMessage.success(`已删除 ${okIds.length} 个页面`)
+  }
+  if (failed.length) {
+    // 失败的单独报，且**保留在选择集里**，方便用户直接重试
+    ElMessageBox.alert(
+      `以下 ${failed.length} 个页面删除失败：\n${failed.slice(0, 6).join('\n')}`,
+      '部分删除失败',
+      { type: 'error' },
+    )
+  }
+  await load()
+}
 
 /** 键盘导航 */
 const activeIdx = ref(-1)
@@ -124,6 +217,33 @@ function isSystemPath(p: PageRecord): boolean {
   return SYSTEM_PAGES.some((s) => s.path === path)
 }
 
+/**
+ * AI 搭页产生的临时草稿页。
+ *
+ * 🔴 2026-10-06：这些页由后端 `AiPagePipelineServiceImpl` 每次调用都新建一条
+ *   （path 形如 `/pages/custom/ai-xxxxxxxxxx`），线上已堆到 **21 条**，
+ *   全部 status=0 / current_version=0，集中在 10-05 16:11~16:18 几分钟内。
+ *
+ * 为什么要单独识别（而不是当成普通装修页）：
+ *   · 它们**不是用户建的页面**，是模型的中间产物；
+ *   · 全部未发布（version=0），且名称是后端截断的「针对装修页「X」（当前编辑」；
+ *   · 混在「装修页」里会让Tab 计数与表格「类型」列**口径矛盾**
+ *     （Tab 说 42=40+2，但表里类型写着「AI 页面」）。
+ *
+ * 判据用**路径前缀**而不是名称：名称被后端截断过、还可能再变；
+ * `ai-` 这段是后端生成的固定前缀，稳定可靠。
+ */
+function isAiDraftPage(p: PageRecord): boolean {
+  return /(^|\/)pages\/custom\/ai-/.test(String(p?.path || ''))
+}
+
+const aiPages = computed(() => decoratePages.value.filter((p) => isAiDraftPage(p)))
+
+/** 用户建的装修页：扣掉 AI 临时页，口径才与表格「类型」列一致 */
+const userDecoratePages = computed(
+  () => decoratePages.value.filter((p) => !isAiDraftPage(p)),
+)
+
 const decoratePages = computed(() =>
   allPages.value.filter((p) => !isSystemPath(p) && resolvePageStatus(p) !== 'archived'),
 )
@@ -162,11 +282,15 @@ function matchKeyword(p: any): boolean {
 const visibleRows = computed<any[]>(() => {
   switch (scope.value) {
     case 'decorate':
-      return decoratePages.value.filter(matchKeyword)
+      return userDecoratePages.value.filter(matchKeyword)
     case 'draft':
       return draftPages.value.filter(matchKeyword)
     case 'system':
       return systemRows.value.filter(matchKeyword)
+    //🔴 2026-10-06 新增：AI 试验页独立成Tab。
+    //   原来它们混在「装修页」里，导致 Tab 计数与表格「类型」列口径矛盾。
+    case 'ai':
+      return aiPages.value.filter(matchKeyword)
     default:
       return [
         ...decoratePages.value.filter(matchKeyword),
@@ -176,10 +300,13 @@ const visibleRows = computed<any[]>(() => {
 })
 
 const counts = computed(() => ({
+  // ⚠️ all 仍是「装修页(含 AI) + 系统页」= 表格实际行数，
+  //    保持 `全部` 与列表永远相等（否则又会是一种新的口径矛盾）。
   all: decoratePages.value.length + systemRows.value.length,
-  decorate: decoratePages.value.length,
+  decorate: userDecoratePages.value.length,
   system: systemRows.value.length,
   draft: draftPages.value.length,
+  ai: aiPages.value.length,
 }))
 
 const pendingCount = computed(
@@ -238,12 +365,7 @@ function navRefs(p: any): string[] {
     .map((t) => String(t.text || '未命名'))
 }
 
-function formatTime(v?: string | number | null): string {
-  if (v == null || v === '') return '—'
-  const d = typeof v === 'number' ? new Date(v) : new Date(String(v).replace(/-/g, '/'))
-  if (Number.isNaN(d.getTime())) return '—'
-  return d.toLocaleString('zh-CN', { hour12: false }).slice(5, 16)
-}
+const formatTime = formatDateTimeShort
 
 /* ─────────────────────────── 抽屉 ─────────────────────────── */
 
@@ -327,16 +449,76 @@ async function copyPath(p: any) {
   }
 }
 
+/**
+ * 行内「···」菜单。
+ *
+ * 🔴 2026-10-06 重写：原来这个按钮直接= "复制页面"（一个按钮干一件事，
+ *   图标是 `more` 却没有任何菜单），所以"复制/重命名/删除"里
+ *   只有复制能通过 UI 走到。
+ *   现在改成真正的下拉菜单，且**只用已存在的接口**：
+ *   复制 duplicatePage / 删除 deletePage / 上下线 publishPage·unpublishPage
+ *   —— 不做任何"看起来能用但没接口"的操作。
+ */
+const moreMenuFor = ref<string>('')
+
 async function onMore(p: any) {
+  moreMenuFor.value = moreMenuFor.value === String(p.id) ? '' : String(p.id)
+}
+
+function closeMore() {
+  moreMenuFor.value = ''
+}
+
+/** 重命名：复用抽屉的保存接口（updatePage），不额外造轮子 */
+async function renamePage(p: any) {
+  closeMore()
+  const current = String(p.name || '')
+  let next = current
+  try {
+    const r = await ElMessageBox.prompt('请输入新的页面名称', '重命名页面', {
+      inputValue: current,
+      confirmButtonText: '保存',
+      cancelButtonText: '取消',
+      inputValidator: (v: string) => (String(v || '').trim() ? true : '名称不能为空'),
+    })
+    next = String(r?.value ?? '').trim()
+  } catch {
+    return
+  }
+  if (!next || next === current) return
+  try {
+    await updatePage(Number(p.id), { name: next } as any)
+    ElMessage.success('已重命名')
+    await load()
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '重命名失败')
+  }
+}
+
+/** 单条删除：与批量同一套删除逻辑，单独走一次确认 */
+async function deleteOne(p: any) {
+  closeMore()
+  const name = p.name || p.path
   try {
     await ElMessageBox.confirm(
-      `将复制「${p.name || p.path}」生成一个新页面。原页面不受影响。`,
-      '复制页面',
-      { confirmButtonText: '复制', cancelButtonText: '取消', type: 'info' },
+      `将删除「${name}」。\n该操作不可恢复，只删未发布的页面相对安全。`,
+      '删除页面',
+      { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' },
     )
   } catch {
     return
   }
+  try {
+    await deletePage(Number(p.id))
+    ElMessage.success('已删除')
+    await load()
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '删除失败')
+  }
+}
+
+async function copyPage(p: any) {
+  closeMore()
   try {
     await duplicatePage(p.id)
     ElMessage.success('已复制，请为新页面修改名称')
@@ -348,6 +530,34 @@ async function onMore(p: any) {
 
 /* ─────────────────────────── 新建 ─────────────────────────── */
 
+/**
+ * 原地新建空白页。
+ *
+ * 为什么不用 `push('/mini/pages?create=blank')`：
+ *   那只是给本页加了个自己并不处理的 query，点了什么都不会发生。
+ *   这里直接调真实接口创建，成功后刷新列表并打开配置抽屉——
+ *   用户建完立刻能填标题，不用再找一次「新建」的入口。
+ */
+async function createBlank() {
+  // 🔴 type 与 path 是后端必填（CreatePageParams），只传 name 会被拒。
+  //    type=3 = 自定义装修页；path 必须唯一，用时间戳后缀避免撞名。
+  //    口径对齐 pages.vue 的 createBlank，避免两个入口造出不同类型的页。
+  const suffix = Date.now().toString(36).slice(-5)
+  try {
+    const res = await createPage({
+      name: `未命名页面-${suffix}`,
+      type: 3,
+      path: `pages/custom/p-${suffix}`,
+    })
+    const id = Number((res as any)?.data?.id || 0)
+    if (!id) throw new Error('未返回页面 id')
+    ElMessage.success('已创建空白页，请补全标题')
+    router.push(`/page-builder/editor/${id}`)
+  } catch (e: unknown) {
+    ElMessage.error(e instanceof Error ? e.message : '创建页面失败')
+  }
+}
+
 const createOpen = ref(false)
 const createKind = ref<'blank' | 'template' | 'ai'>('blank')
 
@@ -356,14 +566,26 @@ function openCreate(kind: 'blank' | 'template' | 'ai') {
   createOpen.value = true
 }
 
+/**
+ * 三种新建方式。
+ *
+ * 🔴 2026-10-06 修正：原来三种都 `router.push('/mini/pages?create=...')` ——
+ *    **推回了自己**，而本页根本没有处理 `create` 参数（no-op）。
+ *    结果点「从模板开始」什么都不会发生，是最典型的"按钮看着能用其实死的"。
+ *    现在各走各的真实入口：
+ *      模板 → 模板管理的页面模板 Tab（同一套选择与创建逻辑）
+ *      AI   → AI 建页（真实页面）
+ *      空白 → 直接在当前列表调 createBlank()，原地创建
+ */
 function goCreate() {
   createOpen.value = false
   if (createKind.value === 'template') {
-    router.push({ path: '/mini/pages', query: { create: 'template' } })
+    // 只传已实现的 tab 参数：templates.vue 认tab，不认 apply
+    router.push({ path: '/mini/templates', query: { tab: 'page' } })
   } else if (createKind.value === 'ai') {
     router.push('/mini/pages/new-ai')
   } else {
-    router.push({ path: '/mini/pages', query: { create: 'blank' } })
+    void createBlank()
   }
 }
 
@@ -446,7 +668,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           v-if="pendingCount > 0"
           type="button"
           class="saas-pill saas-pill--warn pg-pending"
-          @click="router.push('/mini/releases')"
+          @click="router.push('/mini/versions')"
         >
           <span class="saas-dot saas-dot--pulse" />{{ pendingCount }} 项待发布
         </button>
@@ -465,6 +687,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
           { k: 'decorate', t: '装修页' },
           { k: 'system', t: '系统原生页' },
           { k: 'draft', t: '草稿候选' },
+          // 🔴 2026-10-06 新增：AI 试验页独立分类（详见 isAiDraftPage 注释）。
+          //   原来它们混在「装修页」里 → Tab 计数与表格「类型」列口径矛盾。
+          { k: 'ai', t: 'AI 试验页' },
         ]"
         :key="s.k"
         type="button"
@@ -479,9 +704,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       <button
         type="button"
         class="saas-btn saas-btn--ghost saas-btn--sm"
-        @click="router.push({ path: '/mini/pages', query: { tab: 'page' } })"
+        @click="router.push({ path: '/mini/templates', query: { tab: 'page' } })"
       >
-        <MiniIcon name="grid" :size="14" />模板库
+        <MiniIcon name="grid" :size="14" />模板管理
       </button>
     </nav>
 
@@ -504,11 +729,36 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
       </div>
     </div>
 
+    <!-- ── 批量操作栏（选中 > 0 时才出现）─────────────────────────────── -->
+    <div v-if="selectedIds.size > 0" class="pg-batchbar">
+      <span class="saas-cap">已选 {{ selectedIds.size }} 个</span>
+      <button type="button" class="saas-btn saas-btn--sm" @click="clearSelection()">
+        取消选择
+      </button>
+      <button
+        type="button"
+        class="saas-btn saas-btn--sm saas-btn--danger"
+        :disabled="batchBusy"
+        @click="batchDelete()"
+      >
+        {{ batchBusy ? '删除中…' : `删除 ${selectedIds.size} 个页面` }}
+      </button>
+    </div>
+
     <!-- ── 表格 ────────────────────────────────────────────────────────── -->
     <div v-else-if="visibleRows.length" class="saas-panel pg-tablewrap">
       <table class="saas-table">
         <thead>
           <tr>
+            <th class="pg-checkcell">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                :indeterminate="selectedIds.size > 0 && !allSelected"
+                title="全选当前列表"
+                @change="selectAllVisible()"
+              />
+            </th>
             <th style="min-width: 240px">页面</th>
             <th style="width: 130px">类型</th>
             <th style="width: 200px">状态</th>
@@ -526,6 +776,18 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
             @click="p.isSystem ? openSystem(p) : openDrawer(p)"
             @mouseenter="activeIdx = i"
           >
+            <td class="pg-checkcell">
+              <input
+                v-if="!p.isSystem"
+                type="checkbox"
+                :checked="isSelected(p)"
+                :title="`选择 ${p.name || p.path}`"
+                @click.stop
+                @change="toggleSelect(p)"
+              />
+              <!-- 系统原生页：没有 checkbox 时也要占位，否则该行整行左移一格 -->
+              <span v-else aria-hidden="true" />
+            </td>
             <td class="is-main">
               <div class="pg-name">
                 <span class="saas-trunc" :title="String(p.name || '')">{{
@@ -582,11 +844,35 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
                   v-if="!p.isSystem"
                   type="button"
                   class="saas-btn saas-btn--sm saas-btn--icon saas-btn--ghost"
-                  title="更多操作"
+                  :title="moreMenuFor === String(p.id) ? '收起菜单' : '更多操作'"
                   @click.stop="onMore(p)"
                 >
                   <MiniIcon name="more" :size="13" />
                 </button>
+                <!-- 🔴 真正的下拉菜单：此前「···」直接触发复制，没有任何菜单 -->
+                <div
+                  v-if="moreMenuFor === String(p.id)"
+                  class="pg-menu"
+                  @click.stop
+                >
+                  <button type="button" class="pg-menu__item" @click="renamePage(p)">
+                    <MiniIcon name="pen" :size="13" />重命名
+                  </button>
+                  <button type="button" class="pg-menu__item" @click="copyPage(p)">
+                    <MiniIcon name="copy" :size="13" />复制为新页面
+                  </button>
+                  <button
+                    type="button"
+                    class="pg-menu__item"
+                    @click="closeMore(); router.push('/mini/versions')"
+                  >
+                    <MiniIcon name="clock" :size="13" />查看版本历史
+                  </button>
+                  <div class="pg-menu__sep" />
+                  <button type="button" class="pg-menu__item is-danger" @click="deleteOne(p)">
+                    <MiniIcon name="trash" :size="13" />删除页面
+                  </button>
+                </div>
               </div>
             </td>
           </tr>
@@ -825,6 +1111,77 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 }
 .pg-path { color: var(--saas-ink-3); font-size: var(--saas-fs-mono); }
 .pg-act { justify-content: flex-end; min-width: 132px; }
+
+/* ── 批量操作栏（2026-10-06）────────────────────────────────────────────
+   选中 > 0 时才占位。position: sticky 贴在表格上方，
+   滚动长列表时也能一直看到「删掉了几个 / 还能取消」。 */
+.pg-batchbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--saas-accent);
+  border-radius: var(--saas-r-md);
+  background: var(--saas-accent-subtle);
+}
+
+/* ── 行内「···」下拉菜单 ────────────────────────────────────────────────
+   绝对定位挂在行内按钮旁；行有 overflow:hidden 时会被裁掉，
+   所以菜单放在 .pg-act 之外由 .pg-tablewrap 提供定位上下文。 */
+.pg-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  min-width: 172px;
+  padding: 4px;
+  border: 1px solid var(--saas-border-strong);
+  border-radius: var(--saas-r-md);
+  background: var(--saas-surface);
+  box-shadow: var(--saas-shadow-md);
+}
+.pg-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--saas-r-sm);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--saas-fs-cap);
+  color: var(--saas-ink);
+  text-align: left;
+  cursor: pointer;
+  &:hover { background: var(--saas-sunken); }
+  &.is-danger { color: var(--saas-danger); }
+}
+.pg-menu__sep { height: 1px; margin: 4px 0; background: var(--saas-border); }
+
+/* 让行成为菜单的定位上下文 */
+.saas-table tbody tr { position: relative; }
+
+/* ── 多选列（2026-10-06）────────────────────────────────────────────────
+   🔴 不能复用 `is-shrink`（它是 width:1%）：系统原生页没有 checkbox，
+   该列会塌缩到最窄，导致那一行的文字整体左移一格、看起来"错位"。
+   这里给固定宽度，且空单元格用 <span> 占位，保证所有行对齐。 */
+.pg-checkcell {
+  width: 38px;
+  padding: 0 0 0 14px !important;
+  vertical-align: middle;
+}
+.pg-checkcell input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
 
 /* ── 骨架屏 ────────────────────────────────────────────────────────────── */
 .pg-skel { padding: 8px; }

@@ -10,8 +10,8 @@
             <el-icon><Brush /></el-icon>
             进入装修
           </el-button>
-          <el-button @click="router.push('/mini/releases')">搭建工作台</el-button>
-          <el-button @click="router.push('/mini/appearance?tab=brand')">品牌信息</el-button>
+          <el-button @click="router.push('/mini/versions')">搭建工作台</el-button>
+          <el-button @click="router.push('/mini/workbench?tab=brand')">品牌信息</el-button>
         </template>
       </template>
     </PageHeader>
@@ -127,7 +127,7 @@
               <el-button
                 link
                 type="primary"
-                @click="router.push(row.id ? `/mini/pages/${row.id}/editor` : '/mini/releases')"
+                @click="router.push(row.id ? `/mini/pages/${row.id}/editor` : '/mini/versions')"
               >
                 进入装修
               </el-button>

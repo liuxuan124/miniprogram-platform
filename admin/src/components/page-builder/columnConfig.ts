@@ -78,8 +78,52 @@ export function isMockColumn(id: unknown): boolean {
   return String(id ?? '').startsWith(MOCK_ID_PREFIX)
 }
 
-/** 取配置里的「演示数据」开关；老 DSL 没有这个键 → 默认开启 */
+/**
+ * 取配置里的「演示数据」开关。
+ *
+ * 🔴 2026-10-06 修正：原来**缺省返回 true**（老 DSL 没有这个键 → 开启）。
+ * 那意味着**任何没配专栏的页面，预览里都会冒出这 6 条「专栏名称示例N」**，
+ * 运营以为是自己配的内容，实际是研发演示数据漏到了用户面前。
+ * （诊断里报「精品专栏展示占位文案」，根因就在这里，不是脏数据。）
+ *
+ * 改成缺省 **false**：老 DSL 不显式开启就不给mock。
+ * 代价是**装修器里新拖入的专栏块会显示「暂无专栏」**——
+ * 这是正确的：空就是空，不该假装有内容。
+ * 需要演示数据的编辑场景，由装修器面板显式写 `preview_mock: true`。
+ *
+ * 判断依据：mock 是"演示"，演示数据出现在**面向用户的预览**里永远是错的，
+ * 不管它在不在真机上生效。
+ */
 export function previewMockEnabled(raw: Record<string, any> | undefined): boolean {
-  if (!raw || raw.preview_mock === undefined || raw.preview_mock === null) return true
+  if (!raw || raw.preview_mock === undefined || raw.preview_mock === null) return false
   return raw.preview_mock !== false
+}
+
+/**
+ * 发布前体检：检测组件里是否残留演示数据。
+ *
+ * 2026-10-06 新增。演示数据混进用户可见内容是**发布前必须拦住**的问题，
+ * 靠人眼在长页面里找「示例」「占位」是低效且不可靠的。
+ * 调用方：`usePreviewCheck`（搭建工作台 › 预览检查）。
+ */
+export function findMockLeak(config: Record<string, any> | undefined): string[] {
+  if (!config) return []
+  const found: string[] = []
+
+  if (previewMockEnabled(config)) {
+    found.push('该模块开启了演示数据（preview_mock），预览里显示的是示例内容')
+  }
+
+  // 组件文本里直接写了「示例 / 占位 / TODO」等研发字样
+  const text = JSON.stringify(config)
+  const patterns: Array<[RegExp, string]> = [
+    [/示例[一二三四五六七八九十\d]/, '文案里含「示例N」'],
+    [/用于占位|占位第|可直接替换/, '文案里含研发占位说明'],
+    [/\bTODO\b/, '文案里含 TODO'],
+    [/新入口/, '导航项名称为默认的「新入口」（未改名）'],
+  ]
+  for (const [re, label] of patterns) {
+    if (re.test(text)) found.push(label)
+  }
+  return found
 }

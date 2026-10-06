@@ -38,30 +38,28 @@ function makeJwt() {
  * 现在每个词都取自页面正文，登录页与骨架屏都不含。
  */
 const ROUTES = [
-  // ── 三个工作台（2026-10-06 第二次 IA 收敛后的全部可达入口）──────────────
+  // ── 四个入口（2026-10-06 用户指定版）──────────────────────────��─────────
   // 断言词一律取自**页面正文**，不能取自侧栏菜单文字 ——
   // 侧栏在登录页 DOM 里也存在，用它断言会得到「全部通过但截图全是登录页」的假结果。
+  { path: '/mini/workbench', name: '搭建工作台', expect: ['搭建工作台', '品牌信息', '系统功能', '导航配置', '预览检查'] },
+  { path: '/mini/workbench?tab=nav', name: '工作台›导航配置', expect: ['底部导航', '绑定检查'] },
+  { path: '/mini/workbench?tab=brand', name: '工作台›品牌信息', expect: ['品牌资产', '主色调'] },
+  { path: '/mini/workbench?tab=preview', name: '工作台›预览检查', expect: ['内容体检', '发布前检查', '草稿 / 线上预览'] },
   { path: '/mini/pages', name: '页面管理', expect: ['页面管理', '装修页', '系统原生页', '草稿候选'] },
-  { path: '/mini/appearance', name: '品牌与导航', expect: ['品牌与导航', '底部导航', '实时预览'] },
-  { path: '/mini/appearance?tab=brand', name: '品牌与导航›品牌资产', expect: ['品牌资产', '小程序名称', '主色调'] },
-  // mock 里给了 plugins 配置 → 渲染的是开关列表而非空态，所以断言词要用
-  // 「有配置时也会出现」的文案。附一条 mustNot：[object Object] ——
-  // 2026-10-06 的 bug 就是按字符串数组解析对象数组导致的，这行是回归护栏。
-  {
-    path: '/mini/appearance?tab=flags',
-    name: '品牌与导航›功能开关',
-    expect: ['功能开关', '控制小程序里各功能的开放与关闭'],
-    mustNot: ['[object Object]'],
-  },
-  { path: '/mini/releases', name: '发版中心', expect: ['发版中心', '当前线上', '准备发布', '本次变更', '发布前检查'] },
+  { path: '/mini/versions', name: '版本管理', expect: ['版本管理', '当前线上', '准备发布', '本次变更', '发布前检查'] },
+  { path: '/mini/templates', name: '模板管理', expect: ['模板管理', '整店模板', '页面模板'] },
 
   // ── 旧地址必须仍可用（redirect 到新入口）─────────────────────────────
   // 这是"重构不破坏存量链接"的验收点，不是可选项。
-  { path: '/mini/overview', name: '旧:概览→发版中心', expect: ['发版中心'], redirect: true },
+  { path: '/mini/overview', name: '旧:概览→工作台', expect: ['搭建工作台'], redirect: true },
+  { path: '/mini/appearance', name: '旧:品牌与导航→工作台', expect: ['搭建工作台'], redirect: true },
+  { path: '/mini/releases', name: '旧:发版中心→版本管理', expect: ['版本管理'], redirect: true },
   { path: '/mini/brand', name: '旧:品牌信息→品牌面板', expect: ['品牌资产'], redirect: true },
-  { path: '/mini/page-config', name: '旧:页面配置→页面管理', expect: ['页面管理'], redirect: true },
+  { path: '/mini/system', name: '旧:系统功能→开关面板', expect: ['功能开关'], redirect: true },
   { path: '/mini/navigation', name: '旧:导航配置→导航面板', expect: ['底部导航'], redirect: true },
-  { path: '/mini/publish', name: '旧:发布与版本→发版中心', expect: ['发版中心'], redirect: true },
+  { path: '/mini/preview', name: '旧:预览检查→检查面板', expect: ['内容体检'], redirect: true },
+  { path: '/mini/page-config', name: '旧:页面配置→页面管理', expect: ['页面管理'], redirect: true },
+  { path: '/mini/publish', name: '旧:发布与版本→版本管理', expect: ['版本管理'], redirect: true },
 
   // ── 两个固定页仍是独立页（沉浸式配置面板）────────────────────────────
   { path: '/page-builder/mine', name: '我的页配置', expect: ['我的页', '保存草稿', '发布配置'] },
@@ -369,8 +367,16 @@ if (ERROR_MODE) {
   //    2026-10-06 事故的根因就是异常被静默降级成空数组。
   const ERROR_CASES = [
     { path: '/mini/pages', must: ['读取失败'], mustNot: ['还没有页面'] },
-    { path: '/mini/appearance', must: ['读取失败'], mustNot: ['绑定的页面已不存在'] },
-    { path: '/mini/releases', must: ['无法确认'], mustNot: ['没有阻断项'] },
+    // ⚠️ 这里刻意断言**后端真实原因**（「每页数量不能超过 100」）而不是笼统的「读取失败」。
+    //    2026-10-06 实测：页面把后端原话显示出来 + 说明影响范围，是更好的做法；
+    //    断言若写死「读取失败」反而会把更好的实现判为失败。
+    //    mustNot 才是真正的护栏：不能出现"页面不存在"这类误导结论。
+    {
+      path: '/mini/workbench',
+      must: ['每页数量不能超过 100', '绑定检查'],
+      mustNot: ['绑定的页面已不存在', '还没有页面'],
+    },
+    { path: '/mini/versions', must: ['无法确认'], mustNot: ['没有阻断项'] },
   ]
   let errCasePass = 0
   for (const c of ERROR_CASES) {
@@ -428,7 +434,7 @@ console.log(widthIssues.length ? `RESULT: FAIL ${widthIssues.length} 处` : 'RES
 /* ------------------------------------------------------------------ */
 console.log('\n================ 专项：侧栏信息架构 ================')
 await page.setViewportSize({ width: 1440, height: 980 })
-await page.goto(`${BASE}/mini/pages`, { waitUntil: 'domcontentloaded' })
+await page.goto(`${BASE}/mini/workbench`, { waitUntil: 'domcontentloaded' })
 await page.waitForTimeout(2000)
 
 // 一次进入页面把侧栏结构取全（🔴 必须在 evaluate 内访问 document，
@@ -457,7 +463,7 @@ const ia = await page.evaluate(() => {
 })
 
 const iaProblems = []
-const EXPECT = ['页面管理', '品牌与导航', '发版中心']
+const EXPECT = ['搭建工作台', '页面管理', '版本管理', '模板管理']
 const miniGroup = ia.groups.find((g) => g.title === '小程序')
 if (!miniGroup) {
   iaProblems.push('侧栏找不到「小程序」分组')
@@ -472,7 +478,7 @@ console.log(`侧栏分组数: ${ia.groups.length}`)
 console.log(`小程序分组下可见项: ${ia.miniTitles.join(' / ')}`)
 console.log(`当前选中项数: ${ia.activeCount}`)
 for (const p of iaProblems) console.log(`❌ ${p}`)
-if (!iaProblems.length) console.log('✅ 小程序分组为 3 个工作台、无 3 级目录、选中态唯一')
+if (!iaProblems.length) console.log('✅ 小程序分组为 4 个入口、无 3 级目录、选中态唯一')
 
 // 折叠稳定性：手动收起「小程序」组后，切路由验证它不会被自动顶开
 if (miniGroup) {

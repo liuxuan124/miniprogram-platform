@@ -19,7 +19,9 @@
       size="small"
       @change="onInput"
     />
-    <span class="num-slider__unit">{{ unit }}</span>
+    <!-- 🔴 单位可为空：数量类字段（条数/个数/篇数）本来就没有单位，
+         渲染空 span 会留下一段无意义的空白间距。 -->
+    <span v-if="displayUnit" class="num-slider__unit">{{ displayUnit }}</span>
   </div>
 </template>
 
@@ -47,15 +49,35 @@ const props = withDefaults(
     step?: number
     /** 越界时的兜底值（留空则用 min） */
     fallback?: number
-    /** 单位后缀；像素类传 'px'，计件类传 '篇'/'个'/'条' 等 */
+    /**
+     * 单位后缀；像素类传 'px'，计件类传 '篇'/'个'/'条' 等。
+     * 🔴 留空**不带单位**（数量类字段的正确形态）。
+     */
     unit?: string
+    /**
+     * 业务语义（2026-10-06 新增）—— 由调用方告知这是「长度」还是「数量」。
+     *
+     * 🔴 为什么加这个：原来 `unit` 默认 `'px'`，于是「每页条数 6 px」
+     * 「商品数量 8 px」这种错配会静默出现 —— 运营看到 px 会以为在调间距。
+     * 靠「每个调用方都记得传」不可靠（全站 70 处use，历史上已漏传多次），
+     * 所以这里**由语义推导**：`count` → 强制无单位，从根上不可能错。
+     */
+    semantic?: 'length' | 'count'
   }>(),
-  { min: 0, max: 48, step: 1, unit: 'px' },
+  { min: 0, max: 48, step: 1, unit: 'px', semantic: 'length' },
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: number] }>()
 
 const fallback = computed(() => props.fallback ?? props.min)
+
+/**
+ * 实际展示的单位。
+ * 🔴 `semantic === 'count'` 时**强制无单位**——
+ * 哪怕调用方漏传/传错unit，数量类也不可能显示 px。
+ * 这是「防呆」而不是「约定」：约定会被遗忘，防呆不会。
+ */
+const displayUnit = computed(() => (props.semantic === 'count' ? '' : props.unit))
 
 /** 展示值也夹紧：手输 999 时输入框立即回弹，不让非法值停留在界面 */
 const current = computed(() => {

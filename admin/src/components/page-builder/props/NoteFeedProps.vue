@@ -23,6 +23,7 @@
                 :max="PAGE_SIZE.max"
                 :step="PAGE_SIZE.step"
                 @update:model-value="(v: number) => patch({ page_size: v })"
+              semantic="count"
               />
             </el-form-item>
           </el-form>
@@ -288,301 +289,25 @@
       </el-tab-pane>
 
       <!-- ============ 样式配置 ============ -->
+            <!--
+        🔴 2026-10-06 样式页签已整体迁到 `NoteFeedStyleProps.vue`
+        （注册在 PropsPanel 的 stylePanelMap 里，显示在右侧「样式」tab 的最上方）。
+        迁走的原因：笔记流原先**没注册**专属样式面板，走的是通用面板，
+        导致两层导航底色 / 分类标题样式这些字段写进了 Schema 却**界面无入口**。
+
+        ⚠️ 这里是**故意留空**，不要把样式配置搬回来 ——
+        同一属性两处可改，运营改一处另一处不动会以为没生效。
+        内容页签只保留「这个组件显示什么内容」，视觉规则全在样式页签。
+      -->
       <el-tab-pane label="样式" name="style">
         <div class="nfp-sec">
-          <div class="nfp-sec__head"><span class="nfp-sec__title">Tab 导航栏样式</span></div>
-          <el-form label-width="76px" size="small">
-            <el-form-item label="Tab 字号">
-              <NumSliderRow
-                :model-value="cfg.tab_font_size"
-                :min="TAB_FONT_SIZE.min"
-                :max="TAB_FONT_SIZE.max"
-                :step="TAB_FONT_SIZE.step"
-                @update:model-value="(v: number) => patch({ tab_font_size: v })"
-              />
-            </el-form-item>
-            <el-form-item label="选中高亮">
-              <GridSegmented
-                :model-value="cfg.tab_active_style"
-                :options="TAB_ACTIVE_OPTS"
-                :cols="3"
-                aria-label="选中高亮形态"
-                @update:model-value="(v) => patch({ tab_active_style: v })"
-              />
-            </el-form-item>
-            <el-form-item label="激活主色">
-              <ColorPickerField
-                :model-value="cfg.tab_active_color"
-                label=""
-                :predefine="BRAND_PALETTE"
-                hint="留空则跟随站点主题色"
-                @update:model-value="(v: string) => patch({ tab_active_color: v })"
-              />
-              <el-button size="small" text @click="patch({ tab_active_color: '' })">跟随主题色</el-button>
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- ============ 导航区背景（2026-10-06 新增） ============
-             此前整片导航区与两层底色全部硬编码在渲染器里，
-             截图里「包住两层导航的白底」换主题时只能改代码。 -->
-        <div class="nfp-sec">
-          <div class="nfp-sec__head"><span class="nfp-sec__title">导航区背景</span></div>
-          <el-form label-width="76px" size="small">
-            <el-form-item label="导航底色">
-              <ColorPickerField
-                :model-value="cfg.nav_bg"
-                label=""
-                :predefine="BRAND_PALETTE"
-                hint="留空 = 透明（跟随页面背景）"
-                @update:model-value="(v: string) => patch({ nav_bg: v })"
-              />
-              <el-button size="small" text @click="patch({ nav_bg: '' })">透明</el-button>
-            </el-form-item>
-            <el-form-item label="导航圆角">
-              <NumSliderRow
-                :model-value="cfg.nav_radius"
-                :min="NAV_RADIUS.min"
-                :max="NAV_RADIUS.max"
-                :step="NAV_RADIUS.step"
-                unit="px"
-                @update:model-value="(v: number) => patch({ nav_radius: v })"
-              />
-              <FieldHint text="0 = 直角；配了底色时圆角才看得出效果" />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- ============ 首层导航（全部/笔记/长文/好物） ============ -->
-        <div class="nfp-sec">
           <div class="nfp-sec__head">
-            <span class="nfp-sec__title">首层导航</span>
-            <span class="nfp-sec__hint">内容类型切换</span>
+            <span class="nfp-sec__title">样式配置</span>
           </div>
-          <el-form label-width="76px" size="small">
-            <el-form-item label="底色">
-              <ColorPickerField
-                :model-value="cfg.tab_bar_bg"
-                label=""
-                :predefine="BRAND_PALETTE"
-                hint="留空 = 透明"
-                @update:model-value="(v: string) => patch({ tab_bar_bg: v })"
-              />
-              <el-button size="small" text @click="patch({ tab_bar_bg: '' })">透明</el-button>
-            </el-form-item>
-            <el-form-item label="分割线">
-              <ColorPickerField
-                :model-value="cfg.tab_divider_color"
-                label=""
-                :predefine="BRAND_PALETTE"
-                hint="留空 = 不画分割线"
-                @update:model-value="(v: string) => patch({ tab_divider_color: v })"
-              />
-              <el-button size="small" text @click="patch({ tab_divider_color: '' })">去掉</el-button>
-            </el-form-item>
-            <el-form-item label="未选文字">
-              <ColorPickerField
-                :model-value="cfg.tab_text_color"
-                label=""
-                :predefine="BRAND_PALETTE"
-                hint="选中的颜色用上面的「激活主色」"
-                @update:model-value="(v: string) => patch({ tab_text_color: v })"
-              />
-            </el-form-item>
-            <el-form-item label="字间距">
-              <NumSliderRow
-                :model-value="cfg.tab_gap"
-                :min="TAB_GAP.min"
-                :max="TAB_GAP.max"
-                :step="TAB_GAP.step"
-                unit="px"
-                @update:model-value="(v: number) => patch({ tab_gap: v })"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <!-- ============ 次层分类胶囊（亚马逊/TikTok…） ============ -->
-        <div class="nfp-sec">
-          <div class="nfp-sec__head">
-            <span class="nfp-sec__title">分类标题</span>
-            <span class="nfp-sec__hint">第二行平台分类</span>
+          <div class="shell-note--flat">
+            笔记瀑布流的视觉配置（两层导航、卡片、配色）已移至右侧「样式」页签顶部。
           </div>
-          <el-form label-width="76px" size="small">
-            <el-form-item label="字号">
-              <NumSliderRow
-                :model-value="cfg.sub_tab_font_size"
-                :min="SUB_TAB_FONT.min"
-                :max="SUB_TAB_FONT.max"
-                :step="SUB_TAB_FONT.step"
-                unit="px"
-                @update:model-value="(v: number) => patch({ sub_tab_font_size: v })"
-              />
-            </el-form-item>
-            <el-form-item label="常态底色">
-              <ColorPickerField
-                :model-value="cfg.sub_tab_bg"
-                label=""
-                :predefine="BRAND_PALETTE"
-                @update:model-value="(v: string) => patch({ sub_tab_bg: v })"
-              />
-            </el-form-item>
-            <el-form-item label="常态文字">
-              <ColorPickerField
-                :model-value="cfg.sub_tab_text_color"
-                label=""
-                :predefine="BRAND_PALETTE"
-                @update:model-value="(v: string) => patch({ sub_tab_text_color: v })"
-              />
-            </el-form-item>
-            <el-form-item label="选中底色">
-              <ColorPickerField
-                :model-value="cfg.sub_tab_active_bg"
-                label=""
-                :predefine="BRAND_PALETTE"
-                @update:model-value="(v: string) => patch({ sub_tab_active_bg: v })"
-              />
-            </el-form-item>
-            <el-form-item label="选中文字">
-              <ColorPickerField
-                :model-value="cfg.sub_tab_active_color"
-                label=""
-                :predefine="BRAND_PALETTE"
-                @update:model-value="(v: string) => patch({ sub_tab_active_color: v })"
-              />
-            </el-form-item>
-            <el-form-item label="胶囊圆角">
-              <NumSliderRow
-                :model-value="cfg.sub_tab_radius"
-                :min="SUB_TAB_RADIUS.min"
-                :max="SUB_TAB_RADIUS.max"
-                :step="SUB_TAB_RADIUS.step"
-                unit="px"
-                @update:model-value="(v: number) => patch({ sub_tab_radius: v })"
-              />
-              <FieldHint text="999 = 全圆胶囊；0 = 直角矩形" />
-            </el-form-item>
-            <el-form-item label="内边距">
-              <NumSliderRow
-                :model-value="cfg.sub_tab_padding_x"
-                :min="SUB_TAB_PADDING.min"
-                :max="SUB_TAB_PADDING.max"
-                :step="SUB_TAB_PADDING.step"
-                unit="px"
-                @update:model-value="(v: number) => patch({ sub_tab_padding_x: v })"
-              />
-              <FieldHint text="文字左右留白，决定胶囊宽度" />
-            </el-form-item>
-            <el-form-item label="胶囊间距">
-              <NumSliderRow
-                :model-value="cfg.sub_tab_gap"
-                :min="SUB_TAB_GAP_RANGE.min"
-                :max="SUB_TAB_GAP_RANGE.max"
-                :step="SUB_TAB_GAP_RANGE.step"
-                unit="px"
-                @update:model-value="(v: number) => patch({ sub_tab_gap: v })"
-              />
-            </el-form-item>
-          </el-form>
         </div>
-
-        <div class="nfp-sec">
-          <div class="nfp-sec__head"><span class="nfp-sec__title">卡片间距与容器</span></div>
-          <el-form label-width="76px" size="small">
-            <el-form-item label="卡片间距">
-              <NumSliderRow
-                :model-value="cfg.item_gap"
-                :min="ITEM_GAP.min"
-                :max="ITEM_GAP.max"
-                :step="ITEM_GAP.step"
-                @update:model-value="(v: number) => patch({ item_gap: v })"
-              />
-              <FieldHint text="两列之间的缝隙，小红书标准 8~10px" />
-            </el-form-item>
-            <el-form-item label="卡片圆角">
-              <NumSliderRow
-                :model-value="cfg.item_border_radius"
-                :min="ITEM_RADIUS.min"
-                :max="ITEM_RADIUS.max"
-                :step="ITEM_RADIUS.step"
-                @update:model-value="(v: number) => patch({ item_border_radius: v })"
-              />
-            </el-form-item>
-            <el-form-item label="左右边距">
-              <NumSliderRow
-                :model-value="cfg.page_gutter"
-                :min="PAGE_GUTTER.min"
-                :max="PAGE_GUTTER.max"
-                :step="PAGE_GUTTER.step"
-                @update:model-value="(v: number) => patch({ page_gutter: v })"
-              />
-              <FieldHint text="0 = 贴边，16 = 最大留白" />
-            </el-form-item>
-            <el-form-item label="卡片底色">
-              <ColorPickerField
-                :model-value="cfg.card_bg"
-                label=""
-                default-value="#ffffff"
-                :predefine="BRAND_PALETTE"
-                @update:model-value="(v: string) => patch({ card_bg: v })"
-              />
-            </el-form-item>
-            <el-form-item label="列表底色">
-              <ColorPickerField
-                :model-value="cfg.background_color"
-                label=""
-                default-value="#f7f7f7"
-                :predefine="['#f7f7f7', '#ffffff', '#fff5eb', '#f0f5ff', '#fdf6ec', '#1f1f1f']"
-                @update:model-value="(v: string) => patch({ background_color: v })"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <div class="nfp-sec">
-          <div class="nfp-sec__head"><span class="nfp-sec__title">卡片文本排版</span></div>
-          <el-form label-width="76px" size="small">
-            <el-form-item label="标题字号">
-              <NumSliderRow
-                :model-value="cfg.title_size"
-                :min="TITLE_SIZE.min"
-                :max="TITLE_SIZE.max"
-                :step="TITLE_SIZE.step"
-                @update:model-value="(v: number) => patch({ title_size: v })"
-              />
-              <FieldHint :text="`${TITLE_SIZE.min}~${TITLE_SIZE.max}px，与真机所见一致（此前填 32 实际只有约 16px）`" />
-            </el-form-item>
-            <el-form-item label="标题行数">
-              <GridSegmented
-                :model-value="cfg.title_lines"
-                :options="TITLE_LINES_OPTS"
-                :cols="3"
-                aria-label="标题行数限制"
-                @update:model-value="(v) => patch({ title_lines: Number(v) })"
-              />
-            </el-form-item>
-            <el-form-item label="正文字色">
-              <ColorPickerField
-                :model-value="cfg.text_color"
-                label=""
-                default-value="#333333"
-                :predefine="BRAND_PALETTE"
-                @update:model-value="(v: string) => patch({ text_color: v })"
-              />
-            </el-form-item>
-            <el-form-item label="辅助字色">
-              <ColorPickerField
-                :model-value="cfg.meta_color"
-                label=""
-                default-value="#7b8798"
-                :predefine="BRAND_PALETTE"
-                @update:model-value="(v: string) => patch({ meta_color: v })"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-
-        <SourceTagFields :props="data" @update="(v) => patch(v)" />
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -612,22 +337,10 @@ import {
   FILTER_OPTS,
   GALLERY_BADGE_OPTS,
   GLOBAL_LAYOUT_OPTS,
-  ITEM_GAP,
-  ITEM_RADIUS,
-  PAGE_GUTTER,
   PAGE_LAYOUT_OPTS,
   PAGE_SIZE,
   SORT_OPTS,
-  NAV_RADIUS,
-  SUB_TAB_FONT,
-  SUB_TAB_GAP_RANGE,
-  SUB_TAB_PADDING,
-  SUB_TAB_RADIUS,
-  TAB_ACTIVE_OPTS,
-  TAB_FONT_SIZE,
-  TAB_GAP,
   TITLE_LINES_OPTS,
-  TITLE_SIZE,
   deriveLegacyFields,
   normalizeNoteFeedProps,
   tabSummary,

@@ -122,3 +122,82 @@ describe('noteFeed 两层导航样式', () => {
     expect(c.tab_active_style).toBe('bar')
   })
 })
+
+
+/* ============================================================
+ * 2026-10-06 第二批：指示器颜色 / 搜索图标 / 卡片阴影
+ * ============================================================ */
+describe('noteFeedSchema —— 解写死第二批（2026-10-06）', () => {
+  it('🔴 老页面零变化：指示器缺省 = #ec2f55（改前写死的红条）', () => {
+    const c = normalizeNoteFeedProps({})
+    expect(c.tab_indicator_color).toBe('#ec2f55')
+  })
+
+  it('🔴 老页面零变化：搜索图标色缺省 = 空（跟随未选文字色）', () => {
+    const c = normalizeNoteFeedProps({})
+    expect(c.search_icon_color).toBe('')
+  })
+
+  it('🔴 关键：阴影缺省必须是 light 而不是 none（原渲染器本就写了微光）', () => {
+    const c = normalizeNoteFeedProps({})
+    // 若回落 none，所有老页面加载后会集体「丢失阴影」
+    expect(c.card_shadow).toBe('light')
+    // 且必须与改前的原值对应
+    expect(NOTE_FEED_DEFAULT_PROPS.card_shadow).toBe('light')
+  })
+
+  it('阴影预设四档都能落库，非法值回落 light', () => {
+    expect(normalizeNoteFeedProps({ card_shadow: 'none' }).card_shadow).toBe('none')
+    expect(normalizeNoteFeedProps({ card_shadow: 'normal' }).card_shadow).toBe('normal')
+    expect(normalizeNoteFeedProps({ card_shadow: 'custom' }).card_shadow).toBe('custom')
+    expect(normalizeNoteFeedProps({ card_shadow: 'xxx' }).card_shadow).toBe('light')
+  })
+
+  it('自定义阴影 5 个键都有值（缺一会被 shadow:0 吞掉）', () => {
+    const c = normalizeNoteFeedProps({ card_shadow: 'custom' })
+    expect(c.card_shadow_custom).toBeDefined()
+    for (const k of ['x', 'y', 'blur', 'spread', 'color']) {
+      expect(c.card_shadow_custom).toHaveProperty(k)
+    }
+  })
+
+  it('自定义阴影越界被夹紧，且不产生 NaN', () => {
+    const c = normalizeNoteFeedProps({ card_shadow_custom: { x: 999, y: -999, blur: 'abc', spread: null } })
+    const b = c.card_shadow_custom
+    expect(Number.isFinite(b.x)).toBe(true)
+    expect(Number.isFinite(b.y)).toBe(true)
+    expect(Number.isFinite(b.blur)).toBe(true)
+    expect(Number.isFinite(b.spread)).toBe(true)
+    expect(b.x).toBeLessThanOrEqual(20)
+    expect(b.y).toBeGreaterThanOrEqual(-20)
+    //非法值回落缺省 blur=12
+    expect(b.blur).toBe(12)
+  })
+
+  it('⚠️ 空串与缺省要区分：显式空串= 跟随激活色，不回落红条', () => {
+    // 缺省 → 拿到红条（老页面不变）
+    expect(normalizeNoteFeedProps({}).tab_indicator_color).toBe('#ec2f55')
+    // 显式空串 → 保持空（渲染器据此回退激活主色）
+    expect(normalizeNoteFeedProps({ tab_indicator_color: '' }).tab_indicator_color).toBe('')
+  })
+
+  it('部分传入的自定义阴影不丢键（浅合并陷阱）', () => {
+    const c = normalizeNoteFeedProps({ card_shadow_custom: { x: 4 } })
+    expect(c.card_shadow_custom.x).toBe(4)
+    // 其余键必须有缺省，不能是 undefined
+    expect(typeof c.card_shadow_custom.y).toBe('number')
+    expect(typeof c.card_shadow_custom.blur).toBe('number')
+    expect(typeof c.card_shadow_custom.spread).toBe('number')
+    expect(typeof c.card_shadow_custom.color).toBe('string')
+  })
+
+  it('本批新增字段不影响其它字段（旧配置不变）', () => {
+    const c = normalizeNoteFeedProps({})
+    expect(c.tab_gap).toBe(18)
+    expect(c.sub_tab_bg).toBe('#f5f6f9')
+    // ⚠️ show_search **未传时缺省是 false**（Schema 原实现如此），
+    // 面板开关必须用 `=== true` 判断，写成 `!== false` 会让未配置显示成「开」
+    // 但渲染器不画图标 —— 面板与画布对不上。
+    expect(c.show_search).toBe(false)
+  })
+})

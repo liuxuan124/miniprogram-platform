@@ -319,14 +319,26 @@
               @update:model-value="onPaddingPatch"
             />
 
+            <!-- 🔴 2026-10-06 UI 降噪：原来开关下方常驻两行长文本，占掉一整块版面。
+                 按需求收拢成 Label 旁的 Hover 气泡 —— 信息没丢，但不占常态空间。
+                 ⚠️ 用 el-tooltip 而不是 title：原生 title 有延迟、样式不可控。 -->
             <div class="flat-row">
-              <span class="flat-row__lab">组件可见</span>
+              <span class="flat-row__lab">
+                <el-tooltip
+                  content="关闭后移动端不渲染该组件；画布中保留并标「已隐藏」，便于继续编辑。"
+                  placement="top"
+                >
+                  <span class="flat-row__lab-tip">
+                    组件可见
+                    <i class="flat-row__lab-q">?</i>
+                  </span>
+                </el-tooltip>
+              </span>
               <el-switch
                 :model-value="currentStyle.visible !== false"
                 @change="(v: boolean) => updateStyle('visible', v)"
               />
             </div>
-            <p class="flat-note">关闭后小程序端不渲染该组件；画布仍保留并标「已隐藏」，便于继续编辑。</p>
           </StyleFoldGroup>
 
           <StyleFoldGroup
@@ -906,6 +918,11 @@ for (const meta of WARM_KIT_METAS) {
  */
 const stylePanelMap: Record<string, any> = {
   [ComponentType.PlanetFeed]: defineAsyncComponent(() => import('./props/PlanetFeedStyleProps.vue')),
+  // 🔴 笔记瀑布流（2026-10-06 补注册）：此前**没注册**，走的是通用样式面板，
+  // 于是「两层导航底色 / 首层分割线 / 分类标题胶囊」全无处可调 ——
+  // 字段写进了 Schema 但界面没入口，等于配不了。
+  // 这类「纯视觉规则」与星球流/文章列表同理，应放样式页签而非内容页签。
+  [ComponentType.NoteFeed]: defineAsyncComponent(() => import('./props/NoteFeedStyleProps.vue')),
   // 文章列表：字号/条目间距属纯视觉规则，留在内容页签会让运营为找一个字号滚过 6 个业务区块
   [ComponentType.ArticleList]: defineAsyncComponent(() => import('./props/ArticleListStyleProps.vue')),
   // 品牌专栏：布局方式 / 信息显隐 / 卡片圆角与间距同理，挪到样式页签
@@ -1639,8 +1656,9 @@ async function onCopyPath() {
   min-height: 0;
   /* 🔴 底部安全区（2026-10-06 需求「全局悬浮层防遮挡」）：
      右下角常驻 AI 助手 Dock（收起态约 34×180）会盖住面板最后几行 ——
-     表现是「最后一个字段点不到 / 看不见」。88px 让内容能滚过悬浮层下方。 */
-  padding: 0 16px 88px;
+     表现是「最后一个字段点不到 / 看不见」。96px 让内容能滚过悬浮层下方
+   （2026-10-06 由 88px 调大：AI 助手与浮动保存条实测占位更高）。*/
+  padding: 0 16px 96px;
   overflow: hidden;
   background: #fff;
 }
@@ -1674,7 +1692,7 @@ async function onCopyPath() {
   flex: 1 1 auto;
   min-height: 0;
   /* 底部安全区要给在真正滚动这一层，给根容器会被 overflow:hidden 裁掉 */
-  padding-bottom: 88px;
+  padding-bottom: 96px;
   overflow-y: auto;
   overflow-x: hidden;
   /* Firefox 用标准属性（Chrome/Edge 走下面的 ::-webkit-* 伪元素，两套互不冲突）*/
@@ -2293,4 +2311,34 @@ async function onCopyPath() {
 .shadow-custom-item--color {
   grid-column: 1 / -1;
 }
+
+/* ---------------- 可见性说明收拢为 Hover 气泡（2026-10-06） ---------------- */
+.flat-row__lab-tip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  cursor: help;
+}
+
+/* 问号小圆点：只在需要解释的字段出现，不是每个字段都挂 */
+.flat-row__lab-q {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  color: #a8b3c4;
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1;
+  border: 1px solid #dfe3ea;
+  border-radius: 50%;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.flat-row__lab-tip:hover .flat-row__lab-q {
+  color: var(--el-color-primary, #c08e6e);
+  border-color: var(--el-color-primary, #c08e6e);
+}
+
 </style>

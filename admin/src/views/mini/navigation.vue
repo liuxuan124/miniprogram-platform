@@ -11,9 +11,9 @@
           :on-retry="flushTabDraft"
         >
           <template #actions>
-            <el-button @click="router.push('/mini/appearance?tab=brand')">品牌信息</el-button>
-            <el-button @click="router.push('/mini/releases')">预览检查</el-button>
-            <el-button type="primary" @click="router.push('/mini/releases')">去发布与版本</el-button>
+            <el-button @click="router.push('/mini/workbench?tab=brand')">品牌信息</el-button>
+            <el-button @click="router.push('/mini/versions')">预览检查</el-button>
+            <el-button type="primary" @click="router.push('/mini/versions')">去发布与版本</el-button>
           </template>
 
           <template #help>
@@ -597,7 +597,7 @@ type NavCheck = { level: 'blocking' | 'warning' | 'ok'; text: string; fixTo?: st
 const navChecks = computed<NavCheck[]>(() => {
   const list = tabs.value
   if (!list.length) {
-    return [{ level: 'blocking', text: '还没有任何导航入口，小程序将不显示底部 Tab 栏', fixTo: '/mini/appearance?tab=nav' }]
+    return [{ level: 'blocking', text: '还没有任何导航入口，小程序将不显示底部 Tab 栏', fixTo: '/mini/workbench?tab=nav' }]
   }
 
   const out: NavCheck[] = []
@@ -606,14 +606,14 @@ const navChecks = computed<NavCheck[]>(() => {
     out.push({
       level: 'blocking',
       text: `当前只有 ${list.length} 个入口，小程序要求 ${TABBAR_MIN} ~ ${TABBAR_MAX} 个`,
-      fixTo: '/mini/appearance?tab=nav',
+      fixTo: '/mini/workbench?tab=nav',
     })
   }
   if (list.length > TABBAR_MAX) {
     out.push({
       level: 'warning',
       text: `当前有 ${list.length} 个入口，超过微信上限 ${TABBAR_MAX} 个，多余的不会被显示`,
-      fixTo: '/mini/appearance?tab=nav',
+      fixTo: '/mini/workbench?tab=nav',
     })
   }
 
@@ -622,7 +622,7 @@ const navChecks = computed<NavCheck[]>(() => {
     out.push({
       level: 'blocking',
       text: `${unnamed.length} 个导航没有名称，小程序 Tab 会显示空文字`,
-      fixTo: '/mini/appearance?tab=nav',
+      fixTo: '/mini/workbench?tab=nav',
     })
   }
 
@@ -665,7 +665,7 @@ const navChecks = computed<NavCheck[]>(() => {
         out.push({
           level: 'blocking',
           text: `「${label}」指向的页面不存在（${path || `ID ${pid}`}），请重新绑定`,
-          fixTo: '/mini/appearance?tab=nav',
+          fixTo: '/mini/workbench?tab=nav',
         })
         continue
       }
@@ -687,7 +687,7 @@ const navChecks = computed<NavCheck[]>(() => {
         out.push({
           level: 'warning',
           text: `「${label}」指向的页面「${hit.name}」还是草稿，发布配置后才会生效`,
-          fixTo: '/mini/releases',
+          fixTo: '/mini/versions',
         })
       } else {
         out.push({ level: 'ok', text: `「${label}」→ ${hit.name}（${hit.path}）已上线` })
@@ -700,7 +700,7 @@ const navChecks = computed<NavCheck[]>(() => {
     out.push({
       level: 'warning',
       text: `${hidden.length} 个入口已设为隐藏，用户在小程序里看不到`,
-      fixTo: '/mini/appearance?tab=nav',
+      fixTo: '/mini/workbench?tab=nav',
     })
   }
 

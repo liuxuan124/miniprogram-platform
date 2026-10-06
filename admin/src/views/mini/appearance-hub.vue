@@ -34,16 +34,48 @@ import { normalizeTabBarItems, TABBAR_MIN, TABBAR_MAX } from '@/utils/tabbar'
 import { parseFeatureFlags } from '@/constants/featureMeta'
 import { DEFAULT_MINIAPP_BRAND_CONFIG, type MiniappBrandConfig, type NavTab } from '@/types/miniapp'
 import type { PageRecord } from '@/types/page'
+import DevicePreview from '@/components/mini/DevicePreview.vue'
+import MiniH5QrDialog from '@/components/mini/MiniH5QrDialog.vue'
+import { usePreviewCheck, PREVIEW_MODES } from '@/composables/usePreviewCheck'
 
-defineOptions({ name: 'MiniAppearanceHub' })
+defineOptions({ name: 'MiniWorkbench' })
 
 const router = useRouter()
 
-type TabKey = 'nav' | 'brand' | 'flags'
-const tab = ref<TabKey>('nav')
+/**
+ * 搭建工作台的四个环节。
+ *
+ * 🔴 为什么是这四个、而不是原来「品牌/导航/开关」三个 Tab：
+ *   任务书要求「让用户能直接在工作台配置和操作」——
+ *   改完导航却看不到效果、也看不出能不能发，是原来 9 个平铺入口最大的问题
+ *   （配置在A 页、验证在 B 页、发布在 C 页）。
+ *   现在四个环节同处一页：改 → 看 → 查 → 发，中间不跳。
+ */
+type TabKey = 'brand' | 'flags' | 'nav' | 'preview'
+
+const WORKBENCH_TABS: Array<{ k: TabKey; t: string }> = [
+  { k: 'brand', t: '品牌信息' },
+  { k: 'flags', t: '系统功能' },
+  { k: 'nav', t: '导航配置' },
+  { k: 'preview', t: '预览检查' },
+]
+
+const tab = ref<TabKey>('brand')
+
+/**
+ * 预览检查。与旧 preview-check 页共用同一个 composable ——
+ * 🔴 必须同源：2026-10-06 出现过「工作台显示有阻断、预览页显示已完成」，
+ *    根因就是两处各算一套。这里不再重写任何判定逻辑。
+ */
+const preview = usePreviewCheck()
+const qrVisible = ref(false)
+/** 提醒默认折叠：它不影响"能不能发"，不该抢阻断项的注意力 */
+const warnOpen = ref(false)
 
 const loading = ref(true)
 const loadError = ref('')
+/** 🔴 页面清单是否读取失败（与"真的没有页面"区分开） */
+const catFailed = ref(false)
 const saving = ref(false)
 
 const site = ref<MiniSiteVO>({})
@@ -250,9 +282,16 @@ const navChecks = computed(() => {
     }
     const hit = pages.value.find((p) => pageKey(p.id) === pid)
     if (!hit) {
-      // 🔴 页面列表读不到时不能断言"不存在" —— 那是指数据不可信，不是事实
+      // 🔴 页面列表读不到时不能断言"不存在" —— 那是指数据不可信，不是事实。
+      //    而且要区分两种「空」：接口失败 vs 真的一个页面都没有，
+      //    否则用户会把「接口挂了」当成「配置错了」去排查错方向。
       if (!pages.value.length) {
-        out.push({ level: 'warn', text: `「${label}」的绑定目标暂时无法核对` })
+        out.push({
+          level: 'warn',
+          text: catFailed.value
+            ? `「${label}」的绑定目标无法核对：页面清单读取失败`
+            : `「${label}」的绑定目标暂时无法核对`,
+        })
       } else {
         out.push({ level: 'danger', text: `「${label}」绑定的页面已不存在，请重新选择` })
       }
@@ -468,6 +507,7 @@ function flattenConfigs(d: any): Record<string, unknown> {
 async function load() {
   loading.value = true
   loadError.value = ''
+  catFailed.value = false
   try {
     site.value = (await getMiniSite('draft')) || {}
   } catch (e: unknown) {
@@ -475,6 +515,15 @@ async function load() {
   }
   const cat = await loadAllPages()
   pages.value = cat.status === 'ready' ? cat.pages : []
+  // 🔴 页面清单读不到必须让用户知道：它直接影响「绑定检查」的结论。
+  //   原来只把 pages 清空（`cat.status === 'ready' ? ... : []`），
+  //   结果错误被静默吞掉，绑定检查只能软化成「暂时无法核对」——
+  //   用户看不出「配置有问题」和「接口挂了」的区别。
+  //   这是2026-10-06「页面配置显示 0 条」同一个病根。
+  if (cat.status === 'error' && !loadError.value) {
+    catFailed.value = true
+    loadError.value = cat.error || '页面清单读取失败'
+  }
 
   try {
     const res = await getConfigsSilent()
@@ -486,7 +535,29 @@ async function load() {
   syncTabsFromSite()
   readBrand(configMap.value)
   readFeatures()
+  // 预览检查的数据与品牌/导航同源（都用站点草稿 + 页面清单），
+  // 一并加载，切到该 Tab 时不用再等一次接口
+  await preview.load()
   loading.value = false
+}
+
+/* ── 各环节的状态点（未完成时在 Tab 上显示）──────────────────────────────
+   用户不用逐个切进去才发现有事 —— 这是"工作台"相对"平铺菜单"的核心价值。
+   ⚠️ 放在 load() 之前声明：下面 tabBadge() 会引用 navIssues，
+      而它在 load() 之后定义 —— const 有TDZ，声明顺序不能颠倒。 */
+const navIssues = computed(() => navChecks.value.filter((c) => c.level === 'danger').length)
+
+function tabBadge(k: TabKey): string {
+  if (k === 'brand' && brandDirty.value) return 'var(--saas-warn)'
+  if (k === 'nav' && navIssues.value > 0) return 'var(--saas-danger)'
+  if (k === 'flags' && features.value.length && !features.value.some((f) => f.on)) {
+    return 'var(--saas-warn)'
+  }
+  if (k === 'preview') {
+    if (!preview.preflightKnown.value) return 'var(--saas-warn)'
+    if (preview.blockers.value.length) return 'var(--saas-danger)'
+  }
+  return ''
 }
 
 /* ── 快捷键 ────────────────────────────────────────────────────────────── */
@@ -505,10 +576,11 @@ onMounted(async () => {
 })
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
-/** 深链：?tab=brand 直接切到品牌面板 */
+/** 深链：?tab=xxx 直接切到对应环节（保留旧书签的定位能力） */
 onMounted(() => {
   const t = String(router.currentRoute.value.query.tab || '')
-  if (t === 'brand' || t === 'flags' || t === 'nav') tab.value = t as TabKey
+  const hit = WORKBENCH_TABS.find((x) => x.k === t)
+  if (hit) tab.value = hit.k
 })
 </script>
 
@@ -518,8 +590,11 @@ onMounted(() => {
     <section class="ap-main">
       <header class="ap-bar">
         <div>
-          <h1 class="saas-title">品牌与导航</h1>
-          <p class="saas-cap">小程序的全局外观与动线。改动存入草稿，到「发版中心」发布后生效。</p>
+          <h1 class="saas-title">搭建工作台</h1>
+          <p class="saas-cap">
+            配置品牌、系统功能与底部导航，并在这里预览与检查。
+            改动存入草稿，到「版本管理」发布后生效。
+          </p>
         </div>
         <button
           v-if="tab === 'brand'"
@@ -545,11 +620,7 @@ onMounted(() => {
 
       <nav class="saas-tabs" role="tablist" aria-label="配置分类">
         <button
-          v-for="t in [
-            { k: 'nav', t: '底部导航' },
-            { k: 'brand', t: '品牌资产' },
-            { k: 'flags', t: '功能开关' },
-          ]"
+          v-for="t in WORKBENCH_TABS"
           :key="t.k"
           type="button"
           role="tab"
@@ -558,20 +629,41 @@ onMounted(() => {
           @click="tab = t.k as TabKey"
         >
           {{ t.t }}
+          <!-- 每个 Tab 带上自己的状态点：用户不用切进去就知道有事没事 -->
+          <span
+            v-if="tabBadge(t.k)"
+            class="saas-dot"
+            :class="{
+              'saas-dot--pulse': true,
+            }"
+            :style="{ background: tabBadge(t.k) }"
+          />
         </button>
       </nav>
 
+      <!-- 🔴 加载态 / 错误条 / 四个面板是**并列**关系，不在同一条 if 链上。
+        之前它们是 v-if / v-if / v-else-if×4：
+        "有错误"时错误条渲染、面板被 v-else-if 跳过；
+        "加载完成"时骨架屏 v-if 变false、面板的 v-else-if 又挂到了错误条上——
+        结果两种情况下面板都不渲染（用户看到「只剩 Tab 头、内容全空」）。
+        现在三者各自独立判断：骨架屏看 loading，面板看 !loading && tab，错误条独立。 -->
       <div v-if="loadError" class="saas-note saas-note--danger">
         <MiniIcon name="warn" :size="15" />
-        <span>{{ loadError }}，导航与品牌暂不可改。请稍后重试。</span>
+        <span>
+          <b>{{ loadError }}</b>
+          <template v-if="catFailed">
+            。这会影响「导航配置」的绑定检查——在数据恢复前，无法判断导航指向的页面是否还存在。
+          </template>
+          <template v-else>。请稍后重试。</template>
+        </span>
       </div>
 
-      <div v-else-if="loading" class="saas-panel ap-pad">
+      <div v-if="loading" class="saas-panel ap-pad">
         <div v-for="i in 4" :key="i" class="saas-skel" style="height: 56px; margin-bottom: 10px" />
       </div>
 
       <!-- ── Tab 1：底部导航 ──────────────────────────────────────────── -->
-      <div v-else-if="tab === 'nav'" class="ap-panel">
+      <div v-if="!loading && tab === 'nav'" class="ap-panel">
         <!-- 绑定体检 -->
         <div class="saas-panel">
           <div class="saas-panel__hd">
@@ -718,7 +810,7 @@ onMounted(() => {
       </div>
 
       <!-- ── Tab 2：品牌资产 ──────────────────────────────────────────── -->
-      <div v-else-if="tab === 'brand'" class="ap-panel">
+      <div v-if="!loading && tab === 'brand'" class="ap-panel">
         <div class="saas-panel">
           <div class="saas-panel__hd">
             <div>
@@ -824,7 +916,7 @@ onMounted(() => {
       </div>
 
       <!-- ── Tab 3：功能开关 ──────────────────────────────────────────── -->
-      <div v-else class="ap-panel">
+      <div v-if="!loading && tab === 'flags'" class="ap-panel">
         <div class="saas-panel">
           <div class="saas-panel__hd">
             <div>
@@ -869,6 +961,251 @@ onMounted(() => {
           </div>
         </div>
       </div>
+
+      <!-- ── Tab 4：预览检查 ──────────────────────────────────────────────
+           配置完直接在这里验证与放行，不再跳去另一个页面。 -->
+      <div v-if="!loading && tab === 'preview'" class="ap-panel">
+        <!-- 发布资格 -->
+        <div class="saas-panel">
+          <div class="saas-panel__hd">
+            <div>
+              <!-- 静态标题给"这是什么"，动态结论给"现在怎样"。
+                   只有动态结论的话，用户扫一眼不知道这块是干什么的。 -->
+              <div class="saas-panel__title">发布前检查</div>
+              <div class="ap-verdict">{{ preview.verdictTitle.value }}</div>
+              <div class="saas-panel__hint">{{ preview.verdictDesc.value }}</div>
+            </div>
+            <!-- 🔴 CTA 闭环（2026-10-06 修正）：
+                 原来「重新检查」是唯一按钮，主操作「去版本管理发布」埋在页面最下方，
+                 用户看完检查结果还要往下滚才能发布 —— 检查与发布断成两段。
+                 现在主次并排：主=发布，次=重新检查，形成「检查 → 确认 → 立即发布」。 -->
+            <div class="ap-check__cta">
+              <button
+                type="button"
+                class="saas-btn saas-btn--primary saas-btn--sm"
+                :disabled="!preview.canPublish.value || !preview.wb.facts.value.pendingCount"
+                :title="
+                  !preview.canPublish.value
+                    ? '有阻断项或检查服务不可用，先处理左侧问题'
+                    : !preview.wb.facts.value.pendingCount
+                      ? '当前没有待发布改动'
+                      : '到版本管理确认发布配置'
+                "
+                @click="router.push('/mini/versions')"
+              >
+                <MiniIcon name="upload" :size="13" />
+                {{ preview.wb.facts.value.pendingCount ? '去版本管理发布' : '无待发布改动' }}
+              </button>
+              <button
+                type="button"
+                class="saas-btn saas-btn--sm"
+                :disabled="preview.loading.value"
+                @click="preview.load()"
+              >
+                重新检查
+              </button>
+            </div>
+          </div>
+
+          <div class="saas-panel__bd ap-check">
+            <!-- 检查服务不可用：不能显示「0 阻断」 -->
+            <div v-if="!preview.preflightKnown.value" class="saas-note saas-note--warn">
+              <MiniIcon name="warn" :size="15" />
+              <span>发布前检查服务暂时不可用，<b>无法确认</b>是否可以发布。请稍后重试。</span>
+            </div>
+
+            <!-- 体检与发布资格矛盾时必须点破，不能装作没事 -->
+            <div v-if="preview.scanConflict.value" class="saas-note saas-note--warn">
+              <MiniIcon name="warn" :size="15" />
+              <span>{{ preview.scanConflict.value }}</span>
+            </div>
+
+            <!-- 阻断项 -->
+            <div v-if="preview.blockers.value.length" class="ap-issues">
+              <div class="ap-issues__hd">
+                <span class="ap-issues__n">{{ preview.blockers.value.length }}</span> 个阻断项
+                <span class="saas-cap">处理完才能发布</span>
+              </div>
+              <div v-for="(b, i) in preview.blockers.value" :key="`b${i}`" class="ap-issue is-danger">
+                <MiniIcon name="x" :size="13" />
+                <span class="saas-grow">{{ b.text }}</span>
+                <button
+                  v-if="b.action?.to"
+                  type="button"
+                  class="saas-btn saas-btn--sm"
+                  @click="router.push(b.action.to)"
+                >
+                  修复
+                </button>
+              </div>
+            </div>
+
+            <div v-else-if="preview.preflightKnown.value" class="saas-note saas-note--success">
+              <MiniIcon name="check" :size="15" />
+              <span>没有阻断发布的问题。</span>
+            </div>
+
+            <!-- 提醒：折叠时露出前 2 条。
+                 🔴 2026-10-06 修正：原来默认全折叠，标题只写「7 条提醒」，
+                    下方内容体检却四项都是 0 —— 运营看到的是「要发 7 个问题，但检查说没问题」，
+                    完全不知道该不该发。现在收起时也把前 2 条亮出来，
+                    让人知道提醒是关于什么的。 -->
+            <div v-if="preview.warnings.value.length" class="ap-issues">
+              <button type="button" class="ap-issues__toggle" @click="warnOpen = !warnOpen">
+                <span class="ap-issues__n ap-issues__n--warn">{{ preview.warnings.value.length }}</span>
+                条提醒
+                <span class="saas-cap">{{ warnOpen ? '收起' : '展开全部' }}</span>
+                <MiniIcon :name="warnOpen ? 'chev' : 'down'" :size="13" />
+              </button>
+              <!-- 收起时也展示前 2 条（高危优先），不逼用户点开才知道内容 -->
+              <div v-for="(w, i) in (warnOpen
+                ? preview.warnings.value
+                : preview.warnings.value.slice(0, 2))" :key="`w${i}`" class="ap-issue is-warn">
+                <MiniIcon name="warn" :size="13" />
+                <span class="saas-grow">{{ w.text }}</span>
+                <button
+                  v-if="w.action?.to"
+                  type="button"
+                  class="saas-btn saas-btn--sm"
+                  @click="router.push(w.action.to)"
+                >
+                  {{ w.action.label || '立即修复' }}
+                </button>
+              </div>
+              <p v-if="!warnOpen && preview.warnings.value.length > 2" class="ap-issues__more">
+                还有 {{ preview.warnings.value.length - 2 }} 条，点击展开
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 内容体检 -->
+        <div class="saas-panel">
+          <div class="saas-panel__hd">
+            <div>
+              <div class="saas-panel__title">内容体检</div>
+              <div class="saas-panel__hint">扫描导航失效、缺名称与已下线页面</div>
+            </div>
+          </div>
+
+          <div class="saas-panel__bd">
+            <!-- 🔴 读取失败时不能显示 0，那会被误读成"没有问题" -->
+            <div v-if="preview.scanError.value" class="saas-note saas-note--danger">
+              <MiniIcon name="warn" :size="15" />
+              <span>
+                页面清单读取失败：{{ preview.scanError.value }}
+                <b>体检结果不可用</b>，这不是"没有问题"。
+              </span>
+            </div>
+
+            <template v-else>
+              <div class="ap-scan">
+                <div class="ap-scan__cell">
+                  <span class="saas-cap">失效导航</span>
+                  <strong :class="preview.scan.value.brokenLink ? 'bad' : 'good'">
+                    {{ preview.scan.value.brokenLink }}
+                  </strong>
+                </div>
+                <div class="ap-scan__cell">
+                  <span class="saas-cap">缺名称</span>
+                  <strong :class="preview.scan.value.noname ? 'warn' : 'good'">
+                    {{ preview.scan.value.noname }}
+                  </strong>
+                </div>
+                <div class="ap-scan__cell">
+                  <span class="saas-cap">可疑空页</span>
+                  <strong :class="preview.scan.value.emptyPage ? 'warn' : 'good'">
+                    {{ preview.scan.value.emptyPage }}
+                  </strong>
+                </div>
+                <div class="ap-scan__cell">
+                  <span class="saas-cap">已下线</span>
+                  <strong :class="preview.scan.value.offline ? 'warn' : 'good'">
+                    {{ preview.scan.value.offline }}
+                  </strong>
+                </div>
+                <!-- 🔴 占位内容单独一格（2026-10-06 新增）。
+                     前四格是"结构问题"（链接/命名/上下线），这一格是"内容问题"：
+                     研发演示数据漏到用户可见页面。性质不同，不能混在同一组里。 -->
+                <div class="ap-scan__cell" :class="{ 'ap-scan__cell--alert': preview.mockLeaks.value.length }">
+                  <span class="saas-cap">占位内容</span>
+                  <strong :class="preview.mockLeaks.value.length ? 'bad' : 'good'">
+                    {{ preview.mockLeaks.value.length }}
+                  </strong>
+                </div>
+              </div>
+
+              <!-- 占位内容明细：必须列出具体是哪几页，光给数字等于让人猜 -->
+              <div v-if="preview.mockLeaks.value.length" class="ap-scan__leak">
+                <div class="ap-scan__leak-hd">
+                  <MiniIcon name="warn" :size="13" />
+                  检测到未清理的示例/占位内容，发布后用户会看到
+                </div>
+                <ul>
+                  <li v-for="(d, i) in preview.mockLeaks.value" :key="i">{{ d }}</li>
+                </ul>
+              </div>
+
+              <ul v-if="preview.scan.value.details.length" class="ap-scan__list">
+                <li v-for="(d, i) in preview.scan.value.details" :key="i">{{ d }}</li>
+              </ul>
+            </template>
+          </div>
+        </div>
+
+        <!-- 预览 -->
+        <div class="saas-panel">
+          <div class="saas-panel__hd">
+            <div>
+              <div class="saas-panel__title">草稿 / 线上预览</div>
+              <div class="saas-panel__hint">草稿含未发布改动；线上是用户当前看到的样子</div>
+            </div>
+            <button type="button" class="saas-btn saas-btn--sm" @click="qrVisible = true">
+              <MiniIcon name="qr" :size="13" />手机预览
+            </button>
+          </div>
+          <div class="saas-panel__bd">
+            <!-- 🔴 DevicePreview 自己管草稿/线上切换（内部状态），
+                 所以这里传两个 URL 由它内部决定，不在外面再做一个 seg 假装联动。
+                 外面那个 seg 会和它的内部状态不一致 —— 那是假的联动。 -->
+            <div class="ap-preview">
+              <DevicePreview
+                :preview-url="preview.previewUrl.value"
+                :preview-url-live="preview.previewUrlLive.value"
+                :iframe-key="preview.previewKey.value"
+                :show-mode-switch="true"
+                :hint="preview.previewHint.value"
+                @scan="qrVisible = true"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 快捷入口 -->
+        <div class="saas-panel">
+          <div class="saas-panel__hd">
+            <div>
+              <div class="saas-panel__title">待发布与快捷入口</div>
+              <div class="saas-panel__hint">
+                {{ preview.wb.facts.value.pendingCount || 0 }} 项改动已存草稿，发布后才会影响线上
+              </div>
+            </div>
+          </div>
+          <div class="saas-panel__bd ap-links">
+            <button type="button" class="saas-btn" @click="router.push('/mini/pages')">
+              <MiniIcon name="page" :size="14" />去页面管理
+            </button>
+            <button
+              type="button"
+              class="saas-btn saas-btn--primary"
+              :disabled="!preview.canPublish.value || !preview.wb.facts.value.pendingCount"
+              @click="router.push('/mini/versions')"
+            >
+              <MiniIcon name="upload" :size="14" />去版本管理发布
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- 右：实时模拟器 -->
@@ -905,6 +1242,9 @@ onMounted(() => {
         />
       </div>
     </aside>
+
+    <!-- 真机预览：扫码在手机上打开草稿口径的 H5 模拟 -->
+    <MiniH5QrDialog v-model="qrVisible" mode="miniapp-draft" title="扫码预览草稿" />
   </div>
 </template>
 
@@ -946,6 +1286,134 @@ onMounted(() => {
   &.is-warn { color: var(--saas-warn); }
   &.is-danger { color: var(--saas-danger); }
 }
+
+.ap-check { display: flex; flex-direction: column; gap: 10px; }
+
+/* 检查结论：比标题重一档、但比正文轻，用颜色表达"能不能发" */
+.ap-verdict {
+  margin-top: 4px;
+  font-size: var(--saas-fs-body);
+  font-weight: 600;
+  color: var(--saas-ink);
+}
+
+/* 阻断 / 提醒列表 */
+.ap-issues { display: flex; flex-direction: column; gap: 6px; }
+.ap-issues__hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--saas-fs-cap);
+  font-weight: 500;
+  color: var(--saas-ink-2);
+}
+.ap-issues__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--saas-fs-cap);
+  font-weight: 500;
+  color: var(--saas-ink-2);
+  cursor: pointer;
+}
+.ap-issues__n {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: var(--saas-r-full);
+  background: var(--saas-danger-bg);
+  color: var(--saas-danger);
+  font-family: var(--saas-mono);
+  font-size: var(--saas-fs-mono);
+  &--warn { background: var(--saas-warn-bg); color: var(--saas-warn); }
+}
+.ap-issue {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--saas-r-md);
+  font-size: var(--saas-fs-cap);
+  line-height: 1.5;
+  &.is-danger { background: var(--saas-danger-bg); color: var(--saas-danger); }
+  &.is-warn { background: var(--saas-warn-bg); color: var(--saas-warn); }
+}
+
+/* 内容体检四宫格 */
+.ap-scan {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.ap-scan__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--saas-border);
+  border-radius: var(--saas-r-md);
+  strong { font-family: var(--saas-mono); font-size: 18px; line-height: 1.2; }
+  strong.good { color: var(--saas-success); }
+  strong.warn { color: var(--saas-warn); }
+  strong.bad { color: var(--saas-danger); }
+}
+.ap-scan__list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: var(--saas-fs-cap);
+  line-height: 1.8;
+  color: var(--saas-ink-2);
+}
+
+/* DevicePreview 自带 sticky 定位，工作台里改为静态流式排布 */
+.ap-preview {
+  display: flex;
+  justify-content: center;
+  :deep(.device-preview) { position: static; max-width: none; }
+}
+
+/* CTA 闭环：主按钮 + 次按钮并排 */
+.ap-check__cta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+/* 占位内容告警格：唯一用 danger 底色的体检格，视觉上要能一眼看到 */
+.ap-scan__cell--alert {
+  border-color: var(--saas-danger);
+  background: var(--saas-danger-bg);
+}
+
+.ap-scan__leak {
+  margin-top: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--saas-danger);
+  border-radius: var(--saas-r-md);
+  background: var(--saas-danger-bg);
+  font-size: var(--saas-fs-cap);
+  line-height: 1.7;
+  color: var(--saas-danger);
+}
+.ap-scan__leak-hd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.ap-scan__leak ul { margin: 0; padding-left: 20px; }
+
+.ap-issues__more {
+  margin: 2px 0 0;
+  font-size: var(--saas-fs-cap);
+  color: var(--saas-ink-3);
+}
+
+.ap-links { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* ── 导航列表 ──────────────────────────────────────────────────────────── */
 .ap-list { padding: 8px; display: flex; flex-direction: column; gap: 8px; }

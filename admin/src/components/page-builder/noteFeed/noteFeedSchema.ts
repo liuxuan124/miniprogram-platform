@@ -24,6 +24,28 @@ export type NoteMetric = 'like' | 'view' | 'collect' | 'none'
 /** 标题行数限制 */
 export type NoteTitleLines = 1 | 2 | 0
 
+/**
+ * 卡片阴影预设（2026-06 新增）。
+ * - `light`：柔和微光（**默认** —— 与改前原值逐字一致，老页面零变化）
+ * - `light`：柔和微光—— 卡片密集时最耐看
+ * - `normal`：标准弥散 —— 层级更强，适合单列大图
+ * - `custom`：才展开 X / Y / 模糊 / 扩散 / 颜色 5 列参数
+ *
+ * ⚠️ 此前 Schema 里 shadow 零命中，但**渲染器本来就写了**
+ * `0 2px 8px rgba(15,18,25,.06)` —— 那正是「柔和微光」档。
+ * 所以缺省必须是 `light`；回落 `none` 会让老页面集体丢阴影。
+ */
+export type NoteCardShadow = 'none' | 'light' | 'normal' | 'custom'
+
+/** 自定义阴影参数（仅 card_shadow === 'custom' 时生效） */
+export interface NoteShadowBox {
+  x: number
+  y: number
+  blur: number
+  spread: number
+  color: string
+}
+
 export interface NoteTypeTab {
   label: string
   content_types: NoteContentType[]
@@ -50,6 +72,19 @@ export interface NoteFeedProps {
   tab_font_size: number
   tab_active_style: NoteTabActive
   tab_active_color: string
+
+  /* ---- 2026-10-06 第二批：解除写死的红条 ----
+     ⚠️ 下列两项此前**完全写死在渲染器 CSS 里**，换主题只能改代码：
+       · 指示器背景 `#ec2f55`（那条红杠）
+       · 搜索图标颜色 */
+  /** 一级 Tab 激活指示器颜色；空 = 跟随 tab_active_color */
+  tab_indicator_color: string
+  /** 搜索图标颜色；空 = 跟随未选文字色（tab_text_color） */
+  search_icon_color: string
+
+  /* ---- 卡片阴影（预设 + 自定义；选「自定义」才展开 5 列） ---- */
+  card_shadow: NoteCardShadow
+  card_shadow_custom: NoteShadowBox
 
   /* ---- 两层导航的容器与底色（2026-10-06 新增，此前全部硬编码） ----
      ⚠️ 这两层此前在渲染器里写死，运营只能改「选中高亮形态 / 激活主色」，
@@ -134,6 +169,15 @@ export const PAGE_SIZE = { min: 6, max: 30, step: 1, fallback: 10 } as const
 export const TITLE_SIZE = { min: 13, max: 18, step: 1, fallback: 15 } as const
 
 export const TAB_FONT_SIZE = { min: 14, max: 18, step: 1, fallback: 16 } as const
+
+/* ---- 2026-10-06 第二批补齐的区间 ----
+   fallback 逐字取渲染器原硬编码值，保证老页面零视觉变化 */
+export const TAB_INDICATOR_COLOR = { fallback: '#ec2f55' } as const
+export const SEARCH_ICON_COLOR = { fallback: '' } as const
+export const SHADOW_XY = { min: -20, max: 20, step: 1, fallback: 0 } as const
+export const SHADOW_BLUR = { min: 0, max: 80, step: 1, fallback: 12 } as const
+export const SHADOW_SPREAD = { min: -10, max: 20, step: 1, fallback: 0 } as const
+export const SHADOW_COLOR = { fallback: 'rgba(15, 18, 25, 0.10)' } as const
 
 /* ---- 两层导航的区间（2026-10-06 新增，与面板滑块共用） ----
    fallback 一律取**渲染器原硬编码值**，保证老页面零视觉变化。 */
@@ -222,6 +266,20 @@ export const NOTE_FEED_DEFAULT_PROPS: NoteFeedProps = {
   tab_active_style: 'bar',
   tab_active_color: '',
 
+  /* 第二批补齐（2026-10-06）：默认值 = 渲染器原硬编码，老页面零变化
+     ⚠️ `card_shadow: 'none'` 因为改前渲染器**完全没写 box-shadow** */
+  tab_indicator_color: TAB_INDICATOR_COLOR.fallback,
+  search_icon_color: SEARCH_ICON_COLOR.fallback,
+  // 🔴 缺省必须是 light：原渲染器写的是 0 2px 8px rgba(15,18,25,.06)，正是「柔和微光」
+  card_shadow: 'light',
+  card_shadow_custom: {
+    x: SHADOW_XY.fallback,
+    y: SHADOW_XY.fallback,
+    blur: SHADOW_BLUR.fallback,
+    spread: SHADOW_SPREAD.fallback,
+    color: SHADOW_COLOR.fallback,
+  },
+
   /* 两层导航：默认值 = 渲染器此前的硬编码值，逐字对齐，老页面零视觉变化 */
   nav_bg: '',
   nav_radius: NAV_RADIUS.fallback,
@@ -284,6 +342,36 @@ export function clampNoteNumber(
 
 function pickEnum<T extends string | number>(value: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback
+}
+
+const CARD_SHADOW_VALUES: NoteCardShadow[] = ['none', 'light', 'normal', 'custom']
+
+/**
+ * 阴影预设归一（2026-10-06）。
+ * 🔴 缺省回落 `none` 而不是 `light` —— 改前渲染器**完全没写 box-shadow**，
+ * 若默认给一层微光，所有老页面加载后会集体变样。
+ */
+export function normalizeCardShadow(raw: unknown): NoteCardShadow {
+  // 🔴 fallback 必须是 light 不是 none —— 原渲染器已有 0 2px 8px 微光，
+  // 回落 none 会让所有老页面加载后集体「丢失阴影」
+  return pickEnum(raw, CARD_SHADOW_VALUES, 'light')
+}
+
+/**
+ * 自定义阴影参数归一。
+ * ⚠️ 逐项独立夹紧 + 单出口返回：中途 `return {}` 会让后面的键丢失，
+ * 且 TS 会推成联合类型（项目记忆里的既有坑）。
+ */
+export function normalizeShadowBox(raw: unknown): NoteShadowBox {
+  const src = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const out: NoteShadowBox = {
+    x: clampNoteNumber(src.x, SHADOW_XY.min, SHADOW_XY.max, 1, SHADOW_XY.fallback),
+    y: clampNoteNumber(src.y, SHADOW_XY.min, SHADOW_XY.max, 1, SHADOW_XY.fallback),
+    blur: clampNoteNumber(src.blur, SHADOW_BLUR.min, SHADOW_BLUR.max, 1, SHADOW_BLUR.fallback),
+    spread: clampNoteNumber(src.spread, SHADOW_SPREAD.min, SHADOW_SPREAD.max, 1, SHADOW_SPREAD.fallback),
+    color: String(src.color || SHADOW_COLOR.fallback),
+  }
+  return out
 }
 
 const CONTENT_TYPES: NoteContentType[] = ['note', 'article', 'moment', 'product']
@@ -401,6 +489,19 @@ export function normalizeNoteFeedProps(raw: Record<string, any> | undefined | nu
     tab_active_style: pickEnum(p.tab_active_style, ['bar', 'fill', 'ink'] as const, 'bar'),
     tab_active_color: String(p.tab_active_color || ''),
 
+    // ---- 第二批补齐（2026-10-06）----
+    // ⚠️ 归一化口径与渲染器原硬编码逐字一致：缺省才回落，空串表示「跟随」。
+    // 这样运营把指示器色清空 = 跟随激活主色（而不是退回红条），
+    // 而**未配置**的老页面仍拿到 #ec2f55，视觉零变化。
+    tab_indicator_color: p.tab_indicator_color === undefined
+      ? TAB_INDICATOR_COLOR.fallback
+      : String(p.tab_indicator_color || ''),
+    search_icon_color: p.search_icon_color === undefined
+      ? SEARCH_ICON_COLOR.fallback
+      : String(p.search_icon_color || ''),
+    card_shadow: normalizeCardShadow(p.card_shadow),
+    card_shadow_custom: normalizeShadowBox(p.card_shadow_custom),
+
     // ---- 两层导航（2026-10-06）----
     // ⚠️ 归一化口径与原硬编码逐字一致：空串/缺省要回落到「原值」而不是空，
     // 否则老页面加载后导航会突然变透明 / 分割线消失 —— 那是视觉突变。
@@ -480,3 +581,10 @@ export function noteContainerStyle(props: NoteFeedProps): Record<string, string>
     paddingRight: `${props.page_gutter}px`,
   }
 }
+
+/* ---- 品牌色板（2026-10-06 补导出） ----
+   🔴 此前 `BRAND_PALETTE` 只在 brandHeaderSchema 里定义，而 NoteFeedProps /
+   NoteFeedStyleProps 的模板里都在用却**没导入** —— Vue 模板取到 undefined，
+   取色器的预设色板静默降级为空（不报错，所以一直没人发现）。
+   这里从品牌顶栏的 Schema 转发导出，避免跨域引用，也顺手把这个坑堵上。 */
+export { BRAND_PALETTE } from '../brandHeader/brandHeaderSchema'

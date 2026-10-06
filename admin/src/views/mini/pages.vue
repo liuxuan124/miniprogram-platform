@@ -60,7 +60,7 @@
         <div class="navmap__hd">
           <span class="navmap__t">底部导航</span>
           <span class="faint">点击已绑定的槽位直接进入装修</span>
-          <button type="button" class="link navmap__go" @click="router.push('/mini/appearance?tab=nav')">
+          <button type="button" class="link navmap__go" @click="router.push('/mini/workbench?tab=nav')">
             去导航配置
           </button>
         </div>
@@ -94,7 +94,7 @@
         <button
           type="button"
           class="btn primary"
-          @click="router.push('/mini/releases')"
+          @click="router.push('/mini/versions')"
         >
           去发布配置
         </button>
@@ -1306,7 +1306,7 @@ function onNavSlotClick(tab: MiniTabBarItem) {
     return
   }
   ElMessage.info('该导航位未绑定装修页，可到「导航配置」或页面行的「设为底部导航入口」绑定')
-  router.push('/mini/appearance?tab=nav')
+  router.push('/mini/workbench?tab=nav')
 }
 
 /** 导航槽位绑的是不是「我的」系统页（路径固定 /pages/mine/mine） */

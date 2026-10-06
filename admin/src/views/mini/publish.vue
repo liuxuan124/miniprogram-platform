@@ -11,7 +11,7 @@
             <div class="sub">把草稿发布到线上配置，并保存一份可回溯的版本快照</div>
           </div>
           <div class="actions">
-            <button type="button" class="btn soft" @click="router.push('/mini/releases')">预览检查 ›</button>
+            <button type="button" class="btn soft" @click="router.push('/mini/versions')">预览检查 ›</button>
           </div>
         </div>
 
@@ -151,10 +151,10 @@
 
           <div v-if="hasBlocking" class="fix-list">
             <span class="fix-head">修复入口</span>
-            <button type="button" class="btn sm" @click="router.push('/mini/appearance?tab=nav')">检查导航绑定</button>
-            <button type="button" class="btn sm" @click="router.push('/mini/appearance?tab=brand')">检查品牌配置</button>
+            <button type="button" class="btn sm" @click="router.push('/mini/workbench?tab=nav')">检查导航绑定</button>
+            <button type="button" class="btn sm" @click="router.push('/mini/workbench?tab=brand')">检查品牌配置</button>
             <button type="button" class="btn sm" @click="router.push('/mini/pages')">检查页面状态</button>
-            <button type="button" class="btn sm" @click="router.push('/mini/releases')">打开完整检查</button>
+            <button type="button" class="btn sm" @click="router.push('/mini/versions')">打开完整检查</button>
           </div>
 
           <!-- 变更摘要 -->

@@ -432,6 +432,7 @@
             :step="PAGE_SIZE_RANGE.step"
             :fallback="PAGE_SIZE_RANGE.fallback"
             @update:model-value="(v: number) => patch({ page_size: v })"
+              semantic="count"
           />
         </div>
 

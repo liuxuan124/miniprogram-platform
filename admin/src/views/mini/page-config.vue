@@ -14,7 +14,7 @@
           <button type="button" class="btn soft" @click="router.push('/mini/pages')">
             <MiniIcon name="page" :size="15" />页面搭建
           </button>
-          <button type="button" class="btn soft" @click="router.push('/mini/appearance?tab=nav')">
+          <button type="button" class="btn soft" @click="router.push('/mini/workbench?tab=nav')">
             <MiniIcon name="tab" :size="15" />导航配置
           </button>
         </div>
@@ -29,7 +29,7 @@
               <b>系统原生页</b>
               <span class="faint">由小程序内置模板渲染（如「我的」「登录」）。不能改结构，只能改文案与开关，或换绑导航位。</span>
             </div>
-            <button type="button" class="btn sm soft" @click="router.push('/mini/appearance?tab=flags')">配置入口</button>
+            <button type="button" class="btn sm soft" @click="router.push('/mini/workbench?tab=flags')">配置入口</button>
           </div>
           <div class="scope-item">
             <span class="scope-ic dec"><MiniIcon name="palette" :size="15" /></span>

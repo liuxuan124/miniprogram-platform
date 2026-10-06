@@ -21,10 +21,16 @@ export default defineConfig({
     // 🔴 include 是**白名单**：新测试文件不加进来就会被静默跳过（`vitest` 报 0 tests 也不报错）
     include: [
       'src/utils/editorKeyboardGuard.test.ts',
+      // editorPersist + 画布 hydrate 触发条件（2026-10-06）
       'src/composables/useEditorPersist.test.ts',
+      'src/composables/useEditorPersist.canvasHydrate.spec.ts',
+      // 脏标记乐观置位 + 防抖校验（2026-10-06）
+      'src/stores/page.dirtyOptimistic.spec.ts',
       'src/utils/dsl-*.test.ts',
       // 文章流「不限篇数」解耦 + 来源标签动态映射表（2026-10-06）
       'src/components/page-builder/articleFeed/*.test.ts',
+      // 演示数据漏出到预览的回归（2026-10-06）
+      'src/components/page-builder/columnConfig.mockLeak.test.ts',
       // 笔记流两层导航样式（2026-10-06）
       'src/components/page-builder/noteFeed/*.test.ts',
     ],

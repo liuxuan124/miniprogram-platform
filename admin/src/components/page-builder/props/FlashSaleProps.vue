@@ -329,6 +329,7 @@
             :step="LIMIT.step"
             :fallback="LIMIT.fallback"
             @update:model-value="(v: number) => patch({ limit: v })"
+              semantic="count"
           />
         </div>
       </el-collapse-item>
